@@ -176,6 +176,13 @@
       "when": 1789885657940,
       "tag": "0024_set_prescription_fields",
       "breakpoints": true
+    },
+    {
+      "idx": 25,
+      "version": "7",
+      "when": 1790121600000,
+      "tag": "0025_coaching_review",
+      "breakpoints": true
     }
   ]
 }

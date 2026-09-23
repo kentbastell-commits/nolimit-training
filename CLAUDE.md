@@ -830,6 +830,10 @@ data between them, never "borrow" a table ID across products.
     session survives into a shorter one and renders as "Exercise 2/1" with a
     blank card — reset any such index explicitly on every new entry point,
     never assume it starts at a sane default just because `useState(0)` said so.
+    Coaching queues must share source identity and resolution rules with their
+    badges and athlete summaries. Key follow-up state by source plus content
+    revision so corrected check-ins reopen; use assignment IDs for actual sets,
+    and pass the target athlete when opening a workout from outside their workspace.
 
 62. **The in-place rewrite under an immutable cache** — `optimizeVideos.sh`
     (10-min cron) recompresses uploaded videos IN PLACE (same URL, new

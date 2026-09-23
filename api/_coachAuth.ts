@@ -45,6 +45,8 @@ export function isVerifiedCoach(req: { headers: Record<string, unknown> }): bool
 // don't trust a prior comment's claim without re-verifying it.
 export const COACH_ONLY_HANDLERS = new Set([
   "assignedSession",
+  "coachingReview",
+  "coachingReviewHistory",
   "analytics",
   "assignContent",
   "assignProgram",

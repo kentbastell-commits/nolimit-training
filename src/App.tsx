@@ -1,4 +1,5 @@
 import CoachDraftNotice from "./CoachDraftNotice";
+import { athleteFacts, buildCoachingItems, coachingDate, decisionStatus, isAdminItem, type CoachingItem, type ReviewDecision } from "./coachingReview";
 import { readCoachDrafts, writeCoachDraft, removeCoachDraft, type CoachDraft } from "./coachDraft";
 import { validQuestionAnswer, testInputMode, isTwoKm, buildTestAnswer, displayAnswer } from "./contentAnswers";
 import CalendarWorkoutEditor from "./CalendarWorkoutEditor";
@@ -204,7 +205,7 @@ const CoachingFlowPage = withSuspense(() => import("./CoachingFlowPage"));
 const InPersonEnquiryPage = withSuspense(() => import("./InPersonEnquiryPage"));
 const LegalPage = withSuspense(() => import("./LegalPage"));
 const PortalWelcome = withSuspense(() => import("./PortalWelcome"));
-const ReviewPage = withSuspense(() => import("./ReviewPage"));
+const ReviewPage = withSuspense(() => import("./DailyReview"));
 const loadCoachClientsPage = () => import("./CoachClientsPage");
 const CoachClientsPage = withSuspense(loadCoachClientsPage);
 const CoachOrdersPage = withSuspense(() => import("./CoachOrdersPage"));
@@ -1172,6 +1173,20 @@ function App({ onReady, bootVisible = true }: { onReady?: () => void; bootVisibl
     WorkoutComment[]
   >([]);
   const [coachReviewWorkouts, setCoachReviewWorkouts] = useState<Workout[]>([]);
+  const [coachingWorkoutsReady, setCoachingWorkoutsReady] = useState(false);
+  const [coachingCheckIns, setCoachingCheckIns] = useState<PortalCheckIn[]>([]);
+  const [coachingActivityReady, setCoachingActivityReady] = useState(false);
+  const [reviewDecisions, setReviewDecisions] = useState<ReviewDecision[]>([]);
+  const [reviewDecisionsReady, setReviewDecisionsReady] = useState(false);
+  const [dailyReviewView, setDailyReviewView] = useState({ filter: "dailyAll", athlete: "", search: "", selected: "", limit: 18, scroll: 0 });
+  const [reviewReturn, setReviewReturn] = useState(false);
+  const [dailyReviewNotes, setDailyReviewNotes] = useState<Record<string, string>>({});
+  const [coachingNow, setCoachingNow] = useState(Date.now());
+  useEffect(() => {
+    if (!coachBackgroundReady) return;
+    const timer = window.setInterval(() => setCoachingNow(Date.now()), 30000);
+    return () => window.clearInterval(timer);
+  }, [coachBackgroundReady]);
   // Unreviewed check-ins across all clients + the coach's in-progress replies.
   const [coachReviewCheckIns, setCoachReviewCheckIns] = useState<
     (PortalCheckIn & { clientName?: string })[]
@@ -4038,7 +4053,6 @@ function App({ onReady, bootVisible = true }: { onReady?: () => void; bootVisibl
     }
     const all = (data.checkIns || []) as PortalCheckIn[];
     return all
-      .filter((c) => !c.coachReviewed)
       .map((c) => {
         const match = clients.find(
           (cl) =>
@@ -4084,7 +4098,7 @@ function App({ onReady, bootVisible = true }: { onReady?: () => void; bootVisibl
         return;
       }
       setCoachClientMessages((cur) =>
-        cur.filter((m) => m.messageId !== message.messageId)
+        cur.map((m) => m.messageId === message.messageId ? { ...m, coachReply: text, status: "Replied" } : m)
       );
       setMessageReplyDrafts((cur) => {
         const next = { ...cur };
@@ -4127,6 +4141,7 @@ function App({ onReady, bootVisible = true }: { onReady?: () => void; bootVisibl
       setCoachReviewCheckIns((cur) =>
         cur.filter((c) => c.recordId !== checkIn.recordId)
       );
+      setCoachingCheckIns(cur => cur.map(c => c.recordId === checkIn.recordId ? { ...c, coachResponse: text, coachReviewed: true } : c));
       setCheckInReplyDrafts((cur) => {
         const next = { ...cur };
         delete next[checkIn.recordId];
@@ -4150,14 +4165,14 @@ function App({ onReady, bootVisible = true }: { onReady?: () => void; bootVisibl
     // with an error toast. Failed feeds keep their previous data and get one
     // quiet retry before anything is surfaced.
     const fetchNewClientMessages = async () => {
-      const response = await fetch("/api/clientMessages?status=New");
+      const response = await fetch("/api/clientMessages");
       const data = await response.json();
       if (!response.ok) throw new Error(data?.error || "clientMessages failed");
       return data.messages || [];
     };
 
     const attempt = async (): Promise<number> => {
-      const [, responses, comments, assignedWorkouts, checkIns, enquiryList, messageList] =
+      const [ordersResult, responses, comments, assignedWorkouts, checkIns, enquiryList, messageList, decisionsResult] =
         await Promise.allSettled([
           loadProductOrders(force),
           fetchAllContentResponses(),
@@ -4166,26 +4181,37 @@ function App({ onReady, bootVisible = true }: { onReady?: () => void; bootVisibl
           fetchUnreviewedCheckIns(),
           fetchEnquiries(),
           fetchNewClientMessages(),
+          fetch("/api/coachingReview").then(async res => { if (!res.ok) throw new Error("review states unavailable"); return (await res.json()).states; }),
         ]);
 
       if (responses.status === "fulfilled")
         setCoachReviewResponses(responses.value);
       if (comments.status === "fulfilled") setCoachReviewComments(comments.value);
-      if (assignedWorkouts.status === "fulfilled")
+      if (assignedWorkouts.status === "fulfilled") {
         setCoachReviewWorkouts(assignedWorkouts.value);
-      if (checkIns.status === "fulfilled") setCoachReviewCheckIns(checkIns.value);
+        setCoachingWorkoutsReady(true);
+        setRosterLoadWorkouts(assignedWorkouts.value); setRosterActivityState("ready");
+      }
+      if (checkIns.status === "fulfilled") {
+        setCoachingCheckIns(checkIns.value); setCoachingActivityReady(true);
+        setCoachReviewCheckIns(checkIns.value.filter(c => !c.coachReviewed));
+      }
+      if (decisionsResult.status === "fulfilled") { setReviewDecisions(decisionsResult.value); setReviewDecisionsReady(true); }
+      else setReviewDecisionsReady(false);
       if (enquiryList.status === "fulfilled")
         setCoachReviewEnquiries(enquiryList.value);
       if (messageList.status === "fulfilled")
         setCoachClientMessages(messageList.value);
 
       const failures = [
+        ordersResult,
         responses,
         comments,
         assignedWorkouts,
         checkIns,
         enquiryList,
         messageList,
+        decisionsResult,
       ].filter((r) => r.status === "rejected");
       failures.forEach((f) =>
         console.error("review feed failed:", (f as PromiseRejectedResult).reason)
@@ -4209,6 +4235,17 @@ function App({ onReady, bootVisible = true }: { onReady?: () => void; bootVisibl
     } finally {
       setCoachReviewLoading(false);
     }
+  };
+
+  const saveReviewDecision = async (item: CoachingItem, status: string, until: number | null, note: string) => {
+    if (!reviewDecisionsReady) throw new Error("unavailable");
+    const { source: _source, ...snapshot } = item;
+    const response = await fetch("/api/coachingReview", { method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ key: item.key, revision: item.revision, item: snapshot, status, until, note, version: reviewDecisions.find(s => s.key === item.key)?.version || 0 }) });
+    if (response.status === 409) { await loadCoachReviewQueue(true); throw new Error("conflict"); }
+    if (!response.ok) throw new Error("failed");
+    const data = await response.json();
+    setReviewDecisions(current => [...current.filter(s => s.key !== item.key), data.state]);
   };
 
   const markGlobalWorkoutCommentReviewed = async (comment: WorkoutComment) => {
@@ -7334,7 +7371,7 @@ function App({ onReady, bootVisible = true }: { onReady?: () => void; bootVisibl
     return () => window.removeEventListener("beforeunload", warnBeforeUnload);
   }, [selectedWorkout, workoutDraftUnsafe]);
 
-  const openWorkout = async (workout: Workout) => {
+  const openWorkout = async (workout: Workout, workoutClient = selectedClient) => {
     setSelectedWorkout(workout);
     setWorkoutLoggingStarted(false);
     // A leftover start time from an abandoned session would inflate this
@@ -7361,14 +7398,14 @@ function App({ onReady, bootVisible = true }: { onReady?: () => void; bootVisibl
               `/api/workoutDetails?programId=${workout.programId}&week=${workout.week}&day=${
                 workout.day
               }&clientCode=${encodeURIComponent(
-                selectedClient?.clientCode || selectedClient?.id || ""
+                workoutClient?.clientCode || workoutClient?.id || ""
               )}`
             )
           : null,
         fetch(
           `/api/workoutHistory?clientId=${
-            selectedClient?.id || ""
-          }&clientCode=${encodeURIComponent(selectedClient?.clientCode || "")}`
+            workoutClient?.id || ""
+          }&clientCode=${encodeURIComponent(workoutClient?.clientCode || "")}`
         ),
       ]);
 
@@ -7378,7 +7415,7 @@ function App({ onReady, bootVisible = true }: { onReady?: () => void; bootVisibl
       const exercises = data.exercises || [];
       const historyData = await historyResponse.json();
       const baseLogs = buildSetLogs(exercises);
-      const draftKey = getWorkoutDraftKey(workout, selectedClient);
+      const draftKey = getWorkoutDraftKey(workout, workoutClient);
       const savedDraft = draftKey
         ? window.localStorage.getItem(draftKey)
         : null;
@@ -7394,7 +7431,7 @@ function App({ onReady, bootVisible = true }: { onReady?: () => void; bootVisibl
       if (reviewingCompleted) {
         const wDate = normalizeDate(String(workout.scheduledDate));
         const dayLogs = (historyData.logs || []).filter(
-          (l: WorkoutHistoryLog) => l.date === wDate
+          (l: WorkoutHistoryLog) => l.assignedWorkoutId ? l.assignedWorkoutId === (workout.assignedWorkoutId || workout.id) : l.date === wDate
         );
         const reviewLogs = baseLogs.map((bl) => {
           const base = bl.exerciseName.split(" - ")[0].toLowerCase();
@@ -7893,6 +7930,7 @@ function App({ onReady, bootVisible = true }: { onReady?: () => void; bootVisibl
         body: JSON.stringify({ assignedWorkoutRecordId: id, reviewed: next }),
       });
       if (!res.ok) throw new Error("failed");
+      setCoachReviewWorkouts(current => current.map(w => w.id === id ? { ...w, coachReviewed: next } : w));
     } catch {
       notify("Could not update review status.");
       setSelectedWorkout((w) => (w ? { ...w, coachReviewed: !next } : w));
@@ -12811,12 +12849,16 @@ function App({ onReady, bootVisible = true }: { onReady?: () => void; bootVisibl
   const newEnquiries = coachReviewEnquiries.filter(
     (e) => (e.status || "New").toLowerCase() === "new"
   );
-  const reviewQueueCount =
-    coachReviewComments.filter((comment) => !comment.reviewed).length +
-    new Set(coachReviewResponses.filter(response => !response.reviewedAt).map(response => response.assignmentId || response.responseId)).size +
-    coachReviewCheckIns.length +
-    newEnquiries.length +
-    productOrders.length;
+  const dailySubmissionGroups = Object.values(coachReviewResponses.reduce<Record<string, any>>((groups, response) => {
+    const key = response.assignmentRecordId || response.assignmentId || `${response.templateId}-${response.submittedAt}`;
+    if (!groups[key]) groups[key] = { key, title: response.templateName || response.responseType, responseType: response.responseType, submittedAt: response.submittedAt, answers: [] };
+    groups[key].answers.push(response); return groups;
+  }, {}));
+  const coachingItems = buildCoachingItems({ clients: coachVisibleClients, workouts: coachingWorkoutsReady ? coachReviewWorkouts : [],
+    checkIns: coachingCheckIns, comments: coachReviewComments, messages: coachClientMessages, videos: reviewFormVideos, submissions: dailySubmissionGroups });
+  // Coverage is unknown until the workout feed arrives, never inferred from an empty feed.
+  const dailyCoachingItems = coachingItems.filter(item => item.kind !== "coverage" || coachingWorkoutsReady);
+  const reviewQueueCount = dailyCoachingItems.filter(item => decisionStatus(item, reviewDecisions, coachingNow) === "open").length;
 
   type NavLeaf = {
     name: Page;
@@ -13431,12 +13473,7 @@ function App({ onReady, bootVisible = true }: { onReady?: () => void; bootVisibl
     new Set(coachVisibleClients.map((client) => client.status).filter(Boolean))
   );
 
-  const clientNeedsProgramming = (client: Client) =>
-    rosterActivityState === "ready" && (!client.program || client.program === "--") && !rosterLoadWorkouts.some(workout =>
-      (workout.clientId || "").split(/[,\s[\]"']+/).includes(client.clientCode) &&
-      normalizeDate(String(workout.scheduledDate)) >= dateToInputValue(new Date()) &&
-      !/completed|cancelled|archived/i.test(workout.completionStatus || "")
-    );
+  const clientNeedsProgramming = (client: Client) => rosterActivityState === "ready" && athleteFacts(client, rosterLoadWorkouts).needsProgramming;
   const clientNeedsContact = (client: Client) => !client.email && !client.phone;
   const clientIsArchived = (client: Client) =>
     client.status.toLowerCase().includes("archived");
@@ -13514,15 +13551,14 @@ function App({ onReady, bootVisible = true }: { onReady?: () => void; bootVisibl
     if (key === "needsProgram") return clientNeedsProgramming(client);
     if (key === "needsContact") return clientNeedsContact(client);
     if (key === "needsCheckIn") return clientNeedsCheckIn(client);
-    const d = daysSinceLogin(client.lastLogin); // inactive = 7d+ or never
-    return d === null || d >= 7;
+    return rosterActivityState === "ready" && coachingActivityReady && athleteFacts(client, rosterLoadWorkouts, coachingCheckIns).inactive;
   };
   const triageDefs: { key: Exclude<typeof rosterTriage, "">; label: string }[] =
     [
       { key: "needsProgram", label: t("noScheduledPlan") },
-      { key: "needsContact", label: "No contact" },
+      { key: "needsContact", label: t("dailyAccountSetup") },
       { key: "needsCheckIn", label: "Needs check-in" },
-      { key: "inactive", label: "Inactive 7d+" },
+      { key: "inactive", label: t("dailyTrainingInactive") },
     ];
   const triageCounts = Object.fromEntries(
     triageDefs.map((d) => [
@@ -13539,34 +13575,7 @@ function App({ onReady, bootVisible = true }: { onReady?: () => void; bootVisibl
   // this-week adherence (completed ÷ sessions that were due Mon..today). Kept
   // self-contained (own week window) so it can run during the roster sort, which
   // is computed before the render-scope date consts exist.
-  const clientEngagement = (client: Client) => {
-    const code = client.clientCode;
-    if (!code)
-      return { lastCompleted: null as string | null, compliance: null as number | null };
-    const today = dateToInputValue(new Date());
-    const ws = new Date();
-    ws.setHours(0, 0, 0, 0);
-    ws.setDate(ws.getDate() - ((ws.getDay() + 6) % 7)); // back to Monday
-    const weekStart = dateToInputValue(ws);
-    const isDone = (w: Workout) =>
-      normalizeTaskStatus(w.completionStatus) === "Completed";
-
-    let lastCompleted: string | null = null;
-    let due = 0;
-    let done = 0;
-    for (const w of rosterLoadWorkouts) {
-      if (!(w.clientId || "").includes(code)) continue;
-      const d = normalizeDate(String(w.scheduledDate));
-      if (!d) continue;
-      if (isDone(w) && (!lastCompleted || d > lastCompleted)) lastCompleted = d;
-      if (d >= weekStart && d <= today) {
-        due += 1;
-        if (isDone(w)) done += 1;
-      }
-    }
-    const compliance = due > 0 ? Math.round((done / due) * 100) : null;
-    return { lastCompleted, compliance };
-  };
+  const clientEngagement = (client: Client) => ({ ...athleteFacts(client, rosterLoadWorkouts, coachingCheckIns), activityReady: rosterActivityState === "ready" && coachingActivityReady });
 
   // ---- Roster sort + group-by ----
   const rosterSortValue = (client: Client): string | number => {
@@ -14247,6 +14256,8 @@ function App({ onReady, bootVisible = true }: { onReady?: () => void; bootVisibl
     }
 
     setSelectedClient(client);
+    setReviewReturn(activePage === "Review");
+    setCoachDashTab("activity");
     setSelectedWorkout(null);
     setActivePage("Clients");
     setClientTab("Home");
@@ -14261,7 +14272,8 @@ function App({ onReady, bootVisible = true }: { onReady?: () => void; bootVisibl
     }
 
     setSelectedClient(client);
-    setSelectedWorkout(workout);
+    setReviewReturn(activePage === "Review");
+    void openWorkout(workout, client);
     setActivePage("Clients");
     setClientTab("Training");
   };
@@ -21061,6 +21073,15 @@ function App({ onReady, bootVisible = true }: { onReady?: () => void; bootVisibl
 
             {activePage === "Review" && (
               <ReviewPage
+                items={[...dailyCoachingItems, ...buildCoachingItems({ clients: coachVisibleClients, orders: globalReviewOrders, enquiries: newEnquiries }).filter(isAdminItem)]}
+                decisions={reviewDecisions}
+                decisionReady={reviewDecisionsReady}
+                saveDecision={saveReviewDecision}
+                view={dailyReviewView}
+                setView={setDailyReviewView}
+                notes={dailyReviewNotes}
+                setNotes={setDailyReviewNotes}
+                clients={coachVisibleClients}
                 refreshReviewQueue={() => void loadCoachReviewQueue(true)}
                 coachReviewLoading={coachReviewLoading}
                 reviewFlashColumn={reviewFlashColumn}
@@ -21282,6 +21303,7 @@ function App({ onReady, bootVisible = true }: { onReady?: () => void; bootVisibl
               <CalendarWorkoutEditor context={calendarBuilderContext} onClose={returnToBuilderOrigin} busy={savingTemplate}>
               <CoachBuilderPage
                 calendarBuilderContext={calendarBuilderContext}
+                historyClientCode={assignedSessionEdit?.clientId || ""}
                 builderScope={builderScope}
                 setLatestBuilderExerciseIndex={setLatestBuilderExerciseIndex}
                 scrollLatestBuilderExerciseIntoView={
@@ -21651,6 +21673,17 @@ function App({ onReady, bootVisible = true }: { onReady?: () => void; bootVisibl
           <ErrorBoundary label="portal">
           <ClientWorkspace
             t={t}
+            coachingCheckIns={coachingCheckIns.filter(c => c.clientId === selectedClient.clientCode)}
+            coachingCheckInsReady={coachingActivityReady}
+            coachingItems={dailyCoachingItems.filter(item => item.clientId === selectedClient.clientCode && decisionStatus(item, reviewDecisions) === "open")}
+            coachingDecisions={reviewDecisions.filter(state => state.item.clientId === selectedClient.clientCode)}
+            coachingVideos={reviewFormVideos.filter(v => v.clientId === selectedClient.clientCode)}
+            coachingFeedLoading={coachReviewLoading}
+            coachingFeedError={coachReviewError}
+            reviewReturn={reviewReturn}
+            returnToReview={() => { setSelectedClient(null); setSelectedWorkout(null); setActivePage("Review"); setReviewReturn(false); }}
+            openCoachingReview={(key = "", filter = "dailyAll") => { const item = dailyCoachingItems.find(i => i.key === key); const nextFilter = filter === "dailyAll" && item && decisionStatus(item, reviewDecisions) === "resolved" ? "dailyHistory" : filter; setDailyReviewView(v => ({ ...v, athlete: selectedClient.clientCode, search: "", filter: nextFilter, selected: key, limit: 18, scroll: 0 })); setSelectedClient(null); setSelectedWorkout(null); setActivePage("Review"); }}
+            adjustNextSession={(workout: Workout) => { setClientTab("Training"); selectClientCalendarDate(coachingDate(workout.scheduledDate)); void openWorkoutProgramInBuilder(workout); }}
             clientHeroKpis={computeClientHeroKpis()}
             dragPreviewDate={dragPreviewDate}
             assignLoading={assignLoading}

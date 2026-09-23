@@ -16,6 +16,7 @@ import CountUp from "./CountUp";
 import ReviewPager, { reviewPageNumber, REVIEW_PAGE_SIZE } from "./ReviewPager";
 
 export default function ReviewPage({
+  embeddedSection = "",
   refreshReviewQueue,
   updateProductOrder,
   coachReviewLoading,
@@ -64,7 +65,7 @@ export default function ReviewPage({
   // Order card whose Done/Archive write is in flight (Review page).
   const [savingOrderKey, setSavingOrderKey] = useState("");
   const [submissionQuery, setSubmissionQuery] = useState("");
-  const [submissionFilter, setSubmissionFilter] = useState("pending");
+  const [submissionFilter, setSubmissionFilter] = useState(embeddedSection ? "all" : "pending");
   const pageRows = (key: string, rows: any[]) => {
     const page = reviewPageNumber(pages[key] || 0, rows.length);
     return rows.slice(page * REVIEW_PAGE_SIZE, (page + 1) * REVIEW_PAGE_SIZE);
@@ -120,7 +121,7 @@ export default function ReviewPage({
   }, [selectedCheckIn]);
 
   const unreviewedFormVideos = reviewFormVideos.filter(
-    (v: any) => v.status !== "Reviewed"
+    (v: any) => embeddedSection || v.status !== "Reviewed"
   );
 
   const commentsCount =
@@ -218,7 +219,7 @@ export default function ReviewPage({
     title: string,
     count: number,
     key: string
-  ) => (
+  ) => embeddedSection ? null : (
     <button
       type="button"
       className="rvSecHead"
@@ -240,7 +241,8 @@ export default function ReviewPage({
   );
 
   return (
-    <section className="rvPage">
+    <section className={`rvPage ${embeddedSection ? "rvEmbedded" : ""}`}>
+      {!embeddedSection && <>
       {/* header */}
       <header className="rvHeader">
         <span className="rvEyebrow">
@@ -301,6 +303,7 @@ export default function ReviewPage({
         ))}
       </div>
 
+      </>}
       {/* board */}
       <div className="rvBoard">
         {/* Direct athlete messages — the 写给教练 loop. First on the board:
@@ -308,6 +311,7 @@ export default function ReviewPage({
             usually confused or blocked, the costliest state to leave waiting. */}
         <article
           id="reviewColMessages"
+          hidden={!!embeddedSection && embeddedSection !== "messages"}
           className={`rvSection ${
             reviewFlashColumn === "reviewColMessages" ? "rvFlash" : ""
           }`}
@@ -336,7 +340,7 @@ export default function ReviewPage({
                   <p className="rvNote">{msg.bodyEn || msg.body}</p>
                   <textarea
                     className="rvReply"
-                    placeholder="Write a reply to your athlete…"
+                    placeholder={t("dailyWriteReply")}
                     value={messageReplyDrafts[msg.messageId] || ""}
                     onChange={(e) =>
                       setMessageReplyDrafts((cur: any) => ({
@@ -352,8 +356,8 @@ export default function ReviewPage({
                     onClick={() => void respondToClientMessage(msg)}
                   >
                     {messageReplySaving === msg.messageId
-                      ? "Sending…"
-                      : "Send reply"}
+                      ? t("dailySending")
+                      : t("dailySendReply")}
                   </button>
                 </div>
               ))}
@@ -364,6 +368,7 @@ export default function ReviewPage({
         {/* In-Person Enquiries */}
         <article
           id="reviewColEnquiries"
+          hidden={!!embeddedSection && embeddedSection !== "enquiries"}
           className={`rvSection ${
             reviewFlashColumn === "reviewColEnquiries" ? "rvFlash" : ""
           }`}
@@ -414,7 +419,7 @@ export default function ReviewPage({
         {/* Form Videos — collapsible like the rest; shown only when there are
             unreviewed clips (no summary card / KPI target points at it). */}
         {unreviewedFormVideos.length > 0 && (
-          <article className="rvSection">
+          <article className="rvSection" hidden={!!embeddedSection && embeddedSection !== "formVideos"}>
             {sectionHeader(
               "Needs review",
               "Form Videos",
@@ -472,6 +477,7 @@ export default function ReviewPage({
         {/* Daily Check-ins */}
         <article
           id="reviewColCheckins"
+          hidden={!!embeddedSection && embeddedSection !== "checkins"}
           className={`rvSection ${
             reviewFlashColumn === "reviewColCheckins" ? "rvFlash" : ""
           }`}
@@ -530,7 +536,7 @@ export default function ReviewPage({
                     </div>
                     <textarea
                       className="rvReply"
-                      placeholder="Write a reply to your athlete…"
+                      placeholder={t("dailyWriteReply")}
                       value={checkInReplyDrafts[checkIn.recordId] || ""}
                       onChange={(e) =>
                         setCheckInReplyDrafts((cur: any) => ({
@@ -547,8 +553,8 @@ export default function ReviewPage({
                         onClick={() => void respondToCheckIn(checkIn)}
                       >
                         {checkInReplySaving === checkIn.recordId
-                          ? "Sending…"
-                          : "Send reply"}
+                          ? t("dailySending")
+                          : t("dailySendReply")}
                       </button>
                     </div>
                   </div>
@@ -561,6 +567,7 @@ export default function ReviewPage({
         {/* Comments & Orders */}
         <article
           id="reviewColComments"
+          hidden={!!embeddedSection && embeddedSection !== "comments"}
           className={`rvSection ${
             reviewFlashColumn === "reviewColComments" ? "rvFlash" : ""
           }`}
@@ -681,6 +688,7 @@ export default function ReviewPage({
         {/* Missed Tasks */}
         <article
           id="reviewColMissed"
+          hidden={!!embeddedSection && embeddedSection !== "missed"}
           className={`rvSection ${
             reviewFlashColumn === "reviewColMissed" ? "rvFlash" : ""
           }`}
@@ -745,6 +753,7 @@ export default function ReviewPage({
         {/* Forms & Tests */}
         <article
           id="reviewColSubmissions"
+          hidden={!!embeddedSection && embeddedSection !== "submissions"}
           className={`rvSection ${
             reviewFlashColumn === "reviewColSubmissions" ? "rvFlash" : ""
           }`}
@@ -851,7 +860,7 @@ export default function ReviewPage({
                 <span className="rvNoteLabel">Your reply</span>
                 <textarea
                   className="rvReply rvReplyLg"
-                  placeholder="Write a reply to your athlete…"
+                  placeholder={t("dailyWriteReply")}
                   value={checkInReplyDrafts[selectedCheckIn.recordId] || ""}
                   onChange={(e) =>
                     setCheckInReplyDrafts((cur: any) => ({
@@ -867,8 +876,8 @@ export default function ReviewPage({
                   onClick={() => void respondToCheckIn(selectedCheckIn)}
                 >
                   {checkInReplySaving === selectedCheckIn.recordId
-                    ? "Sending…"
-                    : "Send reply"}
+                    ? t("dailySending")
+                    : t("dailySendReply")}
                 </button>
               </div>
             </div>

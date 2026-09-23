@@ -1,6 +1,7 @@
 // Extracted from App.tsx (monolith split) — JSX verbatim; props threaded.
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import "./CoachBuilderPage.css";
+import AthletePrescriptionHistory, { useAthletePrescriptionHistory } from "./AthletePrescriptionHistory";
 import { isCardioCategory } from "./appCore";
 import { Fragment, useEffect, useState } from "react";
 import CoachProgramsLanding from "./CoachProgramsLanding";
@@ -59,6 +60,7 @@ const CUSTOM_SECTION_COLORS = [
 
 export default function CoachBuilderPage({
   calendarBuilderContext,
+  historyClientCode = "",
   builderScope,
   accessoryTargetIndex,
   copiedSession,
@@ -326,6 +328,7 @@ export default function CoachBuilderPage({
   workoutTabsMenuOpen,
 }: { [key: string]: any }) {
   const { t, i18n } = useTranslation();
+  const prescriptionHistory = useAthletePrescriptionHistory(calendarBuilderContext ? historyClientCode : "");
   const [focusedExerciseIndex, setFocusedExerciseIndex] = useState<number | null>(null);
   const [mobileExpandedExercise, setMobileExpandedExercise] = useState<number | null>(null);
   const focusedEditor = focusedExerciseIndex !== null && swapExerciseIndex === null;
@@ -2835,6 +2838,7 @@ export default function CoachBuilderPage({
                                     {renderBuilderExerciseOptionsMenu(exercise, index)}
                                   </div>
 
+                                  <AthletePrescriptionHistory exercise={exercise} history={prescriptionHistory} date={calendarBuilderContext?.date || ""} />
                                   <div className="builderModalEditGrid">
                                     <label>
                                       <span>Label</span>
@@ -3186,6 +3190,7 @@ export default function CoachBuilderPage({
                           )}
                         </div>
 
+                        <AthletePrescriptionHistory exercise={exercise} history={prescriptionHistory} date={calendarBuilderContext?.date || ""} />
                         {(exercise.groupType !== "Straight" && exercise.groupName) ||
                         exercise.isAccessory ? (
                           <div className="builderExerciseCompactPills">

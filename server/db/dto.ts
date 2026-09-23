@@ -205,6 +205,7 @@ export type WorkoutDTO = {
 };
 
 export type LogDTO = {
+  exerciseId?: string;
   exerciseNameCn?: string;
   assignedWorkoutId?: string;
   completed?: boolean;

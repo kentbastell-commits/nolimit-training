@@ -4099,3 +4099,8 @@
   font-size: 12px;
   font-weight: 700;
 }
+/* Actual athlete results stay beside the session prescription in both widths. */
+.previousPerformance{margin:10px 14px;border:1px solid #dce2d6;background:#f5f7f0;border-radius:10px;color:#2e3928;padding:0 12px;font-size:13px}
+.previousPerformance summary{min-height:44px;display:flex;align-items:center;cursor:pointer;font-weight:650;gap:8px}
+.previousPerformance summary:before{content:"+"}.previousPerformance[open] summary:before{content:"−"}
+.previousPerformance ul{padding-left:18px}.previousPerformance li{margin:8px 0;line-height:1.5}.previousPerformance p{font-size:13px;line-height:1.5}

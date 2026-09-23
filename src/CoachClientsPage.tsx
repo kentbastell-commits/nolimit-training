@@ -122,7 +122,7 @@ export default function CoachClientsPage(props: { [key: string]: any }) {
     const lz = clientWeekLoadZone(c);
     return (
       clientNeedsProgramming(c) ||
-      clientNeedsContact(c) ||
+      (activityState === "ready" && clientEngagement(c).ending) ||
       (lz && (lz.cls === "loadZoneWarn" || lz.cls === "loadZoneRisk"))
     );
   };
@@ -187,7 +187,9 @@ export default function CoachClientsPage(props: { [key: string]: any }) {
   const flagsFor = (c: any) => {
     const out: Array<{ label: string; cls: string }> = [];
     if (clientNeedsProgramming(c)) out.push({ label: t("noScheduledPlan"), cls: "crpFlagProgram" });
-    if (clientNeedsContact(c)) out.push({ label: "Needs contact", cls: "crpFlagContact" });
+    if (clientNeedsContact(c)) out.push({ label: t("dailyAccountSetup"), cls: "crpFlagContact" });
+    const activity = clientEngagement(c);
+    if (activityState === "ready" && activity.ending) out.push({ label: t("dailyEnds", { date: activity.end }), cls: "crpFlagProgram" });
     const lz = clientWeekLoadZone(c);
     if (lz && (lz.cls === "loadZoneWarn" || lz.cls === "loadZoneRisk")) {
       out.push({
@@ -199,10 +201,9 @@ export default function CoachClientsPage(props: { [key: string]: any }) {
   };
 
   const seenLabel = (c: any) => {
-    const d = daysSinceLogin(c.lastLogin);
-    if (d === null) return "No login yet";
-    if (d === 0) return "Active today";
-    return `Last seen ${d}d ago`;
+    const eng = clientEngagement(c);
+    if (activityState !== "ready" || eng.activityReady === false) return t(activityState === "loading" ? "loading" : "dailyActivityUnavailable");
+    return eng.lastActivity || eng.lastCompleted ? t("dailyActivity", { date: eng.lastActivity || eng.lastCompleted }) : t("dailyNoActivity");
   };
 
   const Row = (c: any) => {

@@ -74,7 +74,7 @@ export async function listCheckIns(): Promise<CheckInDTO[]> {
       coachResponseCn: str(r.coachNotesCn),
       // No "Coach Reviewed" column on Postgres: a review always stamps
       // reviewed_date (and usually coach_notes), so derive from those.
-      coachReviewed: Boolean(coachResponse.trim()) || r.reviewedDate != null,
+      coachReviewed: r.status !== "Resubmitted" && (Boolean(coachResponse.trim()) || r.reviewedDate != null),
       reviewedDate: epochToDate(r.reviewedDate),
       status: str(r.status),
     };
@@ -83,6 +83,7 @@ export async function listCheckIns(): Promise<CheckInDTO[]> {
 
 export async function reviewCheckIn(input: ReviewCheckInInput): Promise<WriteResult> {
   const set: Partial<typeof checkIns.$inferInsert> = {
+    status: "Reviewed",
     reviewedDate: toDateMs(
       input.reviewedDate || new Date().toISOString().split("T")[0]
     ),
@@ -124,8 +125,8 @@ export async function createCheckIn(input: CreateCheckInInput): Promise<WriteRes
     ).length > 0;
   // Same-day resubmit = EDIT, not a duplicate. The mini program lets an
   // athlete correct today's wellness (typo'd body weight, wrong soreness);
-  // without this the coach would see two check-ins for the same day. Status
-  // resets to Submitted so an edited check-in re-enters the review queue.
+  // without this the coach would see two check-ins for the same day. An edited
+  // check-in re-enters review while retaining the earlier reply as context.
   const dayKey = String(input.submittedDate || "").trim();
   if (dayKey && clientExists) {
     const existing = (
@@ -135,7 +136,9 @@ export async function createCheckIn(input: CreateCheckInInput): Promise<WriteRes
       await db
         .update(checkIns)
         .set(translationPatch("checkIns", {
-          status: "Submitted",
+          // Preserve the previous reply as context, but this correction needs
+          // a fresh review. Old rows used Submitted even after a reply.
+          status: existing.reviewedDate != null || String(existing.coachNotes || "").trim() ? "Resubmitted" : "Submitted",
           bodyWeight: toNumberOrNull(input.bodyWeight),
           sleepHours: toNumberOrNull(input.sleepHours),
           sleepQuality: toIntOrNull(input.sleepQuality),
@@ -147,6 +150,8 @@ export async function createCheckIn(input: CreateCheckInInput): Promise<WriteRes
           wins: toTextOrNull(input.wins),
           problemsPain: toTextOrNull(input.problemsPain),
           clientNotes: toTextOrNull(input.clientNotes),
+          ...(input.trainingNotes !== undefined ? { trainingNotes: toTextOrNull(input.trainingNotes) } : {}),
+          ...(input.nutritionNotes !== undefined ? { nutritionNotes: toTextOrNull(input.nutritionNotes) } : {}),
         }))
         .where(eq(checkIns.checkinId, existing.checkinId));
       queueTranslations("checkIns", [existing.checkinId]);

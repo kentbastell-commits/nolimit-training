@@ -30,6 +30,8 @@ export async function listAllLogs(clientId = "", clientCode = "", assignedWorkou
   return rows.map(
     (r: Row): LogDTO => ({
       recordId: r.logId,
+      exerciseId: str(r.exerciseId),
+      assignedWorkoutId: str(r.assignedWorkoutId), completed: r.completed !== false, athleteNotes: str(r.athleteNotes),
       clientId: str(r.clientId),
       // Prefer the stored plain-text code; client_id already holds the
       // business code on Postgres anyway.

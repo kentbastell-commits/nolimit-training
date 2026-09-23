@@ -2,6 +2,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { useState } from "react";
 import PortalHome from "./PortalHome";
+import CoachAthleteSummary from "./CoachAthleteSummary";
 import AthletePreview from "./AthletePreview";
 import AthleteHub, { athleteContactKey } from "./AthleteHub";
 import ClientInviteModal from "./ClientInviteModal";
@@ -239,6 +240,8 @@ export default function ClientWorkspace({
   workoutsLoading,
   workoutsLoadFailed,
   retryWorkouts,
+  coachingCheckIns = [], coachingCheckInsReady = false, coachingItems = [], coachingDecisions = [], coachingVideos = [], coachingFeedLoading, coachingFeedError,
+  reviewReturn, returnToReview, openCoachingReview, adjustNextSession,
 }: { [key: string]: any }) {
   const portalCompletedWorkouts = isClientPortal
     ? (workouts || []).filter((workout: any) =>
@@ -733,7 +736,8 @@ export default function ClientWorkspace({
                       </details>
                     </div>
                   </header>
-                  <div className="coachClientPageHeading">
+                  {reviewReturn && <button className="dailyReturn" onClick={returnToReview}><ArrowLeft size={16} />{t("dailyReturn")}</button>}
+                  <div className="coachClientPageHeading" hidden={clientTab === "Home" && coachDashTab === "activity"}>
                     <div>
                       <span>{coachSection.eyebrow}</span>
                       <h2>{coachSection.title}</h2>
@@ -898,7 +902,12 @@ export default function ClientWorkspace({
               />}
               {isClientPortal && clientTab === "Programs" && <button className="athBack" onClick={() => setClientTab("Overview")}><ArrowLeft size={18} />{t("athleteBackMe")}</button>}
 
-              {!isClientPortal && clientTab === "Home" && (
+              {!isClientPortal && clientTab === "Home" && coachDashTab === "activity" && <CoachAthleteSummary
+                client={selectedClient} workouts={workouts} checkIns={coachingCheckIns} checkInsReady={coachingCheckInsReady} items={coachingItems} decisions={coachingDecisions} videos={coachingVideos}
+                loading={workoutsLoading} loadFailed={workoutsLoadFailed} feedLoading={coachingFeedLoading} feedError={coachingFeedError} retry={retryWorkouts}
+                openWorkout={openWorkout} adjustNext={adjustNextSession} openReview={openCoachingReview} openCalendar={() => setClientTab("Training")}
+                openProgress={() => { setClientTab("Home"); setCoachDashTab("science"); }} openNotes={() => setClientTab("Overview")} workoutName={localizedWorkoutName} />}
+              {!isClientPortal && clientTab === "Home" && coachDashTab !== "activity" && (
                 <PortalHome
                   t={t}
                   getTaskTone={getTaskTone}

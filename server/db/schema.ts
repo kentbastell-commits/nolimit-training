@@ -10,6 +10,14 @@ import {
   index,
 } from "drizzle-orm/pg-core";
 
+const coachingReviewColumns = () => ({
+  key: text("key").notNull(), revision: text("revision").notNull(), status: text("status").notNull(),
+  until: bigint("until", { mode: "number" }), version: integer("version").notNull(),
+  updatedAt: bigint("updated_at", { mode: "number" }).notNull(), item: jsonb("item").notNull(), note: text("note").notNull().default(""),
+});
+export const coachingReviewStates = pgTable("coaching_review_states", { ...coachingReviewColumns(), key: text("key").primaryKey() });
+export const coachingReviewHistory = pgTable("coaching_review_history", { ...coachingReviewColumns(), eventId: text("event_id").primaryKey() }, t => [index("coaching_review_history_key_idx").on(t.key)]);
+
 /**
  * NX LIMIT Training — Postgres schema (Drizzle).
  *

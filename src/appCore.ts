@@ -528,6 +528,7 @@ export type ExerciseAlternate = {
 };
 
 export type WorkoutHistoryLog = {
+  assignedWorkoutId?: string;
   recordId: string;
   exerciseName: string;
   date: string;

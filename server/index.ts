@@ -55,6 +55,7 @@ import createProgram from "../api/createProgram.ts";
 import createWorkoutTemplate from "../api/createWorkoutTemplate.ts";
 import createWorkoutTemplatesBulk from "../api/createWorkoutTemplatesBulk.ts";
 import assignedSession from "../api/assignedSession.ts";
+import coachingReview, { history as coachingReviewHistory } from "../api/coachingReview.ts";
 import deleteRecord from "../api/deleteRecord.ts";
 import duplicateAssignedWorkout from "../api/duplicateAssignedWorkout.ts";
 import duplicateProgram from "../api/duplicateProgram.ts";
@@ -303,6 +304,8 @@ const handlers = {
   createWorkoutTemplate,
   createWorkoutTemplatesBulk,
   assignedSession,
+  coachingReview,
+  coachingReviewHistory,
   deleteRecord,
   duplicateAssignedWorkout,
   duplicateProgram,
