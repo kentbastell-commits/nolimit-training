@@ -214,6 +214,9 @@ data between them, never "borrow" a table ID across products.
     repainted the builder's badge ink illegible. When moving/reusing a
     component, check getComputedStyle in the new context, and out-specific
     the theme rules rather than patching them one by one.
+    The video dialog's shared `.drawerClose` became black on its black header in coach mode.
+    Give dark overlays dedicated, labelled close controls; verify contrast and touch targets
+    in both themes and short landscape viewports, not just that a button exists in the DOM.
 19. **The future-state privacy promise** — writing the privacy policy as if a
     planned mainland/Postgres migration is already complete. Rule: disclose the
     live data path until migration is verified, record temporary cross-border
@@ -931,6 +934,12 @@ data between them, never "borrow" a table ID across products.
     code — one stalled request out of three is the link, not the server.
     The real fix for uploads is direct-to-COS via the accelerate endpoint
     (see COS footage archive memory for the cost), not more timeout.
+    SHIPPED 2026-09-23 (fa5ebea) for the exercise library: cosUploadTicket
+    → browser PUT to the accelerate host → cosUploadFinish pulls it in;
+    falls back to the direct route on any failure, coach-only because
+    acceleration bills per GB. Bucket-config PUTs (cors/lifecycle) need a
+    Content-MD5 header or COS answers 400. Athlete form videos and coach
+    photos still go direct — reuse the same pair if they ever need it.
     For coach startup, measure usable-screen time cold AND warm on the same
     link: preload the roster, defer secondary reads until visible, and remove
     splash dwell after readiness. Share concurrent reads, never cache refreshes.
