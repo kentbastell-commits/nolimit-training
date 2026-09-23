@@ -113,10 +113,10 @@ async function draftRows(clientId: string, tx: Tx | typeof db = db, lock = false
 }
 export async function reviewCalendarDrafts(clientId: string) {
   const { workouts, tests, revisions, details, testNames, version } = await draftRows(clientId);
-  const revisionItems = await Promise.all(revisions.map(async ({ workout: w, revision: r }) => ({ id: `revision:${w.assignedWorkoutId}`, type: "revision",
+  const revisionItems = await Promise.all(revisions.map(async ({ workout: w, revision: r }) => { const publishedSnapshot = await editorFor(w); return { id: `revision:${w.assignedWorkoutId}`, type: "revision",
     name: (r.workout as typeof w).sessionName || w.sessionName || "Workout", date: w.scheduledDate,
-    editVersion: createHash("sha256").update(`${(await editorFor(w)).version}:${r.revisionId}`).digest("hex"),
-    snapshot: details.find(d => d.workout.assignedWorkoutId === w.assignedWorkoutId) })));
+    editVersion: createHash("sha256").update(`${publishedSnapshot.version}:${r.revisionId}`).digest("hex"), publishedSnapshot,
+    snapshot: details.find(d => d.workout.assignedWorkoutId === w.assignedWorkoutId) }; }));
   return { version, items: [
     ...workouts.map(w => ({ id: w.assignedWorkoutId, type: "workout", name: w.sessionName || "Workout", date: w.scheduledDate,
       snapshot: details.find(d => d.workout.assignedWorkoutId === w.assignedWorkoutId) })),

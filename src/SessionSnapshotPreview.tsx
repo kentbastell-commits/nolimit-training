@@ -3,7 +3,7 @@ import { exercisePrescription, parseExerciseNotes } from "./appCore";
 import WorkoutNotes from "./WorkoutNotes";
 import "./CalendarDraftControls.css";
 
-export type SessionSnapshot = { workout: { sessionName?: string; sessionNameCn?: string; coachNotes?: string; coachNotesCn?: string }; templates: any[]; program?: any };
+export type SessionSnapshot = { workout: { sessionName?: string; sessionNameCn?: string; coachNotes?: string; coachNotesCn?: string; scheduledDate?: string | number | null; sessionType?: string | null; sessionGoal?: string | null; intensity?: string | null; estimatedDuration?: string | number | null }; templates: any[]; program?: any };
 export default function SessionSnapshotPreview({ snapshot }: { snapshot: SessionSnapshot }) {
   const { i18n } = useTranslation(); const zh = i18n.language.startsWith("zh");
   const rows = [...snapshot.templates].sort((a, b) => Number(a.order) - Number(b.order));

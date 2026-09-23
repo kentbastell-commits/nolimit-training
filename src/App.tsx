@@ -1,4 +1,6 @@
 import CalendarSessionTools from "./CalendarSessionTools";
+import SessionPublishReview from "./SessionPublishReview";
+import { snapshotFromSession } from "./sessionChanges";
 import SessionVersionHistory from "./SessionVersionHistory";
 import type { SessionSnapshot } from "./SessionSnapshotPreview";
 import { applyBulkTargets } from "./bulkPrescription";
@@ -1922,6 +1924,7 @@ function App({ onReady, bootVisible = true }: { onReady?: () => void; bootVisibl
   const pendingPrivateSaveRef = useRef(false);
   const [calendarDraftSaveOpen, setCalendarDraftSaveOpen] = useState(false);
   const [calendarDraftReviewOpen, setCalendarDraftReviewOpen] = useState(false);
+  const [sessionPublishReview, setSessionPublishReview] = useState<{ id: string; session: ProgramSession; finish: (publish: boolean) => void } | null>(null);
   const [sessionRecovery, setSessionRecovery] = useState<SessionRecovery | null>(null);
   const [builderLeaveOpen, setBuilderLeaveOpen] = useState(false);
   const builderSourceTemplatesRef = useRef("");
@@ -11427,6 +11430,15 @@ function App({ onReady, bootVisible = true }: { onReady?: () => void; bootVisibl
     if (assignedSessionEdit) {
       const current = opts?.reviewed?.session || buildCurrentProgramSession(editingProgramSessionId || "assigned", sessionName || programName);
       if (!current?.exercises.length) { notify(t("sessionNeedsExercises"), "error"); return false; }
+      if (!opts?.privateDraft && !assignedSessionEdit.isDraft) {
+        // Freeze the exact session being reviewed. A pending review never publishes
+        // implicitly; cancelling returns to the intact editor and saved device draft.
+        const confirmed = await new Promise<boolean>(resolve => setSessionPublishReview({
+          id: assignedSessionEdit.assignedWorkoutId, session: current,
+          finish: publish => { setSessionPublishReview(null); resolve(publish); },
+        }));
+        if (!confirmed) return false;
+      }
       pendingPrivateSaveRef.current = Boolean(opts?.privateDraft);
       setSavingTemplate(true);
       try {
@@ -19924,6 +19936,7 @@ function App({ onReady, bootVisible = true }: { onReady?: () => void; bootVisibl
         </>
       )}
 
+      {sessionPublishReview && <SessionPublishReview id={sessionPublishReview.id} makeSnapshot={source => snapshotFromSession(sessionPublishReview.session, source, buildExerciseCoachingNotes)} finish={sessionPublishReview.finish} />}
       {sessionVersionHistoryOpen && assignedSessionEdit && <SessionVersionHistory id={assignedSessionEdit.assignedWorkoutId} close={() => setSessionVersionHistoryOpen(false)} restore={restoreSessionVersion} />}
       {calendarDraftSaveOpen && <SaveCalendarDraftSheet clients={clients} clientId={oneOffAssignTarget?.clientRecordId || programBuiltForClient || selectedClient?.id || ""} date={oneOffAssignTarget?.date || calendarAnchorDate || coachingToday()} busy={savingTemplate} close={() => setCalendarDraftSaveOpen(false)} save={(clientId, date) => saveFullProgram({ calendarDraft: { clientId, date } })} />}
       {calendarDraftReviewOpen && selectedClient && <CalendarDraftReview key={selectedClient.id} clientId={selectedClient.id} name={selectedClient.name} close={() => setCalendarDraftReviewOpen(false)} updated={() => setCalendarRefreshEpoch(n => n + 1)} published={() => { setCalendarRefreshEpoch(n => n + 1); void loadClientWorkouts(selectedClient, true); void loadContentAssignments(selectedClient); notify(i18n.language.startsWith("zh") ? "已发布，学员现在可以看到所选训练。" : "Published. The athlete can now see these sessions.", "success"); }} />}

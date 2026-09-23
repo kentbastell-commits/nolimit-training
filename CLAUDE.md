@@ -1029,6 +1029,11 @@ data between them, never "borrow" a table ID across products.
     Bulk targets must update per-set rows, not only summary fields. Lock calendar selections in stable order,
     verify every selected version, and store retry receipts in the same transaction as the move/copy.
 
+77. **The publish preview compared with its own draft** — compare with the current published assignment,
+    not the latest private editor snapshot. Compare prescription values across forked template IDs;
+    freeze the reviewed edit, preserve stale-version checks, and do not invent identities for repeated exercises.
+    Physical phone keyboard/background/WeChat acceptance remains pending until tested on real hardware.
+
 ## Quality bar — checkable, per deliverable
 
 **Any shipped code change**

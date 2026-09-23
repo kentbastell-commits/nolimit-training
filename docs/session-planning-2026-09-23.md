@@ -24,3 +24,5 @@ This release implements the five agreed follow-ups to the mobile coaching work. 
 Real local Postgres regression tests cover draft privacy, reviewed publication, stale/started-session rejection, immutable/discarded history, copy idempotency, same-athlete selection, date validation and transactional rollback. Logic/component tests cover per-set bulk targets and Undo scope. Browser checks use intercepted fixture APIs, never production writes, for the complete edit/review/move/copy workflow at mobile WebKit and desktop Chromium sizes, including a failed-copy retry and English/Chinese screens. Physical iPhone/Android keyboard and background/resume checks remain separate device work.
 
 Private QA artifacts and the deployment receipt are in `deliverables/session-planning-2026-09-23/`.
+
+The follow-up adds [published-versus-proposed comparisons and a physical-device acceptance checklist](publish-review-mobile-checks-2026-09-23.md).

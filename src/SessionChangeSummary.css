@@ -1,0 +1,15 @@
+.sessionChanges { min-width: 0; margin: 12px 0; padding: 14px; border: 1px solid #e2d9bd; border-radius: 12px; background: #fffdf6; color: #24251f; overflow-wrap: anywhere; }
+.sessionChanges h3 { font-size: 17px; margin: 0 0 12px; }
+.sessionChanges h4 { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; font-size: 15px; margin: 0; }
+.sessionChanges h5 { font-size: 13px; margin: 0 0 8px; }
+.sessionChange { padding: 10px 0; border-bottom: 1px solid #e9e5d9; }
+.sessionChange summary { min-height: 44px; padding: 10px 0; cursor: pointer; font-size: 14px; font-weight: 600; }
+.sessionChangeValues { display: grid; grid-template-columns: minmax(0,1fr) auto minmax(0,1fr); gap: 10px; align-items: start; font-size: 14px; line-height: 1.5; }
+.sessionChangeValues > div { min-width: 0; white-space: pre-wrap; }
+.sessionChangeValues small { display: block; font-size: 11px; margin-bottom: 4px; color: #666258; }
+.sessionChangeExercise { margin-top: 14px; padding-top: 12px; border-top: 1px solid #dcd6c7; }
+.sessionChangeKind { display: inline-flex; padding: 3px 7px; border-radius: 5px; background: #eeeadc; font-size: 11px; }
+.sessionChangeKind.added { background: #e5efe7; color: #265137; }
+.sessionChangeKind.removed { background: #f9e7e5; color: #78392e; }
+.sessionPublishActions { display: flex; flex-direction: column; gap: 10px; }
+.sessionPublishActions button { width: 100%; min-height: 48px; }

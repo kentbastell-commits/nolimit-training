@@ -40,14 +40,19 @@ describe("saved versions and private revisions", () => {
   it("keeps the live plan intact, hides private program URLs and publishes reviewed content", async () => {
     const saved = await change(); expect((await liveRow()).program_id).toBe("PR-1001");
     const editor = await getAssignedSession("AW-1"); expect(editor.hasRevision).toBe(true); expect(editor.templates[0].sessionName).toBe("Changed core");
+    expect(editor.publishedSnapshot?.templates[0].sessionName).toBe("Core");
     expect(await publishedCalendarSlots(saved.programId)).toEqual([]);
     const res = makeRes(); await detailsHandler(makeReq({ query: { programId: saved.programId, week: "1", day: "1" } }) as any, res as any); expect(res.statusCode).toBe(403);
     const review = await reviewCalendarDrafts(clientId);
     expect(review.items[0].id).toBe("revision:AW-1");
+    expect((review.items[0] as any).publishedSnapshot.templates[0].sessionName).toBe("Core");
     const snapshot = (review.items[0] as any).snapshot;
     expect(snapshot.templates[0].setPrescriptions.map((s: any) => s.time)).toEqual(["30", "45"]);
     await publishCalendarDrafts(clientId, [review.items[0].id], review.version);
     expect((await liveRow()).program_id).toBe(saved.programId); expect(await publishedCalendarSlots(saved.programId)).toHaveLength(1);
+    const athlete = makeRes(); await detailsHandler(makeReq({ query: { programId: saved.programId, week: "1", day: "1" } }) as any, athlete as any);
+    expect(athlete.statusCode).toBe(200);
+    expect(athlete.body.exercises[0].setPrescriptions.map((s: any) => s.time)).toEqual(["30", "45"]);
     expect((await getAssignedSession("AW-1")).hasRevision).toBe(false);
     expect((await rows("select program_id from assigned_workouts where assigned_workout_id='AW-2'"))[0].program_id).toBe("PR-1001");
     const history = await listSessionVersions("AW-1"); expect(history.length).toBeGreaterThanOrEqual(1);

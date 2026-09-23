@@ -44,7 +44,8 @@ export async function getAssignedSession(id: string, latest = false) {
   const [workout] = await db.select().from(assignedWorkouts).where(eq(assignedWorkouts.assignedWorkoutId, id));
   if (!workout) throw new SessionEditError(404, "sessionUnavailable");
   const state = await sessionState(workout);
-  return { ...(latest && state.conflicted ? state.live : state.effective), version: state.version, hasRevision: !!state.revision, conflicted: state.conflicted };
+  return { ...(latest && state.conflicted ? state.live : state.effective), version: state.version, hasRevision: !!state.revision, conflicted: state.conflicted,
+    publishedSnapshot: workout.isDraft ? null : state.live };
 }
 export async function listSessionVersions(id: string) {
   return db.select().from(sessionVersions).where(eq(sessionVersions.assignedWorkoutId, id)).orderBy(desc(sessionVersions.createdAt), desc(sessionVersions.id)).limit(50);
