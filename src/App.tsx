@@ -74,6 +74,7 @@ import {
   BRAND_WORDMARK_BLACK,
 } from "./brandAssets";
 import MuscleDiagram from "./MuscleDiagram";
+import PortalToApp from "./PortalToApp";
 
 // Charts are lazy-loaded so recharts stays out of the main bundle.
 const RevenueChart = lazy(() => import("./RevenueChart"));
@@ -1332,6 +1333,34 @@ function App({ onReady, bootVisible = true }: { onReady?: () => void; bootVisibl
     url: string;
     title: string;
   } | null>(null);
+  const workoutVideoDialogRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (!workoutVideoOverlay) return;
+    const previousFocus = document.activeElement as HTMLElement | null;
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    workoutVideoDialogRef.current?.querySelector<HTMLButtonElement>("button")?.focus({ preventScroll: true });
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key === "Escape" && !document.fullscreenElement) {
+        event.preventDefault();
+        event.stopImmediatePropagation();
+        setWorkoutVideoOverlay(null);
+      }
+      if (event.key !== "Tab") return;
+      const nodes = Array.from(workoutVideoDialogRef.current?.querySelectorAll<HTMLElement>(
+        'button:not(:disabled),a[href],video[controls],iframe,[tabindex="0"]'
+      ) || []).filter(el => el.getClientRects().length);
+      const first = nodes[0], last = nodes.at(-1);
+      if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last?.focus(); }
+      else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first?.focus(); }
+    };
+    window.addEventListener("keydown", onKey, true);
+    return () => {
+      document.body.style.overflow = previousOverflow;
+      window.removeEventListener("keydown", onKey, true);
+      if (previousFocus?.isConnected) previousFocus.focus({ preventScroll: true });
+    };
+  }, [workoutVideoOverlay]);
   const [openWorkoutActionMenuId, setOpenWorkoutActionMenuId] = useState("");
   const [historyExerciseName, setHistoryExerciseName] = useState("");
   const [expandedHistoryDates, setExpandedHistoryDates] = useState<Set<string>>(
@@ -22896,17 +22925,21 @@ function App({ onReady, bootVisible = true }: { onReady?: () => void; bootVisibl
             // Chrome/Safari interrupt or download .mov clips (Codex QA find).
             const nativeFile = !embedUrl && isDirectMediaUrl(mediaUrl);
             return (
-              <div className="workoutVideoModalOverlay">
-                <div className="workoutVideoModal">
+              <PortalToApp>
+              <div className="workoutVideoModalOverlay" onClick={event => {
+                if (event.target === event.currentTarget) setWorkoutVideoOverlay(null);
+              }}>
+                <div className="workoutVideoModal" ref={workoutVideoDialogRef} role="dialog" aria-modal="true" aria-labelledby="workoutVideoTitle">
                   <div className="workoutVideoModalHeader">
-                    <h2>{workoutVideoOverlay.title}</h2>
+                    <h2 id="workoutVideoTitle">{workoutVideoOverlay.title}</h2>
                     <button
                       type="button"
-                      className="drawerClose"
+                      className="workoutVideoClose"
                       onClick={() => setWorkoutVideoOverlay(null)}
                       aria-label={t("close")}
                     >
-                      <X size={22} />
+                      <X size={20} aria-hidden="true" />
+                      <span>{t("close")}</span>
                     </button>
                   </div>
                   <div className="workoutVideoFrame">
@@ -22938,6 +22971,7 @@ function App({ onReady, bootVisible = true }: { onReady?: () => void; bootVisibl
                   </a>
                 </div>
               </div>
+              </PortalToApp>
             );
           })()}
 

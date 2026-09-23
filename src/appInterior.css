@@ -4558,11 +4558,17 @@
   z-index: 4000;
   display: grid;
   place-items: center;
-  padding: 18px;
+  box-sizing: border-box;
+  height: 100dvh;
+  padding: max(12px, env(safe-area-inset-top)) max(12px, env(safe-area-inset-right)) max(12px, env(safe-area-inset-bottom)) max(12px, env(safe-area-inset-left));
   background: rgba(0, 0, 0, 0.72);
 }
 .workoutVideoModal {
   width: min(920px, 100%);
+  max-height: 100%;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
   overflow: hidden;
   border-radius: 16px;
   background: #111;
@@ -4571,23 +4577,57 @@
 }
 .workoutVideoModalHeader {
   display: flex;
+  flex: 0 0 auto;
   align-items: center;
   justify-content: space-between;
   gap: 14px;
   padding: 12px 14px;
 }
-.workoutVideoModalHeader h2 {
+.app .workoutVideoModalHeader h2 {
   margin: 0;
-  color: #fff;
+  min-width: 0;
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow-wrap: anywhere;
+  color: #fff !important;
   font-size: 20px;
   line-height: 1.1;
 }
+.app .workoutVideoClose {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  flex: 0 0 auto;
+  min-width: 44px;
+  min-height: 44px;
+  padding: 10px 12px;
+  border: 1px solid #f4df8a;
+  border-radius: 10px;
+  background: #f4df8a !important;
+  color: #111 !important;
+  font: inherit;
+  font-weight: 800;
+  cursor: pointer;
+}
+.app .workoutVideoClose:focus-visible {
+  outline: 2px solid #fff;
+  outline-offset: 3px;
+}
 .workoutVideoFrame {
+  position: relative;
   aspect-ratio: 16 / 9;
+  min-height: 0;
+  flex: 0 1 auto;
+  overflow: hidden;
   background: #000;
 }
 .workoutVideoFrame iframe,
 .workoutVideoFrame video {
+  position: absolute;
+  inset: 0;
   display: block;
   width: 100%;
   height: 100%;
@@ -4600,6 +4640,7 @@
 }
 .workoutVideoExternalLink {
   display: block;
+  flex: 0 0 auto;
   padding: 12px 14px 14px;
   color: #f4df8a;
   font-weight: 900;
