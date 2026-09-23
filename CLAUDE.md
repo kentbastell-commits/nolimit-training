@@ -486,8 +486,8 @@ data between them, never "borrow" a table ID across products.
     fallback.
 
     Shared programming editors must read and write the same tracking fields on
-    phone and desktop; a compact kg/reps shortcut loses timed holds. Deep-copy
-    saved blocks, re-key each inserted circuit, and round-trip Chinese notes
+    phone and desktop; expose Edit fields beside the set table on both, not only
+    in an overflow menu. Deep-copy blocks, re-key circuits, and round-trip Chinese notes
     through template readers and both writers. Progress only literal numeric
     loads, preserving percentages, units and automatic targets.
 

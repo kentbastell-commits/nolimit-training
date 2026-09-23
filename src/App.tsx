@@ -1,6 +1,7 @@
 import { insertBlock, progressExerciseLoad } from "./programmingBlockData";
 import CoachLibraryNavigation, { librarySections, type LibrarySection } from "./CoachLibraryNavigation";
 import CoachDraftNotice from "./CoachDraftNotice";
+import ExerciseFieldsSheet from "./ExerciseFieldsSheet";
 import { athleteFacts, buildCoachingItems, coachingDate, decisionStatus, isAdminItem, type CoachingItem, type ReviewDecision } from "./coachingReview";
 import { readCoachDrafts, writeCoachDraft, removeCoachDraft, type CoachDraft } from "./coachDraft";
 import { validQuestionAnswer, testInputMode, isTwoKm, buildTestAnswer, displayAnswer } from "./contentAnswers";
@@ -76,7 +77,6 @@ import {
   EQUIPMENT_ZH,
   MOVEMENT_PATTERN_OPTIONS,
   RUNNING_ZONE_OPTIONS,
-  STRENGTH_TRACKING_FIELDS,
   addDays,
   addMonths,
   buildExerciseAiPrompt,
@@ -8921,8 +8921,8 @@ function App({ onReady, bootVisible = true }: { onReady?: () => void; bootVisibl
         const active = effectiveTrackingFields(ex.trackingType, ex.trackingFields);
         let next: string[];
         if (active.includes(field)) {
+          if (active.length === 1) return ex;
           next = active.filter((f) => f !== field);
-          if (next.length === 0) next = ["Weight"];
         } else {
           if (active.length >= 3) return ex;
           next = [...active, field];
@@ -9174,6 +9174,13 @@ function App({ onReady, bootVisible = true }: { onReady?: () => void; bootVisibl
           isRunning ? " builderSetPrescriptionRunning" : ""
         }`}
       >
+        {exercise.trackingType === "Weight" && (
+          <div className="builderEditFieldsAction">
+            <button type="button" className="outlineButton" onClick={() => setCustomizeFieldsIndex(exerciseIndex)}>
+              <Settings size={16} aria-hidden="true" /> {t("editFields")}
+            </button>
+          </div>
+        )}
         {isRunning && (
           <div className="builderSetTrackingToggle">
             {([
@@ -9219,7 +9226,7 @@ function App({ onReady, bootVisible = true }: { onReady?: () => void; bootVisibl
             <>
               {trackFields.map((f) => (
                 <span key={f}>
-                  {f === "Weight" ? "Weight (kg)" : f === "Distance" ? "Distance (m)" : f}
+                  {t(`prescriptionField${f}`)}
                   <button className="fillColumnButton" type="button" title="Fill all sets with set 1 value" onClick={() => fillSetColumn(exerciseIndex, fieldKeyOf[f])}>↓</button>
                 </span>
               ))}
@@ -9676,7 +9683,7 @@ function App({ onReady, bootVisible = true }: { onReady?: () => void; bootVisibl
                 {trackFields.map((f) => (
                   <label className="builderSetField" key={f}>
                     <span className="builderSetFieldLabel">
-                      {f === "Weight" ? "Weight (kg)" : f === "Distance" ? "Distance (m)" : f}
+                      {t(`prescriptionField${f}`)}
                     </span>
                     <input
                       className="miniSearch"
@@ -10817,7 +10824,7 @@ function App({ onReady, bootVisible = true }: { onReady?: () => void; bootVisibl
               }}
             >
               <Settings size={16} />
-              Customize fields
+              {t("editFields")}
             </button>
           )}
           <button
@@ -20660,59 +20667,13 @@ function App({ onReady, bootVisible = true }: { onReady?: () => void; bootVisibl
         />
       )}
 
-      {customizeFieldsIndex !== null &&
-        selectedProgramExercises[customizeFieldsIndex] &&
-        (() => {
-          const ex = selectedProgramExercises[customizeFieldsIndex];
-          const active = effectiveTrackingFields(
-            ex.trackingType,
-            ex.trackingFields
-          );
-          return (
-            <div
-              className="customizeFieldsOverlay"
-              onClick={() => setCustomizeFieldsIndex(null)}
-            >
-              <div
-                className="customizeFieldsModal"
-                onClick={(e) => e.stopPropagation()}
-              >
-                <h3>Customize fields</h3>
-                <p className="customizeFieldsHint">
-                  Choose up to 3 fields to track for{" "}
-                  <strong>{ex.exerciseName}</strong>.
-                </p>
-                <div className="customizeFieldChips">
-                  {STRENGTH_TRACKING_FIELDS.map((f) => {
-                    const on = active.includes(f);
-                    const disabled = !on && active.length >= 3;
-                    return (
-                      <button
-                        key={f}
-                        type="button"
-                        className={`customizeFieldChip${on ? " on" : ""}`}
-                        disabled={disabled}
-                        onClick={() => toggleTrackingField(customizeFieldsIndex, f)}
-                      >
-                        {on ? `${active.indexOf(f) + 1}. ` : ""}
-                        {f === "Weight" ? "Weight (kg)" : f === "Distance" ? "Distance (m)" : f}
-                      </button>
-                    );
-                  })}
-                </div>
-                <div className="wellnessActions">
-                  <button
-                    type="button"
-                    className="wellnessSubmit"
-                    onClick={() => setCustomizeFieldsIndex(null)}
-                  >
-                    Done
-                  </button>
-                </div>
-              </div>
-            </div>
-          );
-        })()}
+      {customizeFieldsIndex !== null && selectedProgramExercises[customizeFieldsIndex] && (
+        <ExerciseFieldsSheet
+          exercise={selectedProgramExercises[customizeFieldsIndex]}
+          toggle={field => toggleTrackingField(customizeFieldsIndex, field)}
+          close={() => setCustomizeFieldsIndex(null)}
+        />
+      )}
 
       <aside className="sidebar">
         <div className="brand">
