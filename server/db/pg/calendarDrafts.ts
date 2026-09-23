@@ -1,7 +1,8 @@
+import { editorFor, publishSessionRevision } from "./assignedSession.ts";
 import { createHash, randomUUID } from "node:crypto";
 import { and, eq, inArray, sql } from "drizzle-orm";
 import { db } from "../client.ts";
-import { assignedTests, assignedWorkouts, programs, workoutTemplates, setPrescriptions, exerciseAlternates, testTemplates } from "../schema.ts";
+import { assignedTests, assignedWorkouts, programs, workoutTemplates, setPrescriptions, exerciseAlternates, testTemplates, sessionRevisions } from "../schema.ts";
 import { createWorkoutTemplatesBulk } from "./programTemplates.ts";
 import { dayStartMs } from "./_util.ts";
 import { queueTranslations } from "../contentTranslations.ts";
@@ -87,20 +88,40 @@ export async function createCalendarDraft(input: {
 
 const revision = (row: unknown) => createHash("sha256").update(JSON.stringify(row)).digest("hex");
 async function draftRows(clientId: string, tx: Tx | typeof db = db, lock = false) {
+  // All calendar mutations acquire assignment locks in the same order, even
+  // when one review includes both unpublished sessions and live revisions.
+  if (lock) await tx.select({ id: assignedWorkouts.assignedWorkoutId }).from(assignedWorkouts)
+    .where(eq(assignedWorkouts.clientId, clientId)).orderBy(assignedWorkouts.assignedWorkoutId).for("update");
   const wq = tx.select().from(assignedWorkouts).where(and(eq(assignedWorkouts.clientId, clientId), eq(assignedWorkouts.isDraft, true))).orderBy(assignedWorkouts.assignedWorkoutId);
   const tq = tx.select().from(assignedTests).where(and(eq(assignedTests.clientId, clientId), eq(assignedTests.isDraft, true))).orderBy(assignedTests.assignedTestId);
   const workouts = await (lock ? wq.for("update") : wq);
   const tests = await (lock ? tq.for("update") : tq);
-  // Translations arriving in the background do not invalidate a coach's review.
-  return { workouts, tests, version: revision({ workouts: workouts.map(({ sessionNameCn, sessionGoalCn, coachNotesCn, clientNotesCn, ...row }) => row), tests }) };
+  // Lock the assignment before its revision, matching the session save path.
+  const rq = tx.select({ workout: assignedWorkouts, revision: sessionRevisions }).from(assignedWorkouts)
+    .innerJoin(sessionRevisions, eq(sessionRevisions.assignedWorkoutId, assignedWorkouts.assignedWorkoutId))
+    .where(eq(assignedWorkouts.clientId, clientId)).orderBy(assignedWorkouts.assignedWorkoutId);
+  const revisions = await (lock ? rq.for("update") : rq);
+  const sources = [...workouts, ...revisions.map(r => r.revision.workout as typeof assignedWorkouts.$inferSelect)];
+  const details = await Promise.all(sources.map(w => editorFor(w)));
+  const testIds = tests.map(t => t.testTemplateId).filter((id): id is string => !!id);
+  const testNames = testIds.length ? await tx.select().from(testTemplates).where(inArray(testTemplates.testTemplateId, testIds)) : [];
+  // Hash exactly the source content presented for review, excluding background translations.
+  const version = revision({ workouts: workouts.map(({ sessionNameCn, sessionGoalCn, coachNotesCn, clientNotesCn, ...row }) => row), tests,
+    revisions: revisions.map(r => ({ id: r.revision.revisionId, program: r.workout.programId, date: r.workout.scheduledDate, status: r.workout.completionStatus })),
+    details: details.map(d => d.version), testNames });
+  return { workouts, tests, revisions, details, testNames, version };
 }
 export async function reviewCalendarDrafts(clientId: string) {
-  const { workouts, tests, version } = await draftRows(clientId);
-  const testIds = tests.map(t => t.testTemplateId).filter((id): id is string => !!id);
-  const testNames = testIds.length ? await db.select({ id: testTemplates.testTemplateId, name: testTemplates.name }).from(testTemplates).where(inArray(testTemplates.testTemplateId, testIds)) : [];
+  const { workouts, tests, revisions, details, testNames, version } = await draftRows(clientId);
+  const revisionItems = await Promise.all(revisions.map(async ({ workout: w, revision: r }) => ({ id: `revision:${w.assignedWorkoutId}`, type: "revision",
+    name: (r.workout as typeof w).sessionName || w.sessionName || "Workout", date: w.scheduledDate,
+    editVersion: createHash("sha256").update(`${(await editorFor(w)).version}:${r.revisionId}`).digest("hex"),
+    snapshot: details.find(d => d.workout.assignedWorkoutId === w.assignedWorkoutId) })));
   return { version, items: [
-    ...workouts.map(w => ({ id: w.assignedWorkoutId, type: "workout", name: w.sessionName || "Workout", date: w.scheduledDate })),
-    ...tests.map(t => ({ id: t.assignedTestId, type: "test", name: testNames.find(n => n.id === t.testTemplateId)?.name || "Physical test", date: t.assignedDate })),
+    ...workouts.map(w => ({ id: w.assignedWorkoutId, type: "workout", name: w.sessionName || "Workout", date: w.scheduledDate,
+      snapshot: details.find(d => d.workout.assignedWorkoutId === w.assignedWorkoutId) })),
+    ...revisionItems,
+    ...tests.map(t => ({ id: t.assignedTestId, type: "test", name: testNames.find(n => n.testTemplateId === t.testTemplateId)?.name || "Physical test", date: t.assignedDate })),
   ].sort((a, b) => Number(a.date) - Number(b.date)) };
 }
 export async function publishCalendarDrafts(clientId: string, ids: string[], version: string) {
@@ -109,11 +130,14 @@ export async function publishCalendarDrafts(clientId: string, ids: string[], ver
     if (current.version !== version) throw new CalendarDraftError(409, "The calendar changed. Review the latest drafts before publishing.");
     const workoutIds = current.workouts.filter(w => ids.includes(w.assignedWorkoutId)).map(w => w.assignedWorkoutId);
     const testIds = current.tests.filter(t => ids.includes(t.assignedTestId)).map(t => t.assignedTestId);
-    if (workoutIds.length + testIds.length !== ids.length) throw new CalendarDraftError(409, "A selected draft is no longer available.");
+    const revisions = current.revisions.filter(r => ids.includes(`revision:${r.workout.assignedWorkoutId}`));
+    if (workoutIds.length + testIds.length + revisions.length !== ids.length) throw new CalendarDraftError(409, "A selected draft is no longer available.");
+    for (const r of revisions) await publishSessionRevision(tx, r.workout);
     if (workoutIds.length) await tx.update(assignedWorkouts).set({ isDraft: false }).where(inArray(assignedWorkouts.assignedWorkoutId, workoutIds));
     if (testIds.length) await tx.update(assignedTests).set({ isDraft: false }).where(inArray(assignedTests.assignedTestId, testIds));
     return ids.length;
   });
+  queueTranslations("assignedWorkouts", ids.filter(id => id.startsWith("AW-") || id.startsWith("revision:AW-")).map(id => id.replace(/^revision:/, "")));
   invalidateCalendar();
   return { success: true, published };
 }

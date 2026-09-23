@@ -10,4 +10,30 @@
 .calendarDraftReviewList > label { border-bottom: 1px solid #e3e1d9; }
 .calendarDraftReviewList strong { overflow-wrap: anywhere; }
 .calendarDraftSaveMobile { margin: 12px 0; width: 100%; }
+.builderUndoBar, .calendarToolActions { display: flex; flex-wrap: wrap; gap: 8px; margin: 12px 0; }
+.builderUndoBar button, .sessionVersionItem button { min-height: 44px; }
+.calendarDraftReviewItem, .sessionVersionItem { padding: 12px 0; border-bottom: 1px solid #e3e1d9; }
+.calendarDraftPreview > summary, .sessionVersionItem > summary, .sessionSnapshotExercise > details > summary { padding: 12px 4px; min-height: 44px; cursor: pointer; font-weight: 600; }
+.sessionSnapshotPreview { padding: 12px !important; border: 1px solid #e3e1d9; border-radius: 12px; background: #fff; color: #161616; margin: 12px 0; min-width: 0; }
+.sessionSnapshotName { display: flex; align-items: center; gap: 12px; padding: 12px 0; }
+.sessionSnapshotName > div { min-width: 0; overflow-wrap: anywhere; }
+.sessionSnapshotName small { display: block; margin-top: 4px; }
+.sessionSnapshotName .exerciseLabelBadge { flex-shrink: 0; }
+.sessionSnapshotSets { margin: 0; padding: 0; list-style: none; }
+.sessionSnapshotSets li { display: flex; flex-wrap: wrap; gap: 8px; padding: 10px; margin: 4px 0; background: #f5f4ef; border-radius: 6px; overflow-wrap: anywhere; }
+.sessionSnapshotExercise { padding-bottom: 12px; border-bottom: 1px solid #e3e1d9; }
+.calendarMultiSelect { max-height: 36vh; overflow-y: auto; border-block: 1px solid #ddd; }
+.calendarMovePreview > label { display: grid; grid-template-columns: 1fr minmax(140px, 45%); align-items: center; padding: 12px 0; gap: 6px 12px; border-bottom: 1px solid #ddd; }
+.calendarMovePreview strong { grid-column: 1 / -1; overflow-wrap: anywhere; }
+.calendarMovePreview input { min-width: 0; width: 100%; }
+.programmingSheet details > summary { touch-action: manipulation; }
+.sessionSnapshotPreview .workoutGlanceCircuitHeader { padding: 10px 12px; border-left: 3px solid #806398; border-radius: 8px; background: #f3edf9; color: #4b365c; font-size: 13px; font-weight: 700; }
+.sessionSnapshotPreview .exerciseLabelBadge { background: #202020; color: #f0dc88; }
+@media(max-width:720px) {
+  .app:not(.clientPortalApp) .calendarWorkoutEditor .pbSaveCluster { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.25fr); gap: 8px; }
+  .calendarWorkoutEditor .pbSaveCluster > .calendarDraftSave { grid-column: 1; grid-row: 1; align-self: stretch; padding: 8px; font-size: 14px; }
+  .calendarWorkoutEditor .pbSaveCluster .pbSaveRow, .calendarWorkoutEditor .pbSaveCluster .pbSaveCol { display: contents; }
+  .calendarWorkoutEditor .pbSaveCluster .pbSaveBtn { grid-column: 2; grid-row: 1; min-width: 0; min-height: 48px; padding: 8px; font-size: 14px; justify-content: center; white-space: normal; }
+  .calendarWorkoutEditor .pbSaveCluster .pbSaveStatus { grid-column: 1 / -1; justify-content: center; }
+}
 @media (max-width: 600px) { .pdpModalFoot, .calendarAssignPreviewActions { flex-wrap: wrap; } .calendarDraftSave { white-space: normal; } }

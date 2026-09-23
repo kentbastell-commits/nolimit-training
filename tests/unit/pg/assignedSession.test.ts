@@ -8,12 +8,13 @@ import { pool } from "../../../server/db/client.ts";
 const exercise = { exerciseId: "EX-1", exerciseRecordId: "EX-1", exerciseName: "Hold", sets: 2, reps: "8",
   coachingNotes: 'Fields: Time\nSet Prescriptions: [{"setNumber":1,"time":"30"},{"setNumber":2,"time":"30"}]' };
 const session = { week: 1, day: 1, sessionName: "Lower", sessionNameCn: "下肢训练", exercises: [exercise] };
-async function call(method = "GET", body = {}, id = "AW-1") {
+async function call(method = "GET", body = {}, id = "AW-1", coach = true) {
   const res = makeRes();
-  await handler(makeReq({ method, query: { assignedWorkoutId: id }, body }) as any, res as any);
+  await handler(makeReq({ method, query: { assignedWorkoutId: id }, body, headers: coach ? { "x-coach-key": "test-secret" } : {} }) as any, res as any);
   return res;
 }
 beforeEach(async () => {
+  vi.stubEnv("COACH_ACCESS_KEY", "test-secret");
   await resetDb();
   await seedClient({ client_id: "CL-0001" }); await seedClient({ client_id: "CL-2" }); await seedProgram();
   await pool.query("insert into exercises (exercise_id, name) values ('EX-1', 'Hold')");
@@ -22,7 +23,7 @@ beforeEach(async () => {
     values ('AW-1', 'CL-0001', 'PR-1001', 1, 1, 'Scheduled'), ('AW-2', 'CL-2', 'PR-1001', 1, 1, 'Scheduled'),
     ('AW-3', 'CL-0001', 'PR-1001', 1, 1, 'Completed')`);
 });
-afterAll(closeDb);
+afterAll(async () => { vi.unstubAllEnvs(); await closeDb(); });
 describe("assigned session edits", () => {
   it("reads bilingual notes into the builder and saves explicit Chinese edits to the athlete copy", async () => {
     await pool.query("update workout_templates set coaching_notes_cn='旧备注'");
@@ -93,7 +94,7 @@ describe("assigned session edits", () => {
   });
   it("requires coach authorization for both reads and writes", async () => {
     vi.stubEnv("COACH_ACCESS_KEY", "test-secret");
-    try { expect((await call()).statusCode).toBe(401); expect((await call("POST")).statusCode).toBe(401); }
+    try { expect((await call("GET", {}, "AW-1", false)).statusCode).toBe(401); expect((await call("POST", {}, "AW-1", false)).statusCode).toBe(401); }
     finally { vi.unstubAllEnvs(); }
   });
 });

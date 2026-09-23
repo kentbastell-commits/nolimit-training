@@ -1025,6 +1025,9 @@ data between them, never "borrow" a table ID across products.
 76. **The calendar draft visible through another door** — calendar filters alone do not make a plan private.
     Isolate draft templates and enforce publication on athlete lists, direct player/template/export reads,
     submissions and rescheduling; separate preview caches and publish reviewed assignments atomically.
+    Keep live revisions separate from the published pointer; snapshot history as values, not mutable template links.
+    Bulk targets must update per-set rows, not only summary fields. Lock calendar selections in stable order,
+    verify every selected version, and store retry receipts in the same transaction as the move/copy.
 
 ## Quality bar — checkable, per deliverable
 

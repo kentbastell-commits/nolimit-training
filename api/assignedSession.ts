@@ -1,23 +1,26 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
-import { coachKeyOk } from "./_coachAuth.ts";
+import { isVerifiedCoach } from "./_coachAuth.ts";
 import { invalidateCache } from "./_cache.ts";
-import { getAssignedSession, saveAssignedSession, SessionEditError } from "../server/db/pg/assignedSession.ts";
+import { discardSessionRevision, getAssignedSession, listSessionVersions, saveAssignedSession, SessionEditError } from "../server/db/pg/assignedSession.ts";
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
-  if (!coachKeyOk(req as never)) return res.status(401).json({ error: "Unauthorized" });
+  res.setHeader("Cache-Control", "no-store");
+  if (!isVerifiedCoach(req as never)) return res.status(401).json({ error: "Unauthorized" });
   if (req.method !== "GET" && req.method !== "POST") return res.status(405).json({ error: "Method not allowed" });
   const id = req.method === "GET" ? req.query.assignedWorkoutId : req.body?.assignedWorkoutId;
   if (typeof id !== "string" || !id.trim()) return res.status(400).json({ error: "Missing assignedWorkoutId" });
   try {
-    if (req.method === "GET") return res.status(200).json(await getAssignedSession(id));
+    if (req.method === "GET") return res.status(200).json(req.query.history === "1"
+      ? { versions: await listSessionVersions(id) } : await getAssignedSession(id, req.query.latest === "1"));
     const { version, session } = req.body || {};
+    if (req.body?.action === "discard" && typeof version === "string" && version) return res.status(200).json(await discardSessionRevision(id, version));
     if (typeof version !== "string" || !version || typeof session?.sessionName !== "string" || !session.sessionName.trim()
       || !Array.isArray(session?.exercises) || !session.exercises.length || session.exercises.length > 100
       || session.testTemplateId || session.exercises.some((ex: any) => !ex || typeof ex.exerciseId !== "string"
         || !ex.exerciseId || !Number.isFinite(Number(ex.sets)) || Number(ex.sets) < 1 || Number(ex.sets) > 100)) {
       return res.status(400).json({ error: "Invalid session" });
     }
-    const result = await saveAssignedSession(id, version, session);
+    const result = await saveAssignedSession(id, version, session, { draft: req.body.action === "draft", reviewed: req.body.reviewed === true });
     for (const key of ["workouts", "programs", "workoutTemplatesRaw", "programSessionTypes"]) invalidateCache(key);
     return res.status(200).json(result);
   } catch (error) {

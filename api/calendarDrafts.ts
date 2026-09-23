@@ -1,3 +1,4 @@
+import { SessionEditError } from "../server/db/pg/assignedSession.ts";
 import type { VercelRequest, VercelResponse } from "@vercel/node";
 import { isVerifiedCoach } from "./_coachAuth.ts";
 import { CalendarDraftError, createCalendarDraft, publishCalendarDrafts, reviewCalendarDrafts } from "../server/db/pg/calendarDrafts.ts";
@@ -38,7 +39,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     }
     return res.status(200).json(await createCalendarDraft(body));
   } catch (error) {
-    return res.status(error instanceof CalendarDraftError ? error.status : 500)
-      .json({ error: error instanceof CalendarDraftError ? error.message : "Could not save calendar drafts. Your work is retained." });
+    return res.status(error instanceof CalendarDraftError || error instanceof SessionEditError ? error.status : 500)
+      .json({ error: error instanceof CalendarDraftError || error instanceof SessionEditError ? error.message : "Could not save calendar drafts. Your work is retained." });
   }
 }

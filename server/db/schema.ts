@@ -19,6 +19,23 @@ const coachingReviewColumns = () => ({
 export const coachingReviewStates = pgTable("coaching_review_states", { ...coachingReviewColumns(), key: text("key").primaryKey() });
 export const coachingReviewHistory = pgTable("coaching_review_history", { ...coachingReviewColumns(), eventId: text("event_id").primaryKey() }, t => [index("coaching_review_history_key_idx").on(t.key)]);
 
+export const sessionVersions = pgTable("session_versions", {
+  id: text("id").primaryKey(),
+  assignedWorkoutId: text("assigned_workout_id").notNull().references(() => assignedWorkouts.assignedWorkoutId, { onDelete: "cascade" }),
+  createdAt: bigint("created_at", { mode: "number" }).notNull(),
+  kind: text("kind").notNull(), snapshot: jsonb("snapshot").notNull(),
+}, t => [index("session_versions_assignment_idx").on(t.assignedWorkoutId)]);
+export const sessionRevisions = pgTable("session_revisions", {
+  assignedWorkoutId: text("assigned_workout_id").primaryKey().references(() => assignedWorkouts.assignedWorkoutId, { onDelete: "cascade" }),
+  revisionId: text("revision_id").notNull(), baseVersion: text("base_version").notNull(),
+  updatedAt: bigint("updated_at", { mode: "number" }).notNull(),
+  workout: jsonb("workout").notNull(),
+});
+export const calendarOperations = pgTable("calendar_operations", {
+  requestId: text("request_id").primaryKey(), fingerprint: text("fingerprint").notNull(),
+  result: jsonb("result").notNull(), createdAt: bigint("created_at", { mode: "number" }).notNull(),
+});
+
 /**
  * NX LIMIT Training — Postgres schema (Drizzle).
  *

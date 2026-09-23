@@ -54,6 +54,7 @@ import createProductOrder from "../api/createProductOrder.ts";
 import createProgram from "../api/createProgram.ts";
 import createWorkoutTemplate from "../api/createWorkoutTemplate.ts";
 import createWorkoutTemplatesBulk from "../api/createWorkoutTemplatesBulk.ts";
+import calendarSessions from "../api/calendarSessions.ts";
 import assignedSession from "../api/assignedSession.ts";
 import coachingReview, { history as coachingReviewHistory } from "../api/coachingReview.ts";
 import coachDrafts from "../api/coachDrafts.ts";
@@ -309,6 +310,7 @@ const handlers = {
   createWorkoutTemplate,
   createWorkoutTemplatesBulk,
   assignedSession,
+  calendarSessions,
   coachingReview,
   coachingReviewHistory,
   programmingBlocks,

@@ -1,3 +1,8 @@
+import CalendarSessionTools from "./CalendarSessionTools";
+import SessionVersionHistory from "./SessionVersionHistory";
+import type { SessionSnapshot } from "./SessionSnapshotPreview";
+import { applyBulkTargets } from "./bulkPrescription";
+import { useBuilderUndo } from "./useBuilderUndo";
 import { CalendarDraftReview, SaveCalendarDraftSheet, SaveCalendarDraftButton } from "./CalendarDraftControls";
 import { saveCalendarDraft, assignCalendarProgram } from "./calendarDraftApi";
 import { insertBlock, progressExerciseLoad, progressionKey } from "./programmingBlockData";
@@ -1910,8 +1915,11 @@ function App({ onReady, bootVisible = true }: { onReady?: () => void; bootVisibl
     clientName: string; date: string;
   } | null>(null);
   const [assignedSessionEdit, setAssignedSessionEdit] = useState<{
-    assignedWorkoutId: string; clientId: string; version: string; isDraft?: boolean; baseSession?: ProgramSession;
+    assignedWorkoutId: string; clientId: string; version: string; isDraft?: boolean; hasRevision?: boolean; baseSession?: ProgramSession;
   } | null>(null);
+  const [calendarRefreshEpoch, setCalendarRefreshEpoch] = useState(0);
+  const [sessionVersionHistoryOpen, setSessionVersionHistoryOpen] = useState(false);
+  const pendingPrivateSaveRef = useRef(false);
   const [calendarDraftSaveOpen, setCalendarDraftSaveOpen] = useState(false);
   const [calendarDraftReviewOpen, setCalendarDraftReviewOpen] = useState(false);
   const [sessionRecovery, setSessionRecovery] = useState<SessionRecovery | null>(null);
@@ -5790,7 +5798,7 @@ function App({ onReady, bootVisible = true }: { onReady?: () => void; bootVisibl
     });
     if (!loaded) return;
     setAssignedSessionEdit({ assignedWorkoutId: workout.assignedWorkoutId || workout.id,
-      clientId: source.workout.clientId, version: source.version, isDraft: source.workout.isDraft,
+      clientId: source.workout.clientId, version: source.version, isDraft: source.workout.isDraft, hasRevision: source.hasRevision,
       baseSession: buildSessionsFromTemplates(source.templates).find(s => s.week === String(source.workout.week) && s.day === String(source.workout.day)) });
     setSelectedWorkout(null);
     if (selectedClient) {
@@ -11284,17 +11292,11 @@ function App({ onReady, bootVisible = true }: { onReady?: () => void; bootVisibl
   // Bulk prescription editing: tick exercises, apply sets/reps/rest at once.
   const applyBulkPrescription = () => {
     if (bulkSelectedIdx.size === 0) return;
-    setSelectedProgramExercises((current) =>
-      current.map((ex, i) => {
-        if (!bulkSelectedIdx.has(i)) return ex;
-        return withNormalizedSetFields({
-          ...ex,
-          sets: bulkSets.trim() || ex.sets,
-          reps: bulkReps.trim() || ex.reps,
-          rest: bulkRest.trim() || ex.rest,
-        });
-      })
-    );
+    try {
+      const updated = selectedProgramExercises.map((ex, i) => bulkSelectedIdx.has(i)
+        ? withNormalizedSetFields(applyBulkTargets(ex, { sets: bulkSets, reps: bulkReps, rest: bulkRest })) : ex);
+      setSelectedProgramExercises(updated);
+    } catch { notify(i18n.language.startsWith("zh") ? "\u7ec4\u6570\u5fc5\u987b\u662f1\u81f3100\u4e4b\u95f4\u7684\u6574\u6570\u3002" : "Sets must be a whole number from 1 to 100.", "error"); return; }
     notify(`Updated ${bulkSelectedIdx.size} exercise(s).`, "success");
     setBulkSelectedIdx(new Set());
     setBulkEditMode(false);
@@ -11408,7 +11410,7 @@ function App({ onReady, bootVisible = true }: { onReady?: () => void; bootVisibl
   // mid-build). The default clears the canvas and leaves it to the caller
   // to navigate (mobile flow, one-off calendar sessions).
   const saveFullProgram = async (
-    opts?: { stay?: boolean; calendarDraft?: { clientId: string; date: string }; reviewed?: { session: ProgramSession; version: string; base: ProgramSession } }
+    opts?: { stay?: boolean; privateDraft?: boolean; calendarDraft?: { clientId: string; date: string }; reviewed?: { session: ProgramSession; version: string; base: ProgramSession } }
   ): Promise<boolean> => {
     if (saveInFlightRef.current) return false;
     saveInFlightRef.current = true;
@@ -11420,16 +11422,17 @@ function App({ onReady, bootVisible = true }: { onReady?: () => void; bootVisibl
   };
 
   const saveFullProgramInner = async (
-    opts?: { stay?: boolean; calendarDraft?: { clientId: string; date: string }; reviewed?: { session: ProgramSession; version: string; base: ProgramSession } }
+    opts?: { stay?: boolean; privateDraft?: boolean; calendarDraft?: { clientId: string; date: string }; reviewed?: { session: ProgramSession; version: string; base: ProgramSession } }
   ): Promise<boolean> => {
     if (assignedSessionEdit) {
       const current = opts?.reviewed?.session || buildCurrentProgramSession(editingProgramSessionId || "assigned", sessionName || programName);
       if (!current?.exercises.length) { notify(t("sessionNeedsExercises"), "error"); return false; }
+      pendingPrivateSaveRef.current = Boolean(opts?.privateDraft);
       setSavingTemplate(true);
       try {
         const response = await fetchWithTimeout("/api/assignedSession", {
           method: "POST", headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ assignedWorkoutId: assignedSessionEdit.assignedWorkoutId,
+          body: JSON.stringify({ action: opts?.privateDraft ? "draft" : "publish", reviewed: Boolean(opts?.reviewed), assignedWorkoutId: assignedSessionEdit.assignedWorkoutId,
             version: opts?.reviewed?.version || assignedSessionEdit.version, session: { ...current,
             exercises: current.exercises.map((exercise, index) => ({ ...exercise,
               order: index + 1, sets: Number(exercise.sets) || 1,
@@ -11440,7 +11443,7 @@ function App({ onReady, bootVisible = true }: { onReady?: () => void; bootVisibl
         const result = await response.json();
         if (response.status === 409 && result.error === "sessionChanged") {
           // Keep the original draft intact until the coach reviews the merge.
-          const freshResponse = await fetchWithTimeout(`/api/assignedSession?assignedWorkoutId=${encodeURIComponent(assignedSessionEdit.assignedWorkoutId)}`, {});
+          const freshResponse = await fetchWithTimeout(`/api/assignedSession?assignedWorkoutId=${encodeURIComponent(assignedSessionEdit.assignedWorkoutId)}&latest=1`, {});
           const fresh = await freshResponse.json();
           if (!freshResponse.ok) { notify(t(fresh.error || "sessionSaveFailed"), "error"); return false; }
           setAssignedSessionEdit(prev => prev ? { ...prev, isDraft: Boolean(fresh.workout?.isDraft) } : prev);
@@ -11457,6 +11460,7 @@ function App({ onReady, bootVisible = true }: { onReady?: () => void; bootVisibl
           return false;
         }
         if (!response.ok || !result.success) { notify(t(result.error || "sessionSaveFailed"), "error"); return false; }
+        setCalendarRefreshEpoch(n => n + 1);
         justSavedRef.current = true;
         builderServerDirtyRef.current = false;
         clearActiveCoachDraft();
@@ -11464,7 +11468,7 @@ function App({ onReady, bootVisible = true }: { onReady?: () => void; bootVisibl
         resetProgramFields(); resetSessionFields();
         setWorkoutPageTab("Saved Programs");
         if (client) { setSelectedClient(client); setActivePage("Clients"); setClientTab("Training"); void loadClientWorkouts(client, true); }
-        notify(assignedSessionEdit.isDraft ? (i18n.language.startsWith("zh") ? "草稿已保存，学员暂时看不到。" : "Draft saved. Still hidden from the athlete.") : t("assignedSessionSaved"), "success");
+        notify(assignedSessionEdit.isDraft || opts?.privateDraft ? (i18n.language.startsWith("zh") ? "草稿已保存，学员暂时看不到。" : "Draft saved. Still hidden from the athlete.") : t("assignedSessionSaved"), "success");
         return true;
       } catch { notify(t("sessionSaveFailed"), "error"); return false; }
       finally { setSavingTemplate(false); }
@@ -12250,6 +12254,21 @@ function App({ onReady, bootVisible = true }: { onReady?: () => void; bootVisibl
   // Loading happens after the roster is ready; it adds no startup API request.
   const [coachDraftStatus, setCoachDraftStatus] = useState("");
   const activeCoachDraft = useRef<{ id: string; revision: string | null } | null>(null);
+  const restoreSessionVersion = (snapshot: SessionSnapshot) => {
+    const session = buildSessionsFromTemplates(snapshot.templates)[0];
+    if (!session) return;
+    setSelectedProgramExercises(session.exercises); setSessionName(session.sessionName); setSessionNameCn(session.sessionNameCn || "");
+    setSessionNotes(session.sessionNotes || ""); setSessionGoal(session.sessionGoal || ""); setSessionType(session.sessionType || "Strength");
+    setSessionIntensity(session.intensity || "Moderate"); setSessionEstimatedDuration(session.estimatedDuration || "");
+    resetExerciseIndexState(); setSessionVersionHistoryOpen(false);
+    notify(i18n.language.startsWith("zh") ? "\u5df2\u6062\u590d\u5230\u7f16\u8f91\u5668\uff0c\u8bf7\u68c0\u67e5\u540e\u4fdd\u5b58\u6216\u53d1\u5e03\u3002" : "Version restored to the editor. Review before saving or publishing.", "success");
+  };
+
+  const builderUndo = useBuilderUndo({ selectedProgramExercises, sessionName, sessionNameCn, sessionNotes, sessionGoal, sessionType, sessionIntensity, sessionEstimatedDuration },
+    `${assignedSessionEdit?.assignedWorkoutId || editProgramId || "new"}:${assignedSessionEdit?.version || ""}:${editingProgramSessionId}:${programWeek}:${programDay}`,
+    value => { setSelectedProgramExercises(value.selectedProgramExercises); setSessionName(value.sessionName); setSessionNameCn(value.sessionNameCn); setSessionNotes(value.sessionNotes); setSessionGoal(value.sessionGoal); setSessionType(value.sessionType); setSessionIntensity(value.sessionIntensity); setSessionEstimatedDuration(value.sessionEstimatedDuration); resetExerciseIndexState(); },
+    workoutPageTab === "Program Builder");
+
   const coachDraftSnapshot = useMemo(() => ({
     builderMode,
     programName,
@@ -12398,7 +12417,7 @@ function App({ onReady, bootVisible = true }: { onReady?: () => void; bootVisibl
     setProgramSessions([session]);
     resetExerciseIndexState();
     setSessionRecovery(null);
-    void saveFullProgram({ reviewed });
+    void saveFullProgram({ reviewed, privateDraft: pendingPrivateSaveRef.current });
   };
   const resumeCoachDraft = (id: string) => {
     const draft = readCoachDrafts<typeof coachDraftSnapshot>(coachDraftOwner).find(d => d.id === id);
@@ -19905,8 +19924,9 @@ function App({ onReady, bootVisible = true }: { onReady?: () => void; bootVisibl
         </>
       )}
 
+      {sessionVersionHistoryOpen && assignedSessionEdit && <SessionVersionHistory id={assignedSessionEdit.assignedWorkoutId} close={() => setSessionVersionHistoryOpen(false)} restore={restoreSessionVersion} />}
       {calendarDraftSaveOpen && <SaveCalendarDraftSheet clients={clients} clientId={oneOffAssignTarget?.clientRecordId || programBuiltForClient || selectedClient?.id || ""} date={oneOffAssignTarget?.date || calendarAnchorDate || coachingToday()} busy={savingTemplate} close={() => setCalendarDraftSaveOpen(false)} save={(clientId, date) => saveFullProgram({ calendarDraft: { clientId, date } })} />}
-      {calendarDraftReviewOpen && selectedClient && <CalendarDraftReview key={selectedClient.id} clientId={selectedClient.id} name={selectedClient.name} close={() => setCalendarDraftReviewOpen(false)} published={() => { void loadClientWorkouts(selectedClient, true); void loadContentAssignments(selectedClient); notify(i18n.language.startsWith("zh") ? "已发布，学员现在可以看到所选训练。" : "Published. The athlete can now see these sessions.", "success"); }} />}
+      {calendarDraftReviewOpen && selectedClient && <CalendarDraftReview key={selectedClient.id} clientId={selectedClient.id} name={selectedClient.name} close={() => setCalendarDraftReviewOpen(false)} updated={() => setCalendarRefreshEpoch(n => n + 1)} published={() => { setCalendarRefreshEpoch(n => n + 1); void loadClientWorkouts(selectedClient, true); void loadContentAssignments(selectedClient); notify(i18n.language.startsWith("zh") ? "已发布，学员现在可以看到所选训练。" : "Published. The athlete can now see these sessions.", "success"); }} />}
 
       {calAddMenu && (
         <>
@@ -21369,7 +21389,11 @@ function App({ onReady, bootVisible = true }: { onReady?: () => void; bootVisibl
               <CalendarWorkoutEditor context={calendarBuilderContext} onClose={returnToBuilderOrigin} busy={savingTemplate}>
                 {calendarBuilderContext && connectionNotice()}
               <CoachBuilderPage
-                onSaveCalendarDraft={!assignedSessionEdit ? () => setCalendarDraftSaveOpen(true) : undefined}
+                builderUndo={builderUndo}
+                onSaveCalendarDraft={assignedSessionEdit ? () => { void saveFullProgram({ privateDraft: true }); } : () => setCalendarDraftSaveOpen(true)}
+                editingPublishedSession={Boolean(assignedSessionEdit && !assignedSessionEdit.isDraft)}
+                hasPrivateRevision={assignedSessionEdit?.hasRevision}
+                onSessionHistory={assignedSessionEdit ? () => setSessionVersionHistoryOpen(true) : undefined}
                 editingCalendarDraft={Boolean(assignedSessionEdit?.isDraft)}
                 calendarBuilderContext={calendarBuilderContext}
                 historyClientCode={assignedSessionEdit?.clientId || (programBuiltForMode === "client" ? programBuiltForClient : "")}
@@ -21670,11 +21694,12 @@ function App({ onReady, bootVisible = true }: { onReady?: () => void; bootVisibl
             )}
 
             {sessionRecovery && <AssignedSessionRecoveryDialog key={sessionRecovery.version} recovery={sessionRecovery}
-              busy={savingTemplate} onClose={() => setSessionRecovery(null)} onPublish={publishRecoveredSession} />}
+              privateDraft={Boolean(assignedSessionEdit?.isDraft || pendingPrivateSaveRef.current)} busy={savingTemplate} onClose={() => setSessionRecovery(null)} onPublish={publishRecoveredSession} />}
             {builderLeaveOpen && <SessionSaveDialog title={t("builderLeaveTitle")} busy={savingTemplate} onClose={() => setBuilderLeaveOpen(false)}>
               <p>{t("builderLeaveHint")}</p>
               <div className="sessionSaveActions">
-                <button type="button" className="sessionSavePrimary" disabled={savingTemplate} onClick={() => { setBuilderLeaveOpen(false); void saveFullProgram(); }}>{t("builderLeaveSave")}</button>
+                <button type="button" className="sessionSavePrimary" disabled={savingTemplate} onClick={() => { setBuilderLeaveOpen(false); void saveFullProgram(); }}>{assignedSessionEdit && !assignedSessionEdit.isDraft ? (i18n.language.startsWith("zh") ? "\u53d1\u5e03\u4fee\u6539" : "Publish changes") : t("builderLeaveSave")}</button>
+                {assignedSessionEdit && !assignedSessionEdit.isDraft && <button type="button" disabled={savingTemplate} onClick={() => { setBuilderLeaveOpen(false); void saveFullProgram({ privateDraft: true }); }}>{i18n.language.startsWith("zh") ? "\u4fdd\u5b58\u4e3a\u79c1\u4eba\u8349\u7a3f" : "Save private draft"}</button>}
                 <button type="button" disabled={savingTemplate} onClick={keepDraftAndLeave}>{t("builderLeaveKeep")}</button>
                 <button type="button" disabled={savingTemplate} onClick={() => setBuilderLeaveOpen(false)}>{t("recoveryContinue")}</button>
               </div>
@@ -21753,7 +21778,7 @@ function App({ onReady, bootVisible = true }: { onReady?: () => void; bootVisibl
         {selectedClient && (
           <ErrorBoundary label="portal">
           <ClientWorkspace
-            calendarDraftPanel={!isClientPortal && selectedClient && (workouts.some(w => w.isDraft) || contentAssignments.some(a => a.isDraft)) ? <div className="calendarDraftBanner"><div><strong>{i18n.language.startsWith("zh") ? "日历草稿" : "Calendar drafts"}</strong><p>{i18n.language.startsWith("zh") ? "仅教练可见，准备好后发布。" : "Visible only to you until published."}</p></div><button type="button" className="outlineButton" onClick={() => setCalendarDraftReviewOpen(true)}>{i18n.language.startsWith("zh") ? "查看并发布" : "Review & publish"} ({workouts.filter(w => w.isDraft).length + contentAssignments.filter(a => a.isDraft).length})</button></div> : null}
+            calendarDraftPanel={!isClientPortal && selectedClient ? <CalendarSessionTools key={selectedClient.id} clientId={selectedClient.id} refreshKey={calendarRefreshEpoch + JSON.stringify(workouts.map(w => [w.id, w.programId, w.scheduledDate, w.isDraft, w.completionStatus]))} draftCount={workouts.filter(w => w.isDraft).length + contentAssignments.filter(a => a.isDraft).length} review={() => setCalendarDraftReviewOpen(true)} changed={() => { void loadClientWorkouts(selectedClient, true); void loadContentAssignments(selectedClient); }} /> : null}
             t={t}
             coachingCheckIns={coachingCheckIns.filter(c => c.clientId === selectedClient.clientCode)}
             coachingCheckInsReady={coachingActivityReady}

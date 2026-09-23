@@ -1,3 +1,4 @@
+import SessionSnapshotPreview, { type SessionSnapshot } from "./SessionSnapshotPreview";
 import { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { FileClock } from "lucide-react";
@@ -29,8 +30,8 @@ export function SaveCalendarDraftSheet({ clients, clientId, date, busy, save, cl
   </ProgrammingSheet>;
 }
 
-type DraftItem = { id: string; type: string; name: string; date: number };
-export function CalendarDraftReview({ clientId, name, close, published }: { clientId: string; name: string; close: () => void; published: () => void }) {
+type DraftItem = { id: string; type: string; name: string; date: number; snapshot?: SessionSnapshot; editVersion?: string };
+export function CalendarDraftReview({ clientId, name, close, published, updated }: { clientId: string; name: string; close: () => void; published: () => void; updated?: () => void }) {
   const { i18n } = useTranslation(); const zh = i18n.language?.startsWith("zh");
   const [data, setData] = useState<{ version: string; items: DraftItem[] } | null>(null);
   const [selected, setSelected] = useState<Set<string>>(new Set()), [busy, setBusy] = useState(false), [error, setError] = useState("");
@@ -46,6 +47,18 @@ export function CalendarDraftReview({ clientId, name, close, published }: { clie
     finally { setBusy(false); }
   };
   useEffect(() => { void load(); }, [clientId]); // the sheet is keyed by athlete
+  const discard = async (item: DraftItem) => {
+    if (!item.editVersion || submitting.current) return;
+    submitting.current = true; setBusy(true); setError("");
+    try {
+      const response = await fetch("/api/assignedSession", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({
+        action: "discard", assignedWorkoutId: item.id.replace(/^revision:/, ""), version: item.editVersion,
+      }) });
+      if (!response.ok) throw new Error();
+      updated?.(); await load();
+    } catch { setError(zh ? "未能取消修改。请重新读取草稿并检查。" : "Could not discard the revision. Reload drafts and review."); }
+    finally { submitting.current = false; setBusy(false); }
+  };
   const publish = async () => {
     if (!data || !selected.size || submitting.current) return;
     submitting.current = true; setBusy(true); setError("");
@@ -65,7 +78,11 @@ export function CalendarDraftReview({ clientId, name, close, published }: { clie
     {error && <p role="alert">{error}</p>}
     {!busy && <button type="button" className="outlineButton" onClick={() => void load()}>{zh ? "重新读取草稿" : "Reload drafts"}</button>}
     {data && <><label className="calendarDraftChoice"><input type="checkbox" checked={!!data.items.length && selected.size === data.items.length} disabled={busy} onChange={e => setSelected(new Set(e.target.checked ? data.items.map(i => i.id) : []))} />{zh ? "全选" : "Select all"} ({data.items.length})</label>
-      <div className="calendarDraftReviewList">{data.items.map(item => <label className="calendarDraftChoice" key={item.id}><input type="checkbox" checked={selected.has(item.id)} disabled={busy} onChange={() => setSelected(cur => { const next = new Set(cur); next.has(item.id) ? next.delete(item.id) : next.add(item.id); return next; })} /><span><strong>{item.name}</strong><small>{formatCalendarLabel(normalizeDate(String(item.date)))}</small></span></label>)}</div>
+      <div className="calendarDraftReviewList">{data.items.map(item => <article className="calendarDraftReviewItem" key={item.id}>
+        <label className="calendarDraftChoice"><input type="checkbox" checked={selected.has(item.id)} disabled={busy} onChange={() => setSelected(cur => { const next = new Set(cur); next.has(item.id) ? next.delete(item.id) : next.add(item.id); return next; })} /><span><strong>{item.name}</strong><small>{formatCalendarLabel(normalizeDate(String(item.date)))}</small>{item.type === "revision" && <small>{zh ? "\u79c1\u4eba\u4fee\u6539 \u00b7 \u53d1\u5e03\u540e\u66ff\u6362\u5f53\u524d\u7248\u672c" : "Private revision · replaces the current published version"}</small>}</span></label>
+        {item.snapshot && <details className="calendarDraftPreview"><summary>{zh ? "\u5b66\u5458\u9884\u89c8 \u00b7 \u52a8\u4f5c\u3001\u7ec4\u6570\u4e0e\u63d0\u793a" : "Athlete preview · exercises, sets & notes"}</summary><SessionSnapshotPreview snapshot={item.snapshot} /></details>}
+        {item.type === "revision" && item.editVersion && <details><summary>{zh ? "取消私人修改" : "Discard private revision"}</summary><p>{zh ? "学员继续使用当前发布版本。已保存的修改会保留在版本历史中。" : "The athlete keeps the published workout. The saved revision remains available in session history."}</p><button type="button" className="outlineButton" disabled={busy} onClick={() => void discard(item)}>{zh ? "取消此修改" : "Discard this revision"}</button></details>}
+      </article>)}</div>
       {!data.items.length && <p>{zh ? "没有待发布的草稿。" : "No unpublished drafts."}</p>}
       <div className="weekProgressSave"><button type="button" className="goldButton" disabled={busy || !!error || !selected.size} onClick={() => void publish()}>{zh ? `发布所选训练 (${selected.size})` : `Publish selected (${selected.size})`}</button></div></>}
   </ProgrammingSheet>;

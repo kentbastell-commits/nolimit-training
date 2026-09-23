@@ -1,0 +1,12 @@
+.workoutNotesDisclosure { margin:12px 0; border:1px solid #ded6ba; border-radius:12px; background:#fbf8ef; color:#34332d; }
+.workoutNotesDisclosure > summary { display:flex; align-items:center; justify-content:space-between; gap:12px; padding:14px; min-height:48px; cursor:pointer; list-style:none; }
+.workoutNotesDisclosure > summary::-webkit-details-marker { display:none; }
+.workoutNotesDisclosure > summary > span { min-width:0; flex:1; }
+.workoutNotesDisclosure > summary strong { display:block; font-size:14px; color:#66521f; }
+.workoutNotesDisclosure > summary small { display:block; margin-top:4px; white-space:nowrap; text-overflow:ellipsis; overflow:hidden; font-size:13px; font-weight:400; }
+.workoutNotesDisclosure > summary svg { flex-shrink:0; transition:transform .15s; }
+.workoutNotesDisclosure[open] > summary svg { transform:rotate(180deg); }
+.workoutNotesDisclosure[open] > summary small { display:none; }
+.workoutNotesContent { padding:0 14px 14px; font-size:14px; line-height:1.6; }
+.workoutNotesContent h4 { margin:14px 0 4px; font-size:14px; color:inherit; }
+.workoutNotesContent p { margin:0; white-space:pre-wrap; }

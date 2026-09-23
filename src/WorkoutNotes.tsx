@@ -1,3 +1,4 @@
+import "./WorkoutNotes.css";
 import { ChevronDown } from "lucide-react";
 import { parseExerciseCueSections } from "./appCore";
 

@@ -204,6 +204,13 @@
       "when": 1790121600003,
       "tag": "0028_calendar_drafts",
       "breakpoints": true
+    },
+    {
+      "idx": 29,
+      "version": "7",
+      "when": 1790121600004,
+      "tag": "0029_session_revisions",
+      "breakpoints": true
     }
   ]
 }

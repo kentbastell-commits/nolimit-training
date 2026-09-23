@@ -27,8 +27,8 @@ export function SessionSaveDialog({ title, children, onClose, busy }: { title: s
   </div></PortalToApp>;
 }
 
-export default function AssignedSessionRecoveryDialog({ recovery, busy, onClose, onPublish }: {
-  recovery: SessionRecovery; busy: boolean; onClose: () => void; onPublish: (session: ProgramSession) => void;
+export default function AssignedSessionRecoveryDialog({ recovery, busy, onClose, onPublish, privateDraft = false }: {
+  recovery: SessionRecovery; busy: boolean; onClose: () => void; onPublish: (session: ProgramSession) => void; privateDraft?: boolean;
 }) {
   const { t, i18n } = useTranslation();
   const [choices, setChoices] = useState<Record<string, RecoveryChoice>>({});
@@ -79,7 +79,7 @@ export default function AssignedSessionRecoveryDialog({ recovery, busy, onClose,
     <ol className="sessionRecoveryPreview">{result.session.exercises.map((e, i) => <li key={i}>{exerciseText(e)}</li>)}</ol>
     {result.session.sessionNotes && <details><summary>{t("recoveryField_sessionNotes")}</summary><p className="sessionRecoveryValue">{result.session.sessionNotes}</p></details>}
     <div className="sessionSaveActions">
-      <button type="button" className="sessionSavePrimary" disabled={busy || result.unresolved > 0 || !result.session.exercises.length} onClick={() => onPublish(result.session)}>{t(busy ? "recoveryPublishing" : "recoveryPublish")}</button>
+      <button type="button" className="sessionSavePrimary" disabled={busy || result.unresolved > 0 || !result.session.exercises.length} onClick={() => onPublish(result.session)}>{privateDraft ? (i18n.language.startsWith("zh") ? (busy ? "正在保存…" : "保存检查后的草稿") : (busy ? "Saving…" : "Save reviewed draft")) : t(busy ? "recoveryPublishing" : "recoveryPublish")}</button>
       <button type="button" disabled={busy} onClick={onClose}>{t("recoveryContinue")}</button>
     </div>
   </SessionSaveDialog>;

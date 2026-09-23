@@ -63,6 +63,10 @@ const CUSTOM_SECTION_COLORS = [
 ];
 
 export default function CoachBuilderPage({
+  builderUndo,
+  editingPublishedSession,
+  hasPrivateRevision,
+  onSessionHistory,
   onSaveCalendarDraft,
   editingCalendarDraft = false,
   calendarBuilderContext,
@@ -716,7 +720,7 @@ export default function CoachBuilderPage({
                               : workoutPageTab === "Sessions" ? (i18n.language.startsWith("zh") ? "单次训练" : "Sessions") : workoutPageTab === "Forms" ? (i18n.language.startsWith("zh") ? "表单" : "Forms") : (i18n.language.startsWith("zh") ? "训练计划" : "Programs")}
                           </h1>
                           <p className={oneOffAssignTarget ? "oneOffBuilderLibraryCopy" : ""}>
-                            {editingCalendarDraft ? (i18n.language.startsWith("zh") ? "日历草稿 · 仅教练可见。保存修改不会发布给学员。" : "Calendar draft · coach only. Saving changes keeps this session private.") : calendarBuilderContext ? t(oneOffAssignTarget ? "calendarNewWorkoutHint" : "calendarWorkoutIsolatedHint") : workoutPageTab === "Program Builder"
+                            {editingPublishedSession ? (i18n.language.startsWith("zh") ? (hasPrivateRevision ? "\u6b63\u5728\u7f16\u8f91\u79c1\u4eba\u4fee\u6539\u3002\u53d1\u5e03\u524d\uff0c\u5b66\u5458\u4ecd\u770b\u5230\u5f53\u524d\u5df2\u53d1\u5e03\u7248\u672c\u3002" : "\u53ef\u4fdd\u5b58\u4e3a\u79c1\u4eba\u8349\u7a3f\uff0c\u6216\u53d1\u5e03\u4fee\u6539\u7ed9\u5b66\u5458\u3002") : (hasPrivateRevision ? "Editing a private revision. The athlete still sees the published version until you publish changes." : "Save a private draft, or publish changes to the athlete.")) : editingCalendarDraft ? (i18n.language.startsWith("zh") ? "日历草稿 · 仅教练可见。保存修改不会发布给学员。" : "Calendar draft · coach only. Saving changes keeps this session private.") : calendarBuilderContext ? t(oneOffAssignTarget ? "calendarNewWorkoutHint" : "calendarWorkoutIsolatedHint") : workoutPageTab === "Program Builder"
                               ? isSingleWorkoutBuilder
                                 ? editProgramRecordId ? t("editSavedSessionHint") : "Build a reusable session once — drop it into any program, anytime."
                                 : editProgramRecordId
@@ -740,7 +744,7 @@ export default function CoachBuilderPage({
                               <Plus size={17} /> {createLabel}
                             </button>
                           )}
-                          {workoutPageTab === "Program Builder" && (
+                {workoutPageTab === "Program Builder" && (
                             <div className="pbSaveCluster">
                               {onSaveCalendarDraft && <SaveCalendarDraftButton onClick={onSaveCalendarDraft} disabled={savingTemplate} />}
                               <div className="pbSaveRow">
@@ -756,7 +760,7 @@ export default function CoachBuilderPage({
                                     <Save size={17} strokeWidth={2.2} />
                                     {savingTemplate
                                       ? saveBusyLabel
-                                      : editingCalendarDraft ? (i18n.language.startsWith("zh") ? "保存草稿并返回" : "Save draft and return") : calendarBuilderContext ? t(oneOffAssignTarget ? "assignAndReturn" : "saveAndReturn") : oneOffAssignTarget
+                                      : editingPublishedSession ? (i18n.language.startsWith("zh") ? "\u53d1\u5e03\u4fee\u6539" : "Publish changes") : editingCalendarDraft ? (i18n.language.startsWith("zh") ? "保存草稿并返回" : "Save draft and return") : calendarBuilderContext ? t(oneOffAssignTarget ? "assignAndReturn" : "saveAndReturn") : oneOffAssignTarget
                                         ? t("assignSession")
                                         : isSingleWorkoutBuilder
                                           ? "Save Session"
@@ -2250,6 +2254,12 @@ export default function CoachBuilderPage({
                 </details>
 
                 {renderBlockActions()}
+                          {workoutPageTab === "Program Builder" && builderUndo && <div className="builderUndoBar" aria-label={i18n.language.startsWith("zh") ? "\u7f16\u8f91\u5386\u53f2" : "Edit history"}>
+                  {onSessionHistory && <button type="button" className="outlineButton" disabled={savingTemplate} onClick={onSessionHistory}>{i18n.language.startsWith("zh") ? "\u5df2\u4fdd\u5b58\u7248\u672c" : "Saved history"}</button>}
+                  <button type="button" className="outlineButton" disabled={savingTemplate || !builderUndo.canUndo} onClick={builderUndo.undo}>{i18n.language.startsWith("zh") ? "\u64a4\u9500" : "Undo"}</button>
+                  <button type="button" className="outlineButton" disabled={savingTemplate || !builderUndo.canRedo} onClick={builderUndo.redo}>{i18n.language.startsWith("zh") ? "\u91cd\u505a" : "Redo"}</button>
+                </div>}
+
                 {selectedProgramExercises.length > 1 && (
                   <div className={`bulkEditBar${bulkEditMode ? " active" : ""}`}>
                     <button
@@ -3285,7 +3295,7 @@ export default function CoachBuilderPage({
                                 disabled={savingTemplate}
                                 onClick={saveMobileWorkout}
                               >
-                                {savingTemplate ? saveBusyLabel : editingCalendarDraft ? (i18n.language.startsWith("zh") ? "保存草稿" : "Save draft") : "Save"}
+                                {savingTemplate ? saveBusyLabel : editingPublishedSession ? (i18n.language.startsWith("zh") ? "\u53d1\u5e03\u4fee\u6539" : "Publish changes") : editingCalendarDraft ? (i18n.language.startsWith("zh") ? "保存草稿" : "Save draft") : "Save"}
                               </button>
                             ) : (
                               <button
