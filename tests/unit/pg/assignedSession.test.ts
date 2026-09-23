@@ -70,6 +70,20 @@ describe("assigned session edits", () => {
     expect(await rows("select * from programs")).toHaveLength(1);
     expect((await rows("select program_id from assigned_workouts where assigned_workout_id='AW-1'"))[0].program_id).toBe("PR-1001");
   });
+  it("allows a reviewed draft to save with the fresh version after rejecting its stale version", async () => {
+    const old = await call();
+    await pool.query("update workout_templates set reps='12'");
+    const stale = await call("POST", { assignedWorkoutId: "AW-1", version: old.body.version, session });
+    expect(stale.body.error).toBe("sessionChanged");
+    expect(await rows("select * from programs")).toHaveLength(1);
+    const latest = await call();
+    const reviewed = await call("POST", { assignedWorkoutId: "AW-1", version: latest.body.version,
+      session: { ...session, sessionNotes: "Reviewed", exercises: [{ ...exercise, reps: "12" }] } });
+    expect(reviewed.statusCode).toBe(200);
+    expect((await getWorkoutDetails(reviewed.body.programId, "1", "1"))[0].reps).toBe("12");
+    expect((await rows("select program_id from assigned_workouts where assigned_workout_id='AW-2'"))[0].program_id).toBe("PR-1001");
+    expect((await call("POST", { assignedWorkoutId: "AW-1", version: latest.body.version, session })).statusCode).toBe(409);
+  });
   it("permits only one of two overlapping saves", async () => {
     const before = await call();
     const body = { assignedWorkoutId: "AW-1", version: before.body.version, session };

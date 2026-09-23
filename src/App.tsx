@@ -6,6 +6,8 @@ import { athleteFacts, buildCoachingItems, coachingDate, decisionStatus, isAdmin
 import { readCoachDrafts, writeCoachDraft, removeCoachDraft, type CoachDraft } from "./coachDraft";
 import { validQuestionAnswer, testInputMode, isTwoKm, buildTestAnswer, displayAnswer } from "./contentAnswers";
 import CalendarWorkoutEditor from "./CalendarWorkoutEditor";
+import AssignedSessionRecoveryDialog, { SessionSaveDialog } from "./SessionSaveDialog";
+import type { SessionRecovery } from "./assignedSessionRecovery";
 import { exercisePrescription } from "./appCore";
 import "./MobileCoach.css";
 import { isAthletePreview } from "./athletePreviewPolicy";
@@ -1861,8 +1863,10 @@ function App({ onReady, bootVisible = true }: { onReady?: () => void; bootVisibl
     clientName: string; date: string;
   } | null>(null);
   const [assignedSessionEdit, setAssignedSessionEdit] = useState<{
-    assignedWorkoutId: string; clientId: string; version: string;
+    assignedWorkoutId: string; clientId: string; version: string; baseSession?: ProgramSession;
   } | null>(null);
+  const [sessionRecovery, setSessionRecovery] = useState<SessionRecovery | null>(null);
+  const [builderLeaveOpen, setBuilderLeaveOpen] = useState(false);
   const builderSourceTemplatesRef = useRef("");
   // Calendar "Add from Library": builder-style picker that drops a saved
   // session / program / test onto a specific calendar date.
@@ -5720,12 +5724,13 @@ function App({ onReady, bootVisible = true }: { onReady?: () => void; bootVisibl
       if (!response.ok) { notify(t(source.error || "sessionUnavailable"), "error"); return; }
     } catch { notify(t("sessionUnavailable"), "error"); return; }
     const loaded = await loadSavedProgramIntoBuilder(source.program, {
-      edit: true, session: { week: String(workout.week), day: String(workout.day) },
+      edit: true, session: { week: String(source.workout.week), day: String(source.workout.day) },
       templates: source.templates, assigned: true,
     });
     if (!loaded) return;
     setAssignedSessionEdit({ assignedWorkoutId: workout.assignedWorkoutId || workout.id,
-      clientId: source.workout.clientId, version: source.version });
+      clientId: source.workout.clientId, version: source.version,
+      baseSession: buildSessionsFromTemplates(source.templates).find(s => s.week === String(source.workout.week) && s.day === String(source.workout.day)) });
     setSelectedWorkout(null);
     if (selectedClient) {
       oneOffReturnClientRef.current = selectedClient;
@@ -10980,6 +10985,8 @@ function App({ onReady, bootVisible = true }: { onReady?: () => void; bootVisibl
     resetExerciseIndexState();
   };
   const resetProgramFields = () => {
+    setSessionRecovery(null);
+    setBuilderLeaveOpen(false);
     activeCoachDraft.current = null;
     setCoachDraftStatus("");
     setAssignedSessionEdit(null);
@@ -11362,7 +11369,7 @@ function App({ onReady, bootVisible = true }: { onReady?: () => void; bootVisibl
   // mid-build). The default clears the canvas and leaves it to the caller
   // to navigate (mobile flow, one-off calendar sessions).
   const saveFullProgram = async (
-    opts?: { stay?: boolean }
+    opts?: { stay?: boolean; reviewed?: { session: ProgramSession; version: string; base: ProgramSession } }
   ): Promise<boolean> => {
     if (saveInFlightRef.current) return false;
     saveInFlightRef.current = true;
@@ -11374,16 +11381,17 @@ function App({ onReady, bootVisible = true }: { onReady?: () => void; bootVisibl
   };
 
   const saveFullProgramInner = async (
-    opts?: { stay?: boolean }
+    opts?: { stay?: boolean; reviewed?: { session: ProgramSession; version: string; base: ProgramSession } }
   ): Promise<boolean> => {
     if (assignedSessionEdit) {
-      const current = buildCurrentProgramSession(editingProgramSessionId || "assigned", sessionName || programName);
+      const current = opts?.reviewed?.session || buildCurrentProgramSession(editingProgramSessionId || "assigned", sessionName || programName);
       if (!current?.exercises.length) { notify(t("sessionNeedsExercises"), "error"); return false; }
       setSavingTemplate(true);
       try {
         const response = await fetchWithTimeout("/api/assignedSession", {
           method: "POST", headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ ...assignedSessionEdit, session: { ...current,
+          body: JSON.stringify({ assignedWorkoutId: assignedSessionEdit.assignedWorkoutId,
+            version: opts?.reviewed?.version || assignedSessionEdit.version, session: { ...current,
             exercises: current.exercises.map((exercise, index) => ({ ...exercise,
               order: index + 1, sets: Number(exercise.sets) || 1,
               coachingNotes: buildExerciseCoachingNotes(exercise),
@@ -11391,6 +11399,23 @@ function App({ onReady, bootVisible = true }: { onReady?: () => void; bootVisibl
           } }),
         });
         const result = await response.json();
+        if (response.status === 409 && result.error === "sessionChanged") {
+          // Keep the original draft intact until the coach reviews the merge.
+          const freshResponse = await fetchWithTimeout(`/api/assignedSession?assignedWorkoutId=${encodeURIComponent(assignedSessionEdit.assignedWorkoutId)}`, {});
+          const fresh = await freshResponse.json();
+          if (!freshResponse.ok) { notify(t(fresh.error || "sessionSaveFailed"), "error"); return false; }
+          const latest = buildSessionsFromTemplates(fresh.templates).find(s => s.week === String(fresh.workout.week) && s.day === String(fresh.workout.day));
+          if (!latest || !fresh.version) { notify(t("sessionSaveFailed"), "error"); return false; }
+          let base = opts?.reviewed?.base || assignedSessionEdit.baseSession;
+          if (!base) {
+            // Older device drafts already retain their original template rows.
+            try { base = buildSessionsFromTemplates(JSON.parse(builderSourceTemplatesRef.current)).find(s => s.week === current.week && s.day === current.day); }
+            catch { /* A missing baseline requires explicit choices. */ }
+          }
+          setBuilderLeaveOpen(false);
+          setSessionRecovery({ base, draft: current, latest, version: fresh.version });
+          return false;
+        }
         if (!response.ok || !result.success) { notify(t(result.error || "sessionSaveFailed"), "error"); return false; }
         justSavedRef.current = true;
         builderServerDirtyRef.current = false;
@@ -12039,8 +12064,8 @@ function App({ onReady, bootVisible = true }: { onReady?: () => void; bootVisibl
 
   // Clear the builder back to a blank state (used after a discard, so a
   // re-opened builder doesn't show the abandoned program).
-  const resetBuilder = () => {
-    clearActiveCoachDraft();
+  const resetBuilder = (keepDraft = false) => {
+    if (!keepDraft) clearActiveCoachDraft();
     builderServerDirtyRef.current = false;
     resetProgramFields();
     resetSessionFields();
@@ -12078,22 +12103,24 @@ function App({ onReady, bootVisible = true }: { onReady?: () => void; bootVisibl
   // athlete's calendar, not the program library ("goes back to Spring Ankle
   // program, not Yanjun's calendar"). Captures the client before the
   // leave-guard/reset clears the ref.
-  const returnToBuilderOrigin = () => {
+  const leaveBuilderForOrigin = (keepDraft = false) => {
     const client = oneOffReturnClientRef.current;
+    resetBuilder(keepDraft);
     if (!client) {
-      selectWorkoutTab(
-        builderMode === "Single Workout" ? "Sessions" : "Saved Programs"
-      );
+      setWorkoutPageTab(builderMode === "Single Workout" ? "Sessions" : "Saved Programs");
       return;
     }
-    if (!confirmLeaveBuilder()) return;
-    resetBuilder();
     oneOffReturnClientRef.current = null;
     setWorkoutPageTab("Saved Programs");
     setActivePage("Clients");
     setSelectedClient(client);
     setClientTab("Training");
     void loadClientWorkouts(client, true);
+  };
+  const returnToBuilderOrigin = () => {
+    if (savingTemplate) return;
+    if (hasUnsavedBuilderWork()) { setBuilderLeaveOpen(true); return; }
+    leaveBuilderForOrigin();
   };
 
   // skipGuard: the caller already saved (a successful saveFullProgram both
@@ -12276,6 +12303,39 @@ function App({ onReady, bootVisible = true }: { onReady?: () => void; bootVisibl
     activeCoachDraft.current = null;
     setCoachDraftStatus("");
     setCoachDrafts(readCoachDrafts(coachDraftOwner));
+  };
+  const keepDraftAndLeave = () => {
+    if (!coachDraftOwner) { notify(t("coachDraftUnavailable"), "error"); return; }
+    const target = activeCoachDraft.current || { id: crypto.randomUUID(), revision: null };
+    const draft: BuilderDraft = { schema: 1, id: target.id, revision: crypto.randomUUID(),
+      title: [calendarBuilderContext?.clientName, programName || sessionName || t("coachDraftUntitled")].filter(Boolean).join(" · "),
+      updatedAt: Date.now(), snapshot: coachDraftSnapshot };
+    const result = writeCoachDraft(coachDraftOwner, draft, target.revision);
+    setCoachDraftStatus(result);
+    if (result !== "saved") { notify(t(result === "conflict" ? "coachDraftConflict" : "coachDraftUnavailable"), "error"); return; }
+    setCoachDrafts(readCoachDrafts(coachDraftOwner));
+    leaveBuilderForOrigin(true);
+  };
+  const publishRecoveredSession = (session: ProgramSession) => {
+    if (!sessionRecovery || !assignedSessionEdit || savingTemplate) return;
+    const reviewed = { session, version: sessionRecovery.version, base: sessionRecovery.latest };
+    // Persist the reviewed content and baseline too, so an offline retry or
+    // another server conflict never returns to the old three-round draft.
+    setAssignedSessionEdit({ ...assignedSessionEdit, version: reviewed.version, baseSession: reviewed.base });
+    setProgramName(session.sessionName);
+    setSessionName(session.sessionName);
+    setSessionNameCn(session.sessionNameCn || "");
+    setSessionNotes(session.sessionNotes || "");
+    setSessionGoal(session.sessionGoal || "");
+    setSessionType(session.sessionType || "Strength");
+    setSessionIntensity(session.intensity || "Moderate");
+    setSessionEstimatedDuration(session.estimatedDuration || "");
+    setProgramWeek(session.week); setProgramDay(session.day);
+    setSelectedProgramExercises(session.exercises);
+    setProgramSessions([session]);
+    resetExerciseIndexState();
+    setSessionRecovery(null);
+    void saveFullProgram({ reviewed });
   };
   const resumeCoachDraft = (id: string) => {
     const draft = readCoachDrafts<typeof coachDraftSnapshot>(coachDraftOwner).find(d => d.id === id);
@@ -21493,6 +21553,16 @@ function App({ onReady, bootVisible = true }: { onReady?: () => void; bootVisibl
               </CalendarWorkoutEditor>
             )}
 
+            {sessionRecovery && <AssignedSessionRecoveryDialog key={sessionRecovery.version} recovery={sessionRecovery}
+              busy={savingTemplate} onClose={() => setSessionRecovery(null)} onPublish={publishRecoveredSession} />}
+            {builderLeaveOpen && <SessionSaveDialog title={t("builderLeaveTitle")} busy={savingTemplate} onClose={() => setBuilderLeaveOpen(false)}>
+              <p>{t("builderLeaveHint")}</p>
+              <div className="sessionSaveActions">
+                <button type="button" className="sessionSavePrimary" disabled={savingTemplate} onClick={() => { setBuilderLeaveOpen(false); void saveFullProgram(); }}>{t("builderLeaveSave")}</button>
+                <button type="button" disabled={savingTemplate} onClick={keepDraftAndLeave}>{t("builderLeaveKeep")}</button>
+                <button type="button" disabled={savingTemplate} onClick={() => setBuilderLeaveOpen(false)}>{t("recoveryContinue")}</button>
+              </div>
+            </SessionSaveDialog>}
             {activePage === "Digital" && digitalSubTab === "store" && (
               <CoachStorePage
                 programs={programs}

@@ -1001,6 +1001,10 @@ data between them, never "borrow" a table ID across products.
     the editor on removal; test first, middle and last rows, plus rapid library
     taps (visible add feedback and a synchronous guard prevent accidental copies).
 
+73. **The draft that cannot publish** — a valid stale-version guard needs a recovery path.
+    Retain the original baseline, review a three-way merge, and save with the latest
+    version; never bypass the guard or discard a device draft to resolve a conflict.
+
 ## Quality bar — checkable, per deliverable
 
 **Any shipped code change**
