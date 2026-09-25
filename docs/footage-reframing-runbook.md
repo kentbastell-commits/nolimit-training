@@ -269,3 +269,10 @@ Twenty-four clips already sitting in the footage bucket (`Content September 6th 
 - Baked-in captions on the hotel and skips edits are part of the source and were kept; the already-linked clips from those shoots have the same style.
 - Publication mirrored the 2026-09-25 Yanjun batch (`publish-library.cjs`: hash-checked local upload, thumbnail, before-snapshot-guarded transaction on `short_video_url`, cache-bus notify). Verified: live API shows all 24 URLs; origin and media CDN answer 206; thumbnails 200.
 - Transport lesson: candidates went browser→box via COS (`web-inbox/` staging + regional pull), because a direct upload from abroad runs ~40 KB/s. Signing a COS URL for a key with spaces uses the RAW pathname in the signature while the request URL is percent-encoded; signing the encoded path gives 403.
+
+## Separate library additions — COS footage batch 2, 2026-09-25
+
+Seventy-four more bucket clips: 69 NEW library rows created from the footage (names, 中文, taxonomy in `deliverables/cos-library-batch-2026-09-25/plan2.json`) plus 5 existing rows linked. Same treatment and QA as batch 1; details, identity decisions and receipts in `RESULTS2.md`, sheets in `review/`.
+
+- Lesson: two renderers pointed at the same plan race on the tail (one full-decoded a file the other was still writing → "moov atom not found"). Split the slug list between processes, or re-verify every candidate from disk afterwards (`verify2.mjs` does: probe + full decode + re-hash) and never trust a manifest written during a race.
+- New rows were created through the real `/api/upsertExercise` (coach key from the box's .env) so ids, translation mirrors and cache invalidation behave exactly as the coach console; preflight refuses any name that already exists on an Active row.
