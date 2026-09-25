@@ -43,6 +43,13 @@ describe("DeepSeek first, Tencent fallback", () => {
     expect(providers).toEqual(["deepseek", "tencent"]);
   });
 
+
+  it("treats a 'please provide the text' answer as a failure and falls back to Tencent", async () => {
+    const fetch = vi.fn(async (url) => String(url).includes("chat/completions") ? llm("请提供需要翻译的文本。") : tmt("器械"));
+    vi.stubGlobal("fetch", fetch);
+    expect(await translate.translateText("Machine", "zh")).toBe("器械");
+    expect(fetch).toHaveBeenCalledTimes(2);
+  });
   it("leaves the caller's saved text intact when both providers fail", async () => {
     vi.stubGlobal("fetch", vi.fn(async () => new Response("", { status: 503 })));
     const apply = vi.fn();

@@ -157,6 +157,9 @@ const OPS_PROMPTS: Record<"zh" | "en", string> = {
   ].join("\n"),
 };
 
+// The chat model answering "please provide the text" instead of translating.
+const LLM_REFUSAL = /^\s*(?:请(?:您)?提供|请给出|请输入|Please (?:provide|share|give)|I (?:need|would need|can(?:'|no)t)|Sorry)/i;
+
 async function llmTranslate(
   text: string,
   target: "en" | "zh",
@@ -185,7 +188,13 @@ async function llmTranslate(
     // A token-limited answer is incomplete and must never become a saved cue.
     if (choice?.finish_reason && choice.finish_reason !== "stop") return null;
     const out = choice?.message?.content;
-    return typeof out === "string" && out.trim() ? out.trim() : null;
+    if (typeof out !== "string" || !out.trim()) return null;
+    // A one-word source ("Machine") sometimes makes the chat model answer
+    // with a request for text instead of a translation; 17 library rows
+    // carried "请提供需要翻译的文本。" as their Chinese equipment (found
+    // 2026-09-25). A refusal is a failure, not a translation.
+    if (LLM_REFUSAL.test(out)) return null;
+    return out.trim();
   } catch {
     return null;
   }
