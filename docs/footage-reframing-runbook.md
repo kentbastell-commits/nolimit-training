@@ -1,6 +1,6 @@
 # Exercise footage reframing runbook
 
-Last verified: 2026-08-19
+Last verified: 2026-09-25 (COS footage batch of 24 library additions; August masters unchanged)
 
 This is the canonical handoff for both Codex and Claude. Read it before changing, recreating, moving, or publishing the 2026-08-08 exercise footage.
 
@@ -238,3 +238,34 @@ Filler removal must be conservative and synchronized across audio and video. The
 - Cap delivery bitrate. Unbounded NVENC quality mode created needlessly large files.
 - Required final dimensions: 1920x1080 for landscape and 1080x1920 for vertical.
 - Final accounting is 94 landscape plus 94 vertical videos, with the same 94 normalized clip identities in both folders.
+
+## Separate library addition — Leg Extension, 2026-09-24
+
+- Source: `C:\Users\kentb\OneDrive\Desktop\App Recordings\Leg Extensions.mp4`, supplied for library exercise `EX-LEG-1809`. This 2842x1568, approximately 30 fps clip is separate from the August DJI master set and has no DJI clip ID.
+- Preserve the full source frame: scale to 1920x1060, then pad 10 pixels above and below with charcoal to deliver 1920x1080. No crop, tracking, trimming, overlays, or speech processing. Keep the complete visible knee/roller path, handles, seated setup and head; the lowest return position already approaches the source's bottom edge.
+- Delivery: H.264/yuv420p, 30 fps matching this source's nominal rate, original AAC stream copied, fast-start MP4. Do not manufacture 59.94 fps for this non-DJI source. The original remains untouched and the 94+94 masters are not modified.
+- QA: source and candidate each reviewed at 20 full-duration samples plus 20 dense beginning/end samples; complete candidate decode passed. Duration 9.792s → 9.833s; delivery 4.68 MB versus source 22.64 MB. Recipe and evidence: `deliverables/leg-extension-video-2026-09-24/qa.json`, `review.py`, and the source/candidate contact sheets.
+
+## Separate library additions — calf extension and walking drills, 2026-09-25
+
+These three supplied clips in `C:\Users\kentb\OneDrive\Desktop\App Recordings` are separate from the August DJI masters. Preserve the original files and the existing 94+94 master accounting. Each clip uses its entire source frame as the protected motion envelope; no additional crop, trim, tracking, overlay, audio processing, or paid service was used.
+
+| Source and library entry | Source frame | Approved landscape composition | Motion to preserve |
+| --- | --- | --- | --- |
+| `Calf Extension Machine.mp4` — `EX-CAL-1249` | 2866x1532 | Scale to 1920x1026, charcoal-pad to 1920x1080 | Seated support, hands, knees, both forefeet and footplate through ankle extension and return. Retain the source's existing recording graphics. |
+| `Toe Walks.mp4` — `EX-SA-TOEW-7114` | 2824x1586 | Scale to 1920x1078, charcoal-pad to 1920x1080 | Setup, both heels and forefeet, table support, travel in both directions and turns. The shoe approaches the source edge; do not crop further. |
+| `Heel Walks.mp4` — `EX-HYX-HIGH-9281` | 2848x1554 | Scale to 1920x1048, charcoal-pad to 1920x1080 | Heels, lifted toes, shin position, supported setup, both travel directions and turns. |
+
+- All candidates: H.264/yuv420p, nominal source rate of 30 fps, original AAC stream copied, fast-start MP4. No conversion to the DJI 59.94 fps standard. Set `comment=nx-opt` because these deliveries have already been optimized.
+- QA: each source and candidate reviewed with 20 full-duration frames plus 20 beginning/end samples. Full candidate decodes passed; source/candidate AAC packet hashes match; MP4 `moov` precedes `mdat`. Durations are 8.448→8.467s, 11.115→11.133s and 14.293→14.300s, respectively. Delivery sizes are 697,733, 3,556,458 and 3,562,186 bytes.
+- Evidence and exact render arguments: `deliverables/yanjun-day2-2026-09-25/media-plan.json`, `render.py`, `review.py`, source/candidate probe JSON and full/edge contact sheets.
+- Uploaded bytes matched candidate SHA-256 hashes before library linking. Generated thumbnails, origin and media-CDN HTTP 206 responses, total byte sizes and both application workers were verified. Publication and verification receipts are in the same delivery folder.
+
+## Separate library additions — COS footage batch, 2026-09-25
+
+Twenty-four clips already sitting in the footage bucket (`Content September 6th 2026/`, `mobile-uploads/mario/`, `Summer Hotel Filming Pushups/`, `Summer Filming Skips and Jumps/`) were linked to library rows that had no video. Full list, identity decisions and the one drop (a dumbbell press mislabelled as a barbell press) are in `deliverables/cos-library-batch-2026-09-25/RESULTS.md`; render arguments, probes and hashes in `media-plan.json`; 100 contact sheets in `review/`.
+
+- These sources are landscape recordings (DJI 3840x2160 at 59.94/29.97 fps, phone 1920x1080 at 60 fps, two square 3072x3072 hotel clips already pillarboxed), not the August square masters. Each uses its entire frame as the protected motion envelope: scale to 1920x1080 (charcoal-pad the square ones), source nominal fps, libx264 crf 23 / 4M cap, AAC copied, `comment=nx-opt`, fast-start. No crop, trim, tracking, overlay, audio processing or paid service. The 94+94 August masters are untouched.
+- Baked-in captions on the hotel and skips edits are part of the source and were kept; the already-linked clips from those shoots have the same style.
+- Publication mirrored the 2026-09-25 Yanjun batch (`publish-library.cjs`: hash-checked local upload, thumbnail, before-snapshot-guarded transaction on `short_video_url`, cache-bus notify). Verified: live API shows all 24 URLs; origin and media CDN answer 206; thumbnails 200.
+- Transport lesson: candidates went browser→box via COS (`web-inbox/` staging + regional pull), because a direct upload from abroad runs ~40 KB/s. Signing a COS URL for a key with spaces uses the RAW pathname in the signature while the request URL is percent-encoded; signing the encoded path gives 403.
