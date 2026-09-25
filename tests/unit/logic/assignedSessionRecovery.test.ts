@@ -9,6 +9,14 @@ const session = (exercises: ProgramExercise[], notes = "Original notes"): Progra
 const recover = (base: ProgramSession | undefined, draft: ProgramSession, latest: ProgramSession, choices = {}) => reconcileAssignedSession({ base, draft, latest, version: "v2" }, choices);
 
 describe("assigned session draft recovery", () => {
+  it("treats older drafts without label mode as automatic while preserving new custom labels", () => {
+    const base = session([exercise("A")]);
+    const draft = session([{ ...base.exercises[0], coachingNotes: "Updated cue" }]);
+    const latest = session([{ ...base.exercises[0], isLabelCustom: false }]);
+    expect(recover(base, draft, latest).unresolved).toBe(0);
+    const custom = session([{ ...base.exercises[0], exerciseLabel: "C1", isLabelCustom: true }]);
+    expect(recover(base, custom, latest).session.exercises[0]).toMatchObject({ exerciseLabel: "C1", isLabelCustom: true });
+  });
   it("keeps the new Bike while accepting the untouched core's two-set correction and notes", () => {
     const base = session([exercise("A"), exercise("B"), exercise("C"), exercise("D")], "Three rounds");
     const bike = { ...exercise("Bike", "1"), reps: "30:00", trackingType: "Time" as const };

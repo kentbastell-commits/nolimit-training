@@ -1,3 +1,4 @@
+import ExerciseLabelControl from "./ExerciseLabelControl";
 import { SaveCalendarDraftButton } from "./CalendarDraftControls";
 // Extracted from App.tsx (monolith split) — JSX verbatim; props threaded.
 /* eslint-disable @typescript-eslint/no-explicit-any */
@@ -2684,20 +2685,8 @@ export default function CoachBuilderPage({
 
                                   <AthletePrescriptionHistory exercise={exercise} history={prescriptionHistory} date={calendarBuilderContext?.date || ""} />
                                   <div className="builderModalEditGrid">
-                                    <label>
-                                      <span>{t("polishLabel7434")}</span>
-                                      {/* Labels + badge colours are DERIVED:
-                                          letter/colour from the Section, the
-                                          number from order. A typed label was
-                                          silently recomputed away on the next
-                                          edit — honest read-only instead. */}
-                                      <input
-                                        value={exercise.exerciseLabel}
-                                        readOnly
-                                        className="builderLabelDerived"
-                                        title={t("polishSetAutomaticallyTheLetterAndColourComeFromTheSectionTheNumberFrom0d68")}
-                                      />
-                                    </label>
+                                    <ExerciseLabelControl exercise={exercise} index={index}
+                                      change={value => updateProgramExercise(index, "exerciseLabel", value)} />
                                     <label>
                                       <span>{t("polishSectionf2c6")}</span>
                                       <select
@@ -3267,6 +3256,8 @@ export default function CoachBuilderPage({
                                         </button>
                                       </div>
                                       {mobileExpandedExercise === index && <div className="mobileExerciseCardBody">
+                                      <ExerciseLabelControl exercise={exercise} index={index}
+                                        change={value => updateProgramExercise(index, "exerciseLabel", value)} />
                                       {renderPrescription(exercise, index)}
                                       </div>}
                                     </div>

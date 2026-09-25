@@ -1,3 +1,4 @@
+import { normalizeBuilderSection, isWarmupSection, relabelProgramExercises, changeExerciseLabel, exerciseLabelMetadata, accessoryGroupIndexes } from "./exerciseLabels";
 import CalendarSessionTools from "./CalendarSessionTools";
 import SessionPublishReview from "./SessionPublishReview";
 import { snapshotFromSession } from "./sessionChanges";
@@ -5415,7 +5416,8 @@ function App({ onReady, bootVisible = true }: { onReady?: () => void; bootVisibl
           exerciseName: t.exerciseName,
           order: Number(t.order) || index + 1,
           sectionName: meta.sectionName || "Main",
-          exerciseLabel: meta.exerciseLabel || makeExerciseLabel(index),
+          exerciseLabel: meta.exerciseLabel || (isWarmupSection(meta.sectionName) ? "" : makeExerciseLabel(index)),
+          isLabelCustom: meta.isLabelCustom,
           sets: t.sets || "",
           reps: t.reps || "",
           load: "",
@@ -8616,15 +8618,6 @@ function App({ onReady, bootVisible = true }: { onReady?: () => void; bootVisibl
     );
   };
 
-  function normalizeBuilderSection(sectionName?: string) {
-    return String(sectionName || "Main").trim() || "Main";
-  }
-
-  function isWarmupSection(sectionName?: string) {
-    const clean = normalizeBuilderSection(sectionName).toLowerCase();
-    return clean.includes("warm") || clean.includes("prep");
-  }
-
   // Color the exercise label (A1, B1...) by its SECTION type, with hues that
   // represent each section (cardio = blue, etc.). Only the label badge is
   // colored, never the whole card.
@@ -8744,7 +8737,7 @@ function App({ onReady, bootVisible = true }: { onReady?: () => void; bootVisibl
     if (isWarmupSection(exercise.sectionName) && !customHex) {
       return (
         <span className="exerciseLabelBadge exerciseLabelBadgeWarmup">
-          {index + 1}
+          {exercise.exerciseLabel || index + 1}
         </span>
       );
     }
@@ -8821,7 +8814,7 @@ function App({ onReady, bootVisible = true }: { onReady?: () => void; bootVisibl
         let display: string;
         if (run.isWarmup) {
           warmIndex += 1;
-          display = String(warmIndex);
+          display = ex.exerciseLabel || String(warmIndex);
         } else {
           // Mirror the builder's own label (accessories carry their parent's
           // label, e.g. A1/A1); fall back to a computed letter.
@@ -8847,65 +8840,6 @@ function App({ onReady, bootVisible = true }: { onReady?: () => void; bootVisibl
     });
     return items;
   };
-
-  function relabelProgramExercises(exercises: ProgramExercise[]) {
-    const sectionLetters = new Map<string, string>();
-    const sectionCounts = new Map<string, number>();
-    const lastMainLabelBySection = new Map<string, string>();
-
-    return exercises.map((exercise, index) => {
-      const sectionName = normalizeBuilderSection(exercise.sectionName);
-      const sectionKey = sectionName.toLowerCase();
-      const baseExercise = {
-        ...exercise,
-        sectionName,
-        order: index + 1,
-      };
-
-      if (isWarmupSection(sectionName)) {
-        return {
-          ...baseExercise,
-          exerciseLabel: "",
-          accessoryParentLabel: "",
-        };
-      }
-
-      if (!sectionLetters.has(sectionKey)) {
-        const letterIndex = sectionLetters.size;
-        sectionLetters.set(
-          sectionKey,
-          String.fromCharCode(65 + Math.min(letterIndex, 25))
-        );
-      }
-
-      const sectionLetter = sectionLetters.get(sectionKey) || "A";
-
-      if (exercise.isAccessory) {
-        const parentLabel =
-          lastMainLabelBySection.get(sectionKey) ||
-          exercise.accessoryParentLabel ||
-          exercise.exerciseLabel ||
-          `${sectionLetter}${Math.max(sectionCounts.get(sectionKey) || 1, 1)}`;
-
-        return {
-          ...baseExercise,
-          exerciseLabel: parentLabel,
-          accessoryParentLabel: parentLabel,
-        };
-      }
-
-      const nextCount = (sectionCounts.get(sectionKey) || 0) + 1;
-      const nextLabel = `${sectionLetter}${nextCount}`;
-      sectionCounts.set(sectionKey, nextCount);
-      lastMainLabelBySection.set(sectionKey, nextLabel);
-
-      return {
-        ...baseExercise,
-        exerciseLabel: nextLabel,
-        accessoryParentLabel: "",
-      };
-    });
-  }
 
   function makeSetPrescription(
     exercise: ProgramExercise,
@@ -10053,6 +9987,10 @@ function App({ onReady, bootVisible = true }: { onReady?: () => void; bootVisibl
     field: keyof ProgramExercise,
     value: string | number | boolean
   ) => {
+    if (field === "exerciseLabel") {
+      setSelectedProgramExercises(current => changeExerciseLabel(current, index, String(value)));
+      return;
+    }
     // Same "A" -> AMRAP reps shorthand as updateExerciseSetPrescription.
     if (field === "reps" && typeof value === "string" && /^a$/i.test(value.trim())) {
       value = "AMRAP";
@@ -10775,7 +10713,7 @@ function App({ onReady, bootVisible = true }: { onReady?: () => void; bootVisibl
     const meta = [
       exercise.sectionName ? `Section: ${exercise.sectionName}` : "",
       sectionColor ? `Section Color: ${sectionColor}` : "",
-      exercise.exerciseLabel ? `Label: ${exercise.exerciseLabel}` : "",
+      ...exerciseLabelMetadata(exercise),
       `Tracking: ${exercise.trackingType || "Weight"}`,
       exercise.trackingFields && exercise.trackingFields.length > 0
         ? `Fields: ${exercise.trackingFields.join(", ")}`
@@ -19278,22 +19216,7 @@ function App({ onReady, bootVisible = true }: { onReady?: () => void; bootVisibl
 
     const focusMeta = parseExerciseNotes(focusExercise.notes);
     if (!focusMeta.groupType || !focusMeta.groupName) {
-      const sectionKey = (focusMeta.sectionName || "Main").toLowerCase();
-      const labelKey = focusMeta.exerciseLabel.trim().toLowerCase();
-      if (!labelKey) return [index];
-
-      const linkedByLabel = workoutDetails
-        .map((exercise, exerciseIndex) => {
-          const meta = parseExerciseNotes(exercise.notes);
-          const itemSection = (meta.sectionName || "Main").toLowerCase();
-          const itemLabel = meta.exerciseLabel.trim().toLowerCase();
-          return itemSection === sectionKey && itemLabel === labelKey
-            ? exerciseIndex
-            : -1;
-        })
-        .filter((exerciseIndex) => exerciseIndex >= 0);
-
-      return linkedByLabel.length > 1 ? linkedByLabel : [index];
+      return accessoryGroupIndexes(workoutDetails.map(ex => parseExerciseNotes(ex.notes)), index);
     }
 
     const groupKey = `${focusMeta.groupType}:${focusMeta.groupName}`.toLowerCase();

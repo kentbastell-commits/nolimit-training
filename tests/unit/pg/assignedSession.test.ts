@@ -25,6 +25,26 @@ beforeEach(async () => {
 });
 afterAll(async () => { vi.unstubAllEnvs(); await closeDb(); });
 describe("assigned session edits", () => {
+  it("persists a custom label across save/reopen and keeps builder metadata out of athlete cues", async () => {
+    const before = await call();
+    const notes = 'Section: Strength\nLabel: C2\nLabel Mode: Custom\nCircuit: Core\n' + exercise.coachingNotes + '\nKeep control.';
+    const saved = await call("POST", { assignedWorkoutId: "AW-1", version: before.body.version,
+      session: { ...session, exercises: [{ ...exercise, coachingNotes: notes }] } });
+    expect(saved.statusCode).toBe(200);
+    const reopened = await call();
+    expect(reopened.body.templates[0].notes).toBe(notes);
+    const athlete = (await getWorkoutDetails(saved.body.programId, "1", "1"))[0];
+    expect(athlete.notes).toContain("Label: C2");
+    expect(athlete.notes).toContain("Circuit: Core");
+    expect(athlete.notes).toContain("Keep control.");
+    expect(athlete.notes).not.toContain("Label Mode");
+    expect(athlete.setPrescriptions).toHaveLength(2);
+    const reset = await call("POST", { assignedWorkoutId: "AW-1", version: reopened.body.version,
+      session: { ...session, exercises: [{ ...exercise, coachingNotes: notes.replace('Label: C2\nLabel Mode: Custom','Label: A1') }] } });
+    expect(reset.statusCode).toBe(200);
+    expect((await call()).body.templates[0].notes).toContain("Label: A1");
+    expect((await call()).body.templates[0].notes).not.toContain("Label Mode");
+  });
   it("reads bilingual notes into the builder and saves explicit Chinese edits to the athlete copy", async () => {
     await pool.query("update workout_templates set coaching_notes_cn='旧备注'");
     const before = await call(); expect(before.body.templates[0].notesCn).toBe("旧备注");

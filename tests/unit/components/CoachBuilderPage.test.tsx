@@ -4,6 +4,7 @@ import CoachBuilderPage from "../../../src/CoachBuilderPage";
 import CoachLibraryNavigation from "../../../src/CoachLibraryNavigation";
 import "../../../src/i18n";
 import { useState } from "react";
+import { changeExerciseLabel, relabelProgramExercises } from "../../../src/exerciseLabels";
 
 // CoachBuilderPage (~5k lines) renders one panel per workoutPageTab. The
 // Forms list tab has the smallest prop surface, so the smoke test renders
@@ -38,6 +39,18 @@ const baseProps = {
 };
 
 describe("CoachBuilderPage", () => {
+  it("exposes the same editable label inside the mobile library builder", () => {
+    const update = vi.fn();
+    render(<CoachBuilderPage {...baseProps} workoutPageTab="Program Builder" useMobileWorkoutRows isSingleWorkoutBuilder
+      mobileBuilderStep="editor" programName="Session" programSessions={[]}
+      selectedProgramExercises={[{ exerciseId: "bike", exerciseName: "Bike", exerciseLabel: "A1", sectionName: "Cardio", sets: "1", trackingType: "Time", coachingNotes: "" }]}
+      isCircuitGroupStart={() => false} isExerciseLinkedWithPrevious={() => false}
+      usePercentExerciseIndexes={new Set()} renderSetPrescriptionTable={() => <div>Targets</div>}
+      renderAlternateExerciseEditor={() => null} updateProgramExercise={update} />);
+    fireEvent.click(screen.getByRole("button", { name: /A1 · Bike/ }));
+    fireEvent.change(screen.getByRole("textbox", { name: "Label", exact: true }), { target: { value: "B2" } });
+    expect(update).toHaveBeenCalledWith(0, "exerciseLabel", "B2");
+  });
   it.each([true, false])("adds one library row on rapid taps and handles deletion (phone: %s)", (phone) => {
     vi.stubGlobal("matchMedia", vi.fn(() => ({ matches: phone })));
     const bike = { exerciseId: "bike", recordId: "bike", exerciseName: "Bike", sectionName: "Cardio", trackingType: "Time", sets: "1", coachingNotes: "" };
@@ -59,7 +72,10 @@ describe("CoachBuilderPage", () => {
         renderSetPrescriptionTable={() => <div>Cardio targets</div>} renderAlternateExerciseEditor={() => null}
         renderExerciseLabelBadge={() => null} isCircuitGroupStart={() => false} isExerciseLinkedWithPrevious={() => false}
         getBuilderOrderItems={() => []} buildGlanceChain={() => []}
-        addExerciseToProgram={() => setExercises(current => [...current, bike])}
+        addExerciseToProgram={() => setExercises(current => relabelProgramExercises([...current, bike] as any))}
+        updateProgramExercise={(index: number, field: string, value: string) => setExercises(current => field === "exerciseLabel"
+          ? changeExerciseLabel(current, index, value)
+          : relabelProgramExercises(current.map((ex, i) => i === index ? { ...ex, [field]: value } : ex)))}
         renderBuilderExerciseOptionsMenu={(_: unknown, index: number) => <><button onClick={() => setExercises(current => current.filter((__, i) => i !== index))}>Delete exercise</button><button onClick={() => setSwap(index)}>Replace exercise</button></>}
         renderBuilderExerciseSummary={() => null} estimateSessionMinutes={() => 0}
         setLatestBuilderExerciseIndex={vi.fn()} scrollLatestBuilderExerciseIntoView={vi.fn()}
@@ -72,6 +88,14 @@ describe("CoachBuilderPage", () => {
     fireEvent.click(choice);
     expect(screen.getByRole("dialog", { name: phone ? "Edit workout exercise" : "Add exercises" })).toBeInTheDocument();
     expect(screen.getAllByText("Cardio targets")).toHaveLength(1);
+    const label = screen.getByRole("textbox", { name: "Label", exact: true });
+    expect(label).toHaveValue("A1");
+    expect(label).not.toHaveAttribute("readonly");
+    fireEvent.change(label, { target: { value: "C2" } });
+    expect(label).toHaveValue("C2");
+    expect(screen.getByText("Custom · kept when reordered")).toBeVisible();
+    fireEvent.click(screen.getByRole("button", { name: "Use automatic label" }));
+    expect(label).toHaveValue("A1");
     if (!phone) expect(screen.getByText("In session: 1")).toBeInTheDocument();
     if (!phone) {
       fireEvent.click(screen.getByRole("button", { name: "Replace exercise" }));

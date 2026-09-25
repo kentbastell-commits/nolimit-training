@@ -124,7 +124,9 @@ export async function getWorkoutDetails(
         reps: str(t.reps),
         tempo: str(t.tempo),
         rest: str(t.rest),
-        notes: str(t.coachingNotes),
+        // The builder alone needs override mode. Older mini-program players
+        // understand Label but would show this new metadata line as a cue.
+        notes: str(t.coachingNotes).replace(/^[ \t]*Label Mode:[^\r\n]*(?:\r?\n)?/gmi, ""),
         notesCn: stripLocalizedExerciseMeta(str(t.coachingNotesCn)),
         sectionNameCn: "",
         targetSource: str(t.targetSource),

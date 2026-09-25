@@ -50,7 +50,7 @@ export type TranslationArea = keyof typeof translationAreas;
 export function humanTranslationText(raw: unknown, kind?: Field["kind"]): string {
   const text = Array.isArray(raw) ? raw.map(String).join(", ") : String(raw ?? "");
   if (kind !== "notes") return text.trim();
-  return text.split(/\r?\n/).filter((line) => !/^(Section|Label|Superset|Circuit|Circuit Mode|Circuit Minutes|Tracking|Fields|Unilateral|Accessory|Accessory Parent|Accessory Color|Set Prescriptions|Alternate Exercises|Target[^:：]*)\s*[:：]/i.test(line.trim())).join("\n").trim();
+  return text.split(/\r?\n/).filter((line) => !/^(Section|Section Color|Label|Label Mode|Superset|Circuit|Circuit Mode|Circuit Minutes|Tracking|Fields|Unilateral|Accessory|Accessory Parent|Accessory Color|Set Prescriptions|Alternate Exercises|Target[^:：]*)\s*[:：]/i.test(line.trim())).join("\n").trim();
 }
 
 // Existing translations remain when the source is unchanged. A changed source

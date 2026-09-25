@@ -16,7 +16,7 @@ function canonical(value: unknown): string {
 function comparableExercise(exercise: ProgramExercise | undefined) {
   if (!exercise) return undefined;
   const { order: _order, exerciseRecordId: _record, ...prescription } = exercise;
-  return prescription;
+  return { ...prescription, isLabelCustom: Boolean(prescription.isLabelCustom) };
 }
 
 /** Conservative three-way recovery. Unresolved choices always block publication. */

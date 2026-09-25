@@ -307,6 +307,7 @@ export type ExerciseNoteMeta = {
   // the keyword/hash palette everywhere badges render.
   sectionColor: string;
   exerciseLabel: string;
+  isLabelCustom?: boolean;
   groupType?: ProgramExercise["groupType"];
   groupName: string;
   groupMode?: "" | "AMRAP" | "EMOM";
@@ -648,6 +649,7 @@ export type ProgramExercise = {
   order: number;
   sectionName: string;
   exerciseLabel: string;
+  isLabelCustom?: boolean;
   sets: string;
   reps: string;
   load: string;
@@ -1148,6 +1150,7 @@ export function parseExerciseNotes(notes = ""): ExerciseNoteMeta {
     sectionName: "",
     sectionColor: "",
     exerciseLabel: "",
+    isLabelCustom: false,
     groupName: "",
     trackingType: "Weight",
     isUnilateral: false,
@@ -1163,7 +1166,7 @@ export function parseExerciseNotes(notes = ""): ExerciseNoteMeta {
   lines.forEach((line) => {
     const trimmed = line.trim();
     const match = trimmed.match(
-      /^(Section|Section Color|Label|Superset|Circuit|Circuit Mode|Circuit Minutes|Tracking|Fields|Unilateral|Accessory|Accessory Parent|Accessory Color|Set Prescriptions|Alternate Exercises):\s*(.+)$/i
+      /^(Section|Section Color|Label|Label Mode|Superset|Circuit|Circuit Mode|Circuit Minutes|Tracking|Fields|Unilateral|Accessory|Accessory Parent|Accessory Color|Set Prescriptions|Alternate Exercises):\s*(.+)$/i
     );
 
     if (!match) {
@@ -1177,6 +1180,7 @@ export function parseExerciseNotes(notes = ""): ExerciseNoteMeta {
     if (key === "section") meta.sectionName = value;
     if (key === "section color") meta.sectionColor = value;
     if (key === "label") meta.exerciseLabel = value;
+    if (key === "label mode") meta.isLabelCustom = value.toLowerCase() === "custom";
     if (key === "tracking") {
       const clean = value.toLowerCase();
       if (clean.includes("time")) meta.trackingType = "Time";
@@ -1264,7 +1268,7 @@ export function parseExerciseNotes(notes = ""): ExerciseNoteMeta {
 // that looks like a "field：value" metadata line — leaving just the coaching
 // description.
 export const EN_META_LINE =
-  /^\s*(?:Section|Label|Superset|Circuit|Circuit Mode|Circuit Minutes|Tracking|Fields|Unilateral|Accessory|Accessory Parent|Accessory Color|Set Prescriptions|Alternate Exercises)\s*[:：]/i;
+  /^\s*(?:Section|Section Color|Label|Label Mode|Superset|Circuit|Circuit Mode|Circuit Minutes|Tracking|Fields|Unilateral|Accessory|Accessory Parent|Accessory Color|Set Prescriptions|Alternate Exercises)\s*[:：]/i;
 // A short CJK field label (1-12 ideographs/digits) immediately followed by a
 // colon. Real descriptions have punctuation (，。) before any colon, so they
 // stay intact.

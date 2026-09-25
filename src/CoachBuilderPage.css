@@ -4117,13 +4117,20 @@
   max-width: 660px;
 }
 
-/* Derived Label field: read-only — letter/colour come from the Section,
-   the number from order (typing here used to be silently recomputed away). */
-.builderLabelDerived {
-  opacity: 0.72;
-  cursor: default;
-  background: #f4f2ed;
-}
+.builderLabelControl { min-width: 0; display: grid; gap: 6px; align-content: start; }
+.builderLabelControl > label { font-size: 11px; font-weight: 800; text-transform: uppercase; }
+.builderLabelInputRow { display: flex; align-items: center; gap: 6px; min-width: 0; }
+.builderLabelInputRow input { min-width: 0; width: 100%; flex: 1; min-height: 44px; font-size: 16px; }
+.builderLabelInputRow button { flex-shrink: 0; min-height: 44px; padding: 8px 10px; }
+.app:not(.clientPortalApp) .builderLabelControl .builderLabelInputRow input,
+.app:not(.clientPortalApp) .builderLabelControl .builderLabelInputRow button { min-height: 44px !important; }
+.app:not(.clientPortalApp) .builderLabelControl .builderLabelInputRow input { font-size: 16px !important; }
+.app:not(.clientPortalApp) .builderModalEditGrid { align-items: start; }
+.builderLabelInputRow button:disabled { opacity: .5; cursor: default; }
+.builderLabelControl small { font-size: 11px; line-height: 1.4; color: #626258; }
+.mobileExerciseCardBody > .builderLabelControl { margin-bottom: 14px; }
+.builderModalExerciseHeader .exerciseLabelBadge,
+.builderExerciseSummaryButton .exerciseLabelBadge { width: auto; padding: 0 6px; }
 
 /* Swap-mode banner in the library drawer: which slot is being replaced. */
 .builderSwapBanner {

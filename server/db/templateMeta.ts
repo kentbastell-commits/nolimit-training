@@ -91,7 +91,7 @@ export function parseTemplateMeta(notes = ""): ParsedMeta {
   notes.split(/\r?\n/).forEach((line) => {
     const trimmed = line.trim();
     const match = trimmed.match(
-      /^(Section|Label|Superset|Circuit|Tracking|Unilateral|Accessory|Accessory Parent|Accessory Color|Set Prescriptions|Alternate Exercises):\s*(.+)$/i
+      /^(Section|Section Color|Label|Label Mode|Superset|Circuit|Tracking|Unilateral|Accessory|Accessory Parent|Accessory Color|Set Prescriptions|Alternate Exercises):\s*(.+)$/i
     );
 
     if (!match) return;
@@ -170,7 +170,7 @@ export function parseTemplateMeta(notes = ""): ParsedMeta {
 // lines (4c5c9f8), and the released mini program (2026.9.17.4) renders
 // notesCn raw on the workout card — so the server strips it (CLAUDE.md #47).
 const EN_META_LINE =
-  /^\s*(?:Section|Section Color|Label|Superset|Circuit|Circuit Mode|Circuit Minutes|Tracking|Fields|Unilateral|Accessory|Accessory Parent|Accessory Color|Set Prescriptions|Alternate Exercises|Target[^:：]*)\s*[:：]/i;
+  /^\s*(?:Section|Section Color|Label|Label Mode|Superset|Circuit|Circuit Mode|Circuit Minutes|Tracking|Fields|Unilateral|Accessory|Accessory Parent|Accessory Color|Set Prescriptions|Alternate Exercises|Target[^:：]*)\s*[:：]/i;
 const CN_META_LINE = /^\s*[一-鿿][一-鿿0-9]{0,11}[:：]/;
 const META_JSON_FRAGMENT =
   /^\s*[[\]{}]|"(?:setNumber|reps|load|percent|percentMas|intensityMode|intensityValue|rpe|rir|time|tempo|rest|exerciseRecordId|exerciseId|exerciseName)"\s*:/;

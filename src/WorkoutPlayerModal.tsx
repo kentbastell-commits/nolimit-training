@@ -416,9 +416,8 @@ export default function WorkoutPlayerModal({
                                   : undefined
                               }
                             >
-                              {isWarmupSection(sectionName)
-                                ? index + 1
-                                : meta.exerciseLabel || makeExerciseLabel(index)}
+                              {meta.exerciseLabel || (isWarmupSection(sectionName)
+                                ? index + 1 : makeExerciseLabel(index))}
                             </span>
                             <span>
                               <strong>{localizedExerciseName(exercise)}</strong>
@@ -1006,9 +1005,8 @@ export default function WorkoutPlayerModal({
                                   : undefined
                               }
                             >
-                              {isWarmupSection(sectionName)
-                                ? index + 1
-                                : meta.exerciseLabel || makeExerciseLabel(index)}
+                              {meta.exerciseLabel || (isWarmupSection(sectionName)
+                                ? index + 1 : makeExerciseLabel(index))}
                             </span>
                             <div>
                               <h3>{localizedExerciseName(exercise)}</h3>
