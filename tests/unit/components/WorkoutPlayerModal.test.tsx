@@ -108,6 +108,28 @@ const baseProps: any = {
 };
 
 describe("WorkoutPlayerModal", () => {
+  it.each([false, true])("routes draft previews to publication, never workout submission (Chinese: %s)", (zh) => {
+    const reviewCalendarDraft = vi.fn(), saveWorkout = vi.fn();
+    const workout = { ...selectedWorkout, isDraft: true };
+    const { container } = render(<WorkoutPlayerModal {...baseProps} detailsLoading={false} paceZh={zh}
+      selectedWorkout={workout} reviewCalendarDraft={reviewCalendarDraft} saveWorkout={saveWorkout}
+      workoutDetails={[{ id: "d1", exerciseId: "EX-1", exerciseName: "Back Squat", order: 1, sets: "3", reps: "8", notes: "Tracking: Weight" }]} />);
+    expect(screen.queryByRole("button", { name: "Submit Workout" })).not.toBeInTheDocument();
+    expect(container.querySelector(".workoutSubmissionNoteField")).toBeNull();
+    expect(container.querySelector("fieldset.exerciseSetRows")).toBeDisabled();
+    fireEvent.click(screen.getByRole("button", { name: zh ? "查看并发布" : "Review & publish" }));
+    expect(reviewCalendarDraft).toHaveBeenCalledWith(workout);
+    expect(saveWorkout).not.toHaveBeenCalled();
+  });
+
+  it("preserves results submission for a published coach workout", () => {
+    const saveWorkout = vi.fn();
+    render(<WorkoutPlayerModal {...baseProps} detailsLoading={false} saveWorkout={saveWorkout} />);
+    fireEvent.click(screen.getByRole("button", { name: "Submit Workout" }));
+    expect(saveWorkout).toHaveBeenCalledOnce();
+    expect(screen.queryByRole("button", { name: "Review & publish" })).not.toBeInTheDocument();
+  });
+
   it("renders the workout header and loading state while details load", () => {
     render(<WorkoutPlayerModal {...baseProps} />);
     expect(screen.getByText("Lower Body Strength")).toBeInTheDocument();

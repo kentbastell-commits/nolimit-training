@@ -7,6 +7,7 @@ import { Check, ChevronLeft, ChevronRight, ClipboardList, Clock3, Dumbbell, Film
 import { getDisplayTaskStatus, isDirectMediaUrl, makeExerciseLabel, parseExerciseNotes, toMediaCdnUrl, uploadThumbUrl, videoThumbnail } from "./appCore";
 import ContentWatermark from "./ContentWatermark";
 import WorkoutNotes from "./WorkoutNotes";
+import { CalendarDraftBadge } from "./CalendarDraftControls";
 
 // Category → colourful icon for the player header (mirrors PortalHome).
 const CAT_ICON: Record<string, any> = {
@@ -57,6 +58,7 @@ export default function WorkoutPlayerModal({
   openWorkoutExerciseFromGlance,
   openWorkoutProgramInBuilder,
   openWorkoutFinish,
+  reviewCalendarDraft,
   closeWorkoutPlayer,
   originalExercisesRef,
   paceZh,
@@ -108,6 +110,7 @@ export default function WorkoutPlayerModal({
   workoutSetCheckKey,
   workoutSubmissionNote,
 }: { [key: string]: any }) {
+  const draftPreview = Boolean(selectedWorkout?.isDraft);
   // Inline per-exercise note-to-coach + skip state (replaces the old kebab
   // overlay that rendered BEHIND the z-2000 player and broke it on phones).
   const [noteOpenFor, setNoteOpenFor] = useState<string>("");
@@ -225,6 +228,7 @@ export default function WorkoutPlayerModal({
                     </span>
                   )}
                   <div className="workoutHeaderMeta">
+                    <CalendarDraftBadge draft={draftPreview} />
                     <span>
                       {t("week")} {selectedWorkout.week} • {t("day")} {selectedWorkout.day}
                     </span>
@@ -1362,7 +1366,7 @@ export default function WorkoutPlayerModal({
                         </div>
 
                         <div className="exerciseLoggingArea">
-                          <div className="exerciseSetRows">
+                          <fieldset className="exerciseSetRows" disabled={draftPreview}>
                         {visibleExerciseLogs.map((log: any) => {
                           const globalIndex = setLogs.findIndex(
                             (item: any) =>
@@ -1843,7 +1847,7 @@ export default function WorkoutPlayerModal({
                             </div>
                           );
                         })}
-                          </div>
+                          </fieldset>
 
                         {/* Skipped banner + reason chips */}
                         {isClientPortal &&
@@ -2031,7 +2035,7 @@ export default function WorkoutPlayerModal({
                   </button>
                 )}
 
-                {coachReviewMode || clientReviewMode
+                {draftPreview ? null : coachReviewMode || clientReviewMode
                   ? selectedWorkout?.clientNotes && (
                       <div className="workoutReviewComment">
                         <span>
@@ -2062,7 +2066,14 @@ export default function WorkoutPlayerModal({
                       </label>
                     )}
 
-                {coachReviewMode ? (
+                {draftPreview ? (
+                  !isClientPortal && <>
+                    <p className="workoutDraftPublishHint">{paceZh ? "草稿仅教练可见。检查训练内容后发布，学员才能看到。" : "Only coaches can see this draft. Review and publish it when it is ready for the athlete."}</p>
+                    <button type="button" className="goldButton saveWorkoutButton" disabled={detailsLoading} onClick={() => reviewCalendarDraft(selectedWorkout)}>
+                      {paceZh ? "查看并发布" : "Review & publish"}
+                    </button>
+                  </>
+                ) : coachReviewMode ? (
                   <label className="coachReviewedToggle">
                     <input
                       type="checkbox"

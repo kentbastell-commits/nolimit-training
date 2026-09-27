@@ -22,7 +22,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     }
 
     const result = await saveWorkoutLog(req.body);
-    return res.status(result.success ? 200 : 500).json(result);
+    return res.status(result.success ? 200 : result.code === "workoutDraft" ? 409 : 500).json(result);
   } catch (error: any) {
     return res.status(500).json({
       error: "Server error",

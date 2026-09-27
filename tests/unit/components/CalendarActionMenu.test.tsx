@@ -22,6 +22,16 @@ const baseProps = {
 };
 
 describe("CalendarActionMenu", () => {
+  it("offers publication for the selected draft only", () => {
+    const reviewCalendarDraft = vi.fn(), closeCalendarActionMenu = vi.fn();
+    const workout = { workoutName: "Leg Day", isDraft: true, id: "AW-1" };
+    render(<CalendarActionMenu {...baseProps} reviewCalendarDraft={reviewCalendarDraft} closeCalendarActionMenu={closeCalendarActionMenu}
+      calendarActionMenu={{ ...baseProps.calendarActionMenu, item: { type: "workout", workout } }} />);
+    fireEvent.click(screen.getByRole("menuitem", { name: "Review & publish" }));
+    expect(reviewCalendarDraft).toHaveBeenCalledWith(workout);
+    expect(closeCalendarActionMenu).toHaveBeenCalledOnce();
+  });
+
   it("renders workout item actions", () => {
     render(<CalendarActionMenu {...baseProps} />);
     expect(screen.getByText("Leg Day")).toBeInTheDocument();
@@ -29,6 +39,7 @@ describe("CalendarActionMenu", () => {
     expect(screen.getByRole("menuitem", { name: "Move to another date" })).toBeInTheDocument();
     expect(screen.getByRole("menuitem", { name: "Edit this session" })).toBeInTheDocument();
     expect(screen.getByRole("menuitem", { name: "View / Review" })).toBeInTheDocument();
+    expect(screen.queryByRole("menuitem", { name: "Review & publish" })).not.toBeInTheDocument();
     expect(
       screen.getByRole("menuitem", { name: "Delete" })
     ).toBeInTheDocument();

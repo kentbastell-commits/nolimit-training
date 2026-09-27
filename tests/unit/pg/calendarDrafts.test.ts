@@ -7,6 +7,7 @@ import templates from "../../../api/programTemplates.ts";
 import exportProgram from "../../../api/programExport.ts";
 import content from "../../../api/contentAssignments.ts";
 import move from "../../../api/updateAssignedProgramDate.ts";
+import submitWorkout from "../../../api/saveWorkoutLog.ts";
 import { createCalendarDraft, reviewCalendarDrafts, publishCalendarDrafts } from "../../../server/db/pg/calendarDrafts.ts";
 import { getAssignedSession, saveAssignedSession } from "../../../server/db/pg/assignedSession.ts";
 import { saveWorkoutLog } from "../../../server/db/pg/workoutLogs.ts";
@@ -67,6 +68,11 @@ describe("private calendar drafts", () => {
     expect((await getCoachingJourney(clientId)).stage).not.toBe("active");
     const logged = await saveWorkoutLog({ clientId, assignedWorkoutRecordId: aw.assigned_workout_id, logs: [] } as any);
     expect(logged.success).toBe(false);
+    expect(logged.code).toBe("workoutDraft");
+    const rejected = await call(submitWorkout, {}, { clientId, assignedWorkoutRecordId: aw.assigned_workout_id, logs: [{ exerciseName: "Hold", setNumber: 1, actualReps: "8" }] }, true);
+    expect(rejected.statusCode).toBe(409);
+    expect(rejected.body.code).toBe("workoutDraft");
+    expect((await rows("select completion_status,is_draft from assigned_workouts"))[0]).toMatchObject({ completion_status: "Scheduled", is_draft: true });
     expect(await rows("select * from workout_logs")).toHaveLength(0);
     expect((await call(move, {}, { assignedWorkoutRecordId: aw.assigned_workout_id, scheduledDate: "2026-09-24" })).statusCode).toBe(403);
     const review = await reviewCalendarDrafts(clientId);
@@ -74,6 +80,8 @@ describe("private calendar drafts", () => {
     expect((await call(workouts, { clientCode: clientId })).body.workouts).toHaveLength(1); // athlete's cached read invalidated
     expect((await call(details, query)).body.exercises[0].sets).toBe("2");
     expect((await call(templates, { programId: aw.program_id, clientCode: clientId })).body.templates).toHaveLength(1);
+    expect((await rows("select completion_status from assigned_workouts"))[0].completion_status).toBe("Scheduled");
+    expect(await rows("select * from workout_logs")).toHaveLength(0);
   });
   it("publishes selected days only and never leaks other days via programTemplates", async () => {
     await draft({ sessions: [session, { ...session, day: 2, sessionName: "Later" }], scheduledWorkouts: [...schedule, { ...schedule[0], day: 2, sessionName: "Later", scheduledDate: "2026-09-25" }] });

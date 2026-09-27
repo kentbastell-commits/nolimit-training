@@ -595,6 +595,18 @@
 }
 
 /* Inline video in the focus card (replaces the popup for self-hosted clips). */
+fieldset.exerciseSetRows {
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+.workoutDraftPublishHint {
+  color: #6b675c;
+  font-size: 14px;
+  line-height: 1.5;
+}
+
 .workoutExerciseInlineVideo {
   display: block;
   width: 100%;

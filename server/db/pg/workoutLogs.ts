@@ -130,6 +130,9 @@ export async function saveWorkoutLog(
         .limit(1)
         .for("update");
       const workoutExists = Boolean(assignedWorkoutRow) && assignedWorkoutRow.clientId === code && !assignedWorkoutRow.isDraft;
+      if (assignedWorkoutRow?.clientId === code && assignedWorkoutRow.isDraft) {
+        return { success: false, code: "workoutDraft", error: "This session is a coach-only draft. Use Review & publish on the coaching calendar before recording workout results." };
+      }
 
       // Stale-tab guard (cutover 2026-07-21): a browser tab opened pre-migration
       // still holds Feishu record ids ("rec..."). Under pg those match nothing —

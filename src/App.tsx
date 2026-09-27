@@ -1925,6 +1925,7 @@ function App({ onReady, bootVisible = true }: { onReady?: () => void; bootVisibl
   const pendingPrivateSaveRef = useRef(false);
   const [calendarDraftSaveOpen, setCalendarDraftSaveOpen] = useState(false);
   const [calendarDraftReviewOpen, setCalendarDraftReviewOpen] = useState(false);
+  const [calendarDraftReviewId, setCalendarDraftReviewId] = useState<string>();
   const [sessionPublishReview, setSessionPublishReview] = useState<{ id: string; session: ProgramSession; finish: (publish: boolean) => void } | null>(null);
   const [sessionRecovery, setSessionRecovery] = useState<SessionRecovery | null>(null);
   const [builderLeaveOpen, setBuilderLeaveOpen] = useState(false);
@@ -7411,7 +7412,7 @@ function App({ onReady, bootVisible = true }: { onReady?: () => void; bootVisibl
           : "Your latest changes could not be saved on this device. Close and discard them?"
       )
     ) {
-      return;
+      return false;
     }
     setSelectedWorkout(null);
     setWorkoutLoggingStarted(false);
@@ -7429,6 +7430,14 @@ function App({ onReady, bootVisible = true }: { onReady?: () => void; bootVisibl
     setRestTimer(null);
     setWorkoutDraftStatus("idle");
     setWorkoutDraftUnsafe(false);
+    return true;
+  };
+
+  const reviewCalendarDraft = (workout?: Workout) => {
+    if (isClientPortal) return;
+    if (selectedWorkout && !closeWorkoutPlayer()) return;
+    setCalendarDraftReviewId(workout?.assignedWorkoutId || workout?.id);
+    setCalendarDraftReviewOpen(true);
   };
 
   useEffect(() => {
@@ -7779,7 +7788,7 @@ function App({ onReady, bootVisible = true }: { onReady?: () => void; bootVisibl
 
   const updateSetLog = (index: number, field: keyof SetLog, value: string) => {
     // Coach is reviewing a completed workout — values are read-only.
-    if (coachReviewMode) return;
+    if (coachReviewMode || selectedWorkout?.isDraft) return;
     const prev = setLogs[index];
     const updated = [...setLogs];
 
@@ -7843,6 +7852,16 @@ function App({ onReady, bootVisible = true }: { onReady?: () => void; bootVisibl
           body: JSON.stringify(payload),
         });
         const data = await response.json();
+        if (data.code === "workoutDraft") {
+          // A private plan cannot accept results. Never leave the optimistic
+          // completion on the calendar or retry it as an athlete submission.
+          setWorkouts(current => current.map(w => w.id === payload.assignedWorkoutRecordId
+            ? { ...w, isDraft: true, completionStatus: "Scheduled" } : w));
+          setWorkoutCelebration(null);
+          if (selectedClient) void loadClientWorkouts(selectedClient, true);
+          notify(paceZh ? "这是仅教练可见的草稿，请在日历中选择“查看并发布”。" : "This is a coach-only draft. Choose Review & publish on the calendar.", "error");
+          return;
+        }
         if (!response.ok || data.success === false) {
           console.error(data);
           markFailed();
@@ -7866,6 +7885,11 @@ function App({ onReady, bootVisible = true }: { onReady?: () => void; bootVisibl
 
   const saveWorkout = () => {
     if (!selectedWorkout || !selectedClient) return;
+    // Publishing a plan and recording an athlete's results are separate actions.
+    if (selectedWorkout.isDraft) {
+      reviewCalendarDraft(selectedWorkout);
+      return;
+    }
     // A completed workout can be REVIEWED by the athlete but never re-submitted
     // — saveWorkoutLog always creates rows, so a second submit would duplicate
     // every logged set in Feishu.
@@ -19862,7 +19886,7 @@ function App({ onReady, bootVisible = true }: { onReady?: () => void; bootVisibl
       {sessionPublishReview && <SessionPublishReview id={sessionPublishReview.id} makeSnapshot={source => snapshotFromSession(sessionPublishReview.session, source, buildExerciseCoachingNotes)} finish={sessionPublishReview.finish} />}
       {sessionVersionHistoryOpen && assignedSessionEdit && <SessionVersionHistory id={assignedSessionEdit.assignedWorkoutId} close={() => setSessionVersionHistoryOpen(false)} restore={restoreSessionVersion} />}
       {calendarDraftSaveOpen && <SaveCalendarDraftSheet clients={clients} clientId={oneOffAssignTarget?.clientRecordId || programBuiltForClient || selectedClient?.id || ""} date={oneOffAssignTarget?.date || calendarAnchorDate || coachingToday()} busy={savingTemplate} close={() => setCalendarDraftSaveOpen(false)} save={(clientId, date) => saveFullProgram({ calendarDraft: { clientId, date } })} />}
-      {calendarDraftReviewOpen && selectedClient && <CalendarDraftReview key={selectedClient.id} clientId={selectedClient.id} name={selectedClient.name} close={() => setCalendarDraftReviewOpen(false)} updated={() => setCalendarRefreshEpoch(n => n + 1)} published={() => { setCalendarRefreshEpoch(n => n + 1); void loadClientWorkouts(selectedClient, true); void loadContentAssignments(selectedClient); notify(i18n.language.startsWith("zh") ? "已发布，学员现在可以看到所选训练。" : "Published. The athlete can now see these sessions.", "success"); }} />}
+      {calendarDraftReviewOpen && selectedClient && <CalendarDraftReview key={`${selectedClient.id}:${calendarDraftReviewId || "all"}`} clientId={selectedClient.id} name={selectedClient.name} initialSelectedId={calendarDraftReviewId} close={() => setCalendarDraftReviewOpen(false)} updated={() => setCalendarRefreshEpoch(n => n + 1)} published={() => { setCalendarRefreshEpoch(n => n + 1); void loadClientWorkouts(selectedClient, true); void loadContentAssignments(selectedClient); notify(i18n.language.startsWith("zh") ? "已发布，学员现在可以看到所选训练。" : "Published. The athlete can now see these sessions.", "success"); }} />}
 
       {calAddMenu && (
         <>
@@ -21714,7 +21738,7 @@ function App({ onReady, bootVisible = true }: { onReady?: () => void; bootVisibl
         {selectedClient && (
           <ErrorBoundary label="portal">
           <ClientWorkspace
-            calendarDraftPanel={!isClientPortal && selectedClient ? <CalendarSessionTools key={selectedClient.id} clientId={selectedClient.id} refreshKey={calendarRefreshEpoch + JSON.stringify(workouts.map(w => [w.id, w.programId, w.scheduledDate, w.isDraft, w.completionStatus]))} draftCount={workouts.filter(w => w.isDraft).length + contentAssignments.filter(a => a.isDraft).length} review={() => setCalendarDraftReviewOpen(true)} changed={() => { void loadClientWorkouts(selectedClient, true); void loadContentAssignments(selectedClient); }} /> : null}
+            calendarDraftPanel={!isClientPortal && selectedClient ? <CalendarSessionTools key={selectedClient.id} clientId={selectedClient.id} refreshKey={calendarRefreshEpoch + JSON.stringify(workouts.map(w => [w.id, w.programId, w.scheduledDate, w.isDraft, w.completionStatus]))} draftCount={workouts.filter(w => w.isDraft).length + contentAssignments.filter(a => a.isDraft).length} review={() => reviewCalendarDraft()} changed={() => { void loadClientWorkouts(selectedClient, true); void loadContentAssignments(selectedClient); }} /> : null}
             t={t}
             coachingCheckIns={coachingCheckIns.filter(c => c.clientId === selectedClient.clientCode)}
             coachingCheckInsReady={coachingActivityReady}
@@ -22302,6 +22326,7 @@ function App({ onReady, bootVisible = true }: { onReady?: () => void; bootVisibl
           <CalendarActionMenu
             openWorkout={openWorkout}
             editWorkout={openWorkoutProgramInBuilder}
+            reviewCalendarDraft={reviewCalendarDraft}
             calendarActionMenu={calendarActionMenu}
             closeCalendarActionMenu={closeCalendarActionMenu}
             copiedCalendarItem={copiedCalendarItem}
@@ -22821,6 +22846,7 @@ function App({ onReady, bootVisible = true }: { onReady?: () => void; bootVisibl
             openWorkoutExerciseFromGlance={openWorkoutExerciseFromGlance}
             openWorkoutProgramInBuilder={openWorkoutProgramInBuilder}
             openWorkoutFinish={openWorkoutFinish}
+            reviewCalendarDraft={reviewCalendarDraft}
             closeWorkoutPlayer={closeWorkoutPlayer}
             originalExercisesRef={originalExercisesRef}
             paceZh={paceZh}

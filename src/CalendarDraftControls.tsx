@@ -32,7 +32,7 @@ export function SaveCalendarDraftSheet({ clients, clientId, date, busy, save, cl
 }
 
 type DraftItem = { id: string; type: string; name: string; date: number; snapshot?: SessionSnapshot; publishedSnapshot?: SessionSnapshot; editVersion?: string };
-export function CalendarDraftReview({ clientId, name, close, published, updated }: { clientId: string; name: string; close: () => void; published: () => void; updated?: () => void }) {
+export function CalendarDraftReview({ clientId, name, initialSelectedId, close, published, updated }: { clientId: string; name: string; initialSelectedId?: string; close: () => void; published: () => void; updated?: () => void }) {
   const { i18n } = useTranslation(); const zh = i18n.language?.startsWith("zh");
   const [data, setData] = useState<{ version: string; items: DraftItem[] } | null>(null);
   const [selected, setSelected] = useState<Set<string>>(new Set()), [busy, setBusy] = useState(false), [error, setError] = useState("");
@@ -43,11 +43,11 @@ export function CalendarDraftReview({ clientId, name, close, published, updated 
       const response = await fetch(`/api/calendarDrafts?clientId=${encodeURIComponent(clientId)}`);
       const next = await response.json();
       if (!response.ok || !Array.isArray(next.items)) throw new Error();
-      setData(next); setSelected(new Set(next.items.map((i: DraftItem) => i.id)));
+      setData(next); setSelected(new Set(next.items.filter((i: DraftItem) => !initialSelectedId || i.id === initialSelectedId).map((i: DraftItem) => i.id)));
     } catch { setError(zh ? "无法读取草稿，请重试。" : "Could not load drafts. Please retry."); }
     finally { setBusy(false); }
   };
-  useEffect(() => { void load(); }, [clientId]); // the sheet is keyed by athlete
+  useEffect(() => { void load(); }, [clientId, initialSelectedId]); // the sheet is keyed by athlete and selected session
   const discard = async (item: DraftItem) => {
     if (!item.editVersion || submitting.current) return;
     submitting.current = true; setBusy(true); setError("");
