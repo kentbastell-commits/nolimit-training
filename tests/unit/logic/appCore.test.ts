@@ -4,6 +4,7 @@
 // environment we must provide a minimal window shim BEFORE importing it
 // (static imports would hoist above the shim, hence the dynamic import).
 import { describe, expect, it } from "vitest";
+import { stripLocalizedExerciseMeta as stripServerMeta } from "../../../server/db/templateMeta";
 
 (globalThis as any).window = (globalThis as any).window ?? {
   fetch: async () => ({ ok: true, json: async () => ({}) }),
@@ -178,6 +179,20 @@ describe("composeExerciseNotes", () => {
 });
 
 describe("stripLocalizedExerciseMeta", () => {
+  it.each([
+    ["web", stripLocalizedExerciseMeta],
+    ["workout API", stripServerMeta],
+  ] as const)("keeps complete Chinese coaching instructions in the %s reader", (_name, strip) => {
+    const prose = [
+      "准备姿势：直肘悬垂。",
+      "动作执行：肩胛骨下沉，不要屈肘。",
+      "第1组：完成8次肩胛引体。第2组：保持30秒。",
+      "注意：不要塌腰。",
+      "呼吸：保持自然呼吸。",
+    ].join("\n");
+    expect(strip("板块：力量\n标签：A1\n组次规划：[{\"组号\":1}]\n" + prose)).toBe(prose);
+  });
+
   it("drops EN meta lines, CN 字段：值 lines and JSON fragments but keeps prose", () => {
     const stripped = stripLocalizedExerciseMeta(
       [

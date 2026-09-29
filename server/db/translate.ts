@@ -1,5 +1,6 @@
 // Translate-on-write — replaces the Feishu AI-formula columns after the
-// Postgres cutover. DeepSeek first, Tencent Machine Translation (TMT) second.
+// Postgres cutover. Coaching uses the domain-prompted LLM; company operations
+// can fall back to Tencent Machine Translation (TMT).
 // Callers keep the saved interface text/original if both are unavailable.
 //
 // Design rules (same as the kangfu AI calls):
@@ -89,9 +90,8 @@ async function fetchJson(url: string, init: RequestInit, timeoutMs: number): Pro
 // ---- LLM path (preferred): domain-aware translation ----------------------
 // Generic MT renders coaching language literally ("out of the hole" → 冲出洞).
 // When AI_API_KEY is set (DeepSeek, same convention as kangfu), translate
-// through a chat model with an S&C/physiology-tuned prompt instead; TMT
-// stays as the fallback so translation still works if the LLM is down or
-// the DeepSeek balance runs dry.
+// through a chat model with an S&C/physiology-tuned prompt instead. Generic
+// fallback output must not silently become an athlete's technical instruction.
 function llmConfig() {
   const key = process.env.AI_API_KEY;
   if (!key) return null;
@@ -108,17 +108,24 @@ export function translationsConfigured(): boolean {
 
 const LLM_PROMPTS: Record<"zh" | "en", string> = {
   zh: [
-    "You translate messages on a strength & conditioning coaching platform from English into Chinese.",
+    "You translate messages on a strength & conditioning coaching platform from English into Simplified Chinese.",
     "Audience: Chinese athletes reading their coach's instructions, feedback and chat messages.",
     "Rules:",
     "- Write natural, native coaching Chinese — the register a Chinese S&C coach or physio uses with an athlete (口令式提示 where the source is a cue), never literal word-by-word translation.",
-    "- Use standard Chinese training/anatomy terminology: 深蹲, 髋关节铰链, 离心/向心, 等长收缩, 腘绳肌, 臀肌, 核心稳定, 触底反弹 for 'out of the hole', 充分休息, etc.",
+    "- Translate the coach's meaning faithfully. Do not add, remove or improve the exercise instructions, introduce new advice, or invent details to resolve ambiguous programming. Correct an obvious spelling error only when its intended meaning is clear from context.",
+    "- Preserve negation, left/right, each-side versus total repetitions, movement direction and sequence, body position, range limits, and the difference between repetitions, timed holds and rest. A bottom hold must remain a bottom hold; a top hold must remain a top hold.",
+    "- Use standard Chinese training/anatomy terminology: 深蹲, 髋关节铰链, 离心/向心, 等长收缩, 腘绳肌, 臀肌, 核心稳定, 充分休息. In a squat, 'out of the hole' means 从深蹲底部起身; do not imply a bounce unless the source explicitly prescribes one.",
     "- Keep ALL numbers, sets×reps, weights, percentages, distances and times exactly as written, including tempo notation (31X0, 30X1 stay untouched).",
+    "- Translate unit words accurately without converting quantities. Preserve the distinction between added plate weight and total load, seconds of lowering and seconds of rest, warm-up sets and working sets, and alternatives such as '5 or 10 kg' versus ranges such as '2.5–10 kg'.",
     "- Keep common training abbreviations untranslated: RPE, RIR, 1RM, MAS, HR, ISO, CMJ, RSI, EQI, PAILs, AMRAP, EMOM, Tabata.",
-    "- Translate exercise names to their standard Chinese gym names (Bulgarian Split Squat → 保加利亚分腿蹲, RDL → 罗马尼亚硬拉, Hip Thrust → 臀推, Bench Pull → 卧姿划船/仰卧划船, Depth Jump → 深跳, Pogo Jumps → 直膝弹跳, Dead Bug → 死虫式, Farmer Carry → 农夫行走, Kettlebell Swing → 壶铃摆动, Box Jump → 跳箱).",
+    "- Translate exercise names to their standard Chinese gym names (Bulgarian Split Squat → 保加利亚分腿蹲, RDL → 罗马尼亚硬拉, Hip Thrust → 臀推, Bench Pull → 俯卧划船, Depth Jump → 跳深, Pogo Jumps → 直膝弹跳, Dead Bug → 死虫式, Farmer Carry → 农夫行走, Kettlebell Swing → 壶铃摆动, Box Jump → 跳箱, Landmine Press → 地雷杠推举, Landmine 180s → 地雷杠180度转体). A landmine is a barbell attachment; 180s in this exercise name is not a decade or a duration. Preserve exercise variations such as 'split squat to calf raise' → 分腿蹲接提踵.",
+    "- Preserve the specific anatomical action: scapular depression → 肩胛骨下沉, protraction → 肩胛骨前伸, retraction → 肩胛骨后缩, shoulder external rotation → 肩关节外旋, posterior pelvic tilt → 骨盆后倾. A scapular pull-up uses straight elbows and is not a full pull-up. Do not substitute generic cues for the instructed variation.",
+    "- Interpret imagery in its movement context: 'shoulder blades into your back pockets' describes 肩胛骨向后、向下收稳; 'oblique sling' in a rotational exercise describes 腹斜肌与髋部协同发力, not a physical strap. 'Press up' in a bench press means 向上推起, not 蹬起.",
     "- Coaching slang translates to what a Chinese coach actually says, never literally: grind / grind it out → 磨着完成·艰难完成, lockout → 锁定, sticking point → 卡点, brace → 绷紧核心, pump → 充血, drive through the floor → 用力蹬地, snappy/explosive → 干脆·有爆发力, squeeze → 收紧, control the negative → 控制离心.",
     "- Climbing slang: send → 完攀, crimp → 抠点, sloper → 斜面点, jug → 大把手点, heel hook → 挂脚跟, toe hook → 勾脚尖, flag → 旗式平衡, deadpoint → 定点瞬抓, campus → campus板训练, project → 攻关线路.",
     "- Keep the coach's warm, direct tone. Preserve line breaks.",
+    "- For exercise instructions, render standalone headings Setup and Execution as 准备姿势 and 动作执行 on their own lines without a colon. Keep set-specific instructions as full sentences, e.g. 第1组完成8次。第2组保持30秒。, rather than colon-prefixed labels that resemble stored metadata.",
+    "- Before answering, check every source instruction against the translation for omissions, additions, changed quantities, reversed actions and mistranslated exercise names. Return only the checked translation.",
     "- Output ONLY the translation — no explanations, no quotes, no notes.",
   ].join("\n"),
   en: [
@@ -127,6 +134,7 @@ const LLM_PROMPTS: Record<"zh" | "en", string> = {
     "Rules:",
     "- Natural, concise English with standard S&C terminology; never stiff literal translation.",
     "- Keep ALL numbers, sets×reps, weights, percentages, distances and times exactly as written.",
+    "- Preserve negation, left/right, each-side versus total repetitions, movement direction, hold position and exercise order. Do not add advice or invent details. Translate units without converting quantities, and distinguish warm-up sets, working sets, lowering time and rest time.",
     "- Keep training abbreviations as-is: RPE, RIR, 1RM, MAS, HR, ISO, CMJ, RSI.",
     "- Preserve line breaks. Output ONLY the translation — no explanations, no quotes, no notes.",
   ].join("\n"),
@@ -176,6 +184,11 @@ async function llmTranslate(
       },
       body: JSON.stringify({
         model: cfg.model,
+        // DeepSeek enables thinking by default on its newer models. Explicit
+        // non-thinking translation avoids spending the 15s deadline on reasoning.
+        // Keep provider-specific parameters off other OpenAI-compatible hosts.
+        // https://api-docs.deepseek.com/guides/thinking_mode/
+        ...(new URL(cfg.base).hostname === "api.deepseek.com" ? { thinking: { type: "disabled" } } : {}),
         temperature: 0.2,
         max_tokens: 2000,
         messages: [
@@ -202,7 +215,8 @@ async function llmTranslate(
 
 /**
  * Translate `text` into `target` ("en" | "zh"). Source language is
- * auto-detected. Prefers the domain-prompted LLM, falls back to TMT.
+ * auto-detected. Coaching retries the domain-prompted LLM once and keeps the
+ * source if unavailable. Operations may fall back to TMT.
  * Returns null when translation is unavailable for any reason.
  */
 export async function translateText(
@@ -233,6 +247,14 @@ export async function translateText(
     };
     const primary = await translateAll((chunk) => llmTranslate(chunk, target, domain));
     if (primary) { remember(cacheKey, primary, 6 * 60 * 60_000); return primary; }
+    if (domain === "coaching") {
+      // A transient timeout used to persist generic MT mistranslations such as
+      // "after the set" -> "after the competition". Keep the original instead
+      // of recording that downgrade as a completed coaching translation.
+      const retry = llmConfig() ? await translateAll((chunk) => llmTranslate(chunk, target, domain)) : null;
+      remember(cacheKey, retry, retry ? 6 * 60 * 60_000 : 5_000);
+      return retry;
+    }
     const fallback = await translateAll((chunk) => tmtTranslate(chunk, target));
     // A temporary fallback must not hide DeepSeek's recovery for the process lifetime.
     remember(cacheKey, fallback, fallback ? 60_000 : 5_000);

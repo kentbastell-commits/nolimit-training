@@ -15,7 +15,7 @@ beforeEach(async () => {
 });
 afterEach(() => { vi.unstubAllGlobals(); vi.unstubAllEnvs(); vi.useRealTimers(); });
 
-describe("DeepSeek first, Tencent fallback", () => {
+describe("domain-aware translation providers", () => {
   it("uses DeepSeek for both directions and keeps the operations prompt separate", async () => {
     const fetch = vi.fn(async () => llm("translated")); vi.stubGlobal("fetch", fetch);
     await translate.translateText("Rest 90 seconds", "zh");
@@ -27,6 +27,39 @@ describe("DeepSeek first, Tencent fallback", () => {
     expect(payloads[0].model).toBe("deepseek-test");
     expect(payloads[1].messages[0].content).toContain("Chinese into English");
     expect(payloads[2].messages[0].content).toContain("internal company");
+    expect(payloads[0]).not.toHaveProperty("thinking");
+  });
+
+  it("requests non-thinking output from DeepSeek's own API", async () => {
+    vi.stubEnv("AI_BASE_URL", "https://api.deepseek.com/v1");
+    const fetch = vi.fn(async () => llm("休息90秒")); vi.stubGlobal("fetch", fetch);
+    expect(await translate.translateText("Rest 90 seconds", "zh")).toBe("休息90秒");
+    expect(JSON.parse((fetch.mock.calls[0] as any)[1].body).thinking).toEqual({ type: "disabled" });
+  });
+
+  it("retries a transient coaching translation failure without using generic MT", async () => {
+    const fetch = vi.fn().mockRejectedValueOnce(new Error("timeout")).mockResolvedValueOnce(llm("本组结束后休息45秒。"));
+    vi.stubGlobal("fetch", fetch);
+    expect(await translate.translateText("Rest 45 seconds after the set.", "zh")).toBe("本组结束后休息45秒。");
+    expect(fetch).toHaveBeenCalledTimes(2);
+    expect(fetch.mock.calls.every(([url]) => String(url).includes("chat/completions"))).toBe(true);
+  });
+
+  it("does not persist a generic fallback when coaching translation remains unavailable", async () => {
+    const fetch = vi.fn(async (url) => String(url).includes("chat/completions") ? new Response("", { status: 503 }) : tmt("比赛结束后休息45秒。"));
+    vi.stubGlobal("fetch", fetch);
+    const apply = vi.fn();
+    await translate.fillTranslation("Rest 45 seconds after the set.", "zh", apply);
+    expect(apply).not.toHaveBeenCalled();
+    expect(fetch).toHaveBeenCalledTimes(2);
+    expect(fetch.mock.calls.every(([url]) => String(url).includes("chat/completions"))).toBe(true);
+  });
+
+  it("leaves coaching text untranslated when only Tencent is configured", async () => {
+    vi.stubEnv("AI_API_KEY", "");
+    const fetch = vi.fn(async () => tmt("generic"));vi.stubGlobal("fetch", fetch);
+    expect(await translate.translateText("Hold at the bottom", "zh")).toBeNull();
+    expect(fetch).not.toHaveBeenCalled();
   });
 
   it.each(["http", "truncated", "empty", "network"])("falls back after a %s DeepSeek failure", async (failure) => {
@@ -39,15 +72,15 @@ describe("DeepSeek first, Tencent fallback", () => {
       }
       providers.push("tencent"); return tmt("休息90秒");
     }));
-    expect(await translate.translateText("Rest 90 seconds", "zh")).toBe("休息90秒");
+    expect(await translate.translateText("Rest 90 seconds", "zh", "ops")).toBe("休息90秒");
     expect(providers).toEqual(["deepseek", "tencent"]);
   });
 
 
-  it("treats a 'please provide the text' answer as a failure and falls back to Tencent", async () => {
+  it("treats a 'please provide the text' answer as a failure and retries coaching", async () => {
     const fetch = vi.fn(async (url) => String(url).includes("chat/completions") ? llm("请提供需要翻译的文本。") : tmt("器械"));
     vi.stubGlobal("fetch", fetch);
-    expect(await translate.translateText("Machine", "zh")).toBe("器械");
+    expect(await translate.translateText("Machine", "zh")).toBeNull();
     expect(fetch).toHaveBeenCalledTimes(2);
   });
   it("leaves the caller's saved text intact when both providers fail", async () => {
@@ -62,11 +95,11 @@ describe("DeepSeek first, Tencent fallback", () => {
     let recovered = false;
     const fetch = vi.fn(async (url) => String(url).includes("chat/completions") ? (recovered ? llm("DeepSeek recovered") : new Response("", { status: 503 })) : tmt("backup"));
     vi.stubGlobal("fetch", fetch);
-    expect(await translate.translateText("Training note", "zh")).toBe("backup");
+    expect(await translate.translateText("Training note", "zh", "ops")).toBe("backup");
     recovered = true;
-    expect(await translate.translateText("Training note", "zh")).toBe("backup");
+    expect(await translate.translateText("Training note", "zh", "ops")).toBe("backup");
     await vi.advanceTimersByTimeAsync(60_001);
-    expect(await translate.translateText("Training note", "zh")).toBe("DeepSeek recovered");
+    expect(await translate.translateText("Training note", "zh", "ops")).toBe("DeepSeek recovered");
     expect(fetch).toHaveBeenCalledTimes(3);
   });
 
@@ -75,7 +108,7 @@ describe("DeepSeek first, Tencent fallback", () => {
     vi.stubGlobal("fetch", vi.fn(async (url, init) => String(url).includes("chat/completions") ? {
       ok: true, json: () => new Promise((_, reject) => init.signal.addEventListener("abort", () => reject(new Error("aborted")))),
     } : tmt("backup")));
-    const request = translate.translateText("Slow response", "zh");
+    const request = translate.translateText("Slow response", "zh", "ops");
     await vi.advanceTimersByTimeAsync(15_001);
     await expect(request).resolves.toBe("backup");
   });
@@ -108,7 +141,7 @@ describe("translation under load", () => {
       if (String(url).includes("chat/completions")) return new Response("", { status: 503 });
       const text = JSON.parse(init.body).SourceText; received.push(text); return tmt(text);
     }));
-    expect(await translate.translateText(source, "en")).toBe(source.trim());
+    expect(await translate.translateText(source, "en", "ops")).toBe(source.trim());
     expect(received.length).toBeGreaterThan(1);
     expect(received.every((s) => Buffer.byteLength(s, "utf8") <= 1800 && !s.includes("�"))).toBe(true);
     expect(translate.translationChunks(source).join("")).toBe(source);

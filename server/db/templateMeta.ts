@@ -171,7 +171,9 @@ export function parseTemplateMeta(notes = ""): ParsedMeta {
 // notesCn raw on the workout card — so the server strips it (CLAUDE.md #47).
 const EN_META_LINE =
   /^\s*(?:Section|Section Color|Label|Label Mode|Superset|Circuit|Circuit Mode|Circuit Minutes|Tracking|Fields|Unilateral|Accessory|Accessory Parent|Accessory Color|Set Prescriptions|Alternate Exercises|Target[^:：]*)\s*[:：]/i;
-const CN_META_LINE = /^\s*[一-鿿][一-鿿0-9]{0,11}[:：]/;
+// Keep in sync with src/appCore.ts: a Chinese label plus colon is not enough
+// to identify metadata (e.g. "第1组：保持30秒" is essential coaching prose).
+const CN_META_LINE = /^\s*(?:板块|部分|区块|章节|训练板块|区段|板块颜色|区块颜色|标签|标签模式|超级组|超组|循环|循环模式|循环分钟|循环时长|追踪|追踪项|追踪类型|追踪指标|跟踪|跟踪项|跟踪类型|跟踪指标|记录类型|字段|单侧|单侧训练|单侧动作|辅助|辅助动作|辅具|辅助父项|辅助父动作|附件父项|辅助颜色|辅具颜色|组次规划|组次处方|每组处方|组处方|组数|替代动作|备选动作|目标来源|目标指标|目标百分比|目标调整|自动目标|显示目标)\s*[:：]/;
 const META_JSON_FRAGMENT =
   /^\s*[[\]{}]|"(?:setNumber|reps|load|percent|percentMas|intensityMode|intensityValue|rpe|rir|time|tempo|rest|exerciseRecordId|exerciseId|exerciseName)"\s*:/;
 
