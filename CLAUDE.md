@@ -179,6 +179,11 @@ data between them, never "borrow" a table ID across products.
     works: run the pg project one file per process (`for f in
     tests/unit/pg/*.test.ts; do npx vitest run --project pg --maxWorkers=1
     "$f"; done`, ~4 min) and `--project node --project dom` separately.
+    RECURRED 2026-10-01 with the per-file loop itself: every pg file AND
+    the node+dom run reported "no tests" while a concurrent `tsc --noEmit`
+    ran in the mini-program repo. The loop is only a gate when NOTHING else
+    (a second repo's build, a webpack bundle, another agent's suite) runs on
+    the box at the same time; re-run alone before reading any result.
 16. **The clobbered intent** — the store checkout has a `useEffect` keyed on
     `storeSelectedProgram?.recordId` that resets step/add-ons/paymentCode. Any
     handler that sets one of those *while also changing the selected program*
@@ -1116,6 +1121,10 @@ invented procedure is not.
   145-line mojibake diff, caught only by `git diff --stat` looking too big.
   Use the Edit tool; after any scripted file rewrite, sanity-check the diff
   size and grep the diff for `â€|Â` before committing. Two PowerShell traps
+  A `sed -i "${L}r file"` whose `$L` came back EMPTY inserts the file after
+  EVERY line (2026-10-01: 1157 copies into CLAUDE.md, caught only because
+  `git diff --stat` showed +5785); guard the variable (`[ -n "$L" ] &&`)
+  before any line-addressed sed, and check the stat before committing.
   that each cost a run on 2026-09-08: variables are CASE-INSENSITIVE, so a
   `[int]$Rows` param and a `$rows` array, or `$R` and a `foreach ($r ...)`,
   are the SAME variable and silently clobber each other — never reuse a
