@@ -79,6 +79,7 @@ export async function publishSessionRevision(tx: SessionTx, workout: Assigned) {
   await tx.update(assignedWorkouts).set({ ...changes, scheduledDate: workout.scheduledDate,
     completionStatus: workout.completionStatus, clientNotes: workout.clientNotes, clientNotesCn: workout.clientNotesCn,
     sessionRpe: workout.sessionRpe, sessionDuration: workout.sessionDuration, sessionLoad: workout.sessionLoad,
+    sessionAvgHr: workout.sessionAvgHr, sessionMaxHr: workout.sessionMaxHr,
     coachReviewed: workout.coachReviewed, isDraft: false }).where(eq(assignedWorkouts.assignedWorkoutId, workout.assignedWorkoutId));
   await tx.delete(sessionRevisions).where(eq(sessionRevisions.assignedWorkoutId, workout.assignedWorkoutId));
 }

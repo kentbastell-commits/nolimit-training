@@ -39,6 +39,9 @@ const {
   labelColor,
   languagePreferenceToCode,
   lookupTextMatches,
+  parsePaceToSecPerKm,
+  formatPaceSecPerKm,
+  reconcileCardioActuals,
   makeExerciseLabel,
   mapWithConcurrency,
   normalizeDate,
@@ -536,5 +539,38 @@ describe("misc pure helpers", () => {
     );
     expect(results).toEqual([20, 40, 60, 80, 100]);
     expect(maxInFlight).toBeLessThanOrEqual(2);
+  });
+});
+
+describe("cardio actuals: pace parsing and any-two-of-three reconcile", () => {
+  it("reads pace the way athletes type it off a watch", () => {
+    expect(parsePaceToSecPerKm("4:17")).toBe("257");
+    expect(parsePaceToSecPerKm("4′17")).toBe("257");
+    expect(parsePaceToSecPerKm("4.5")).toBe("270"); // minutes
+    expect(parsePaceToSecPerKm("257")).toBe("257"); // already seconds
+    expect(parsePaceToSecPerKm("")).toBe("");
+    expect(parsePaceToSecPerKm("abc")).toBe("");
+    expect(formatPaceSecPerKm("257")).toBe("4:17");
+    expect(formatPaceSecPerKm(0)).toBe("");
+  });
+
+  it("fills the blank third value and keeps the field just typed", () => {
+    // Garmin interval 1: 6:00 for 1,400 m -> 4:17/km.
+    expect(reconcileCardioActuals({ actualTime: "360", actualDistance: "1400", actualPace: "" }, "actualDistance"))
+      .toEqual({ actualTime: "360", actualDistance: "1400", actualPace: "257" });
+    // Time + pace typed, distance blank -> distance derived.
+    expect(reconcileCardioActuals({ actualTime: "360", actualDistance: "", actualPace: "257" }, "actualPace"))
+      .toEqual({ actualTime: "360", actualDistance: "1401", actualPace: "257" });
+    // Distance + pace typed, time blank -> time derived.
+    expect(reconcileCardioActuals({ actualTime: "", actualDistance: "1000", actualPace: "257" }, "actualPace").actualTime)
+      .toBe("257");
+    // All three present and pace retyped: distance recomputes, time (the typed anchor) stays.
+    const r = reconcileCardioActuals({ actualTime: "360", actualDistance: "1400", actualPace: "300" }, "actualPace");
+    expect(r.actualTime).toBe("360");
+    expect(r.actualPace).toBe("300");
+    expect(r.actualDistance).toBe("1200");
+    // Only one value known: nothing invented.
+    expect(reconcileCardioActuals({ actualTime: "360", actualDistance: "", actualPace: "" }, "actualTime"))
+      .toEqual({ actualTime: "360", actualDistance: "", actualPace: "" });
   });
 });

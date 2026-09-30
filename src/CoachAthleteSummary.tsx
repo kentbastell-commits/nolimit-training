@@ -23,7 +23,7 @@ export default function CoachAthleteSummary({ client, workouts, checkIns, checkI
     {coachingPaused(client) && <p className="dailyHint">{t("dailyPaused")}</p>}
     <div className="coachSummaryGrid">
       <article className="coachSummaryCard"><h3>{t("dailyLatest")}</h3><strong>{latest ? workoutName(latest) : unknown}</strong>
-        {latest && <><small>{t("dailyTrainingDate", { date: coachingDate(latest.scheduledDate) })}</small><p>{t("dailyResult", { rpe: latest.sessionRpe || "—", duration: latest.sessionDuration || "—" })}</p>{latest.clientNotes && <p>{t("dailyAthleteNote")}: {latest.clientNotes}</p>}<button onClick={() => openWorkout(latest)}>{t("dailyReviewLast")}</button></>}
+        {latest && <><small>{t("dailyTrainingDate", { date: coachingDate(latest.scheduledDate) })}</small><p>{t("dailyResult", { rpe: latest.sessionRpe || "—", duration: latest.sessionDuration || "—" })}</p>{(latest.sessionAvgHr || latest.sessionMaxHr) && <p>{t("dailyHeartRate", { avg: latest.sessionAvgHr || "—", max: latest.sessionMaxHr || "—" })}</p>}{latest.clientNotes && <p>{t("dailyAthleteNote")}: {latest.clientNotes}</p>}<button onClick={() => openWorkout(latest)}>{t("dailyReviewLast")}</button></>}
       </article>
       <article className="coachSummaryCard"><h3>{t("dailyNext")}</h3><strong>{next ? workoutName(next) : loading || loadFailed ? unknown : t("dailyNoCoverage")}</strong>
         {next && <><small>{coachingDate(next.scheduledDate)}</small><p>{t("dailyCoverage", { date: facts.end, count: facts.future.length })}</p></>}

@@ -45,6 +45,9 @@ export async function listAllLogs(clientId = "", clientCode = "", assignedWorkou
       actualWeight: str(r.actualWeight),
       actualTime: str(r.actualTime),
       actualDistance: str(r.actualDistance),
+      actualPace: str(r.actualPace),
+      avgHr: str(r.avgHr),
+      maxHr: str(r.maxHr),
       ...(assignedWorkoutId ? {
         exerciseNameCn: chineseNames.get(savedName(r.exerciseName)) || "",
         assignedWorkoutId: str(r.assignedWorkoutId), completed: r.completed !== false,
@@ -88,6 +91,28 @@ function intOrNull(value: any): number | null {
   return n === undefined ? null : Math.round(n);
 }
 
+// Heart rate must be a plausible bpm; anything else is a typo, not data.
+function bpmOrNull(value: any): number | null {
+  const n = intOrNull(value);
+  return n !== null && n >= 30 && n <= 250 ? n : null;
+}
+
+// Pace arrives as seconds per km (the clients convert "4:17" before sending)
+// or is derived from actual time (s) and distance (m) when left blank — the
+// same number Garmin shows as Avg Pace, so target and actual stay distinct.
+export function resolvePaceSecPerKm(
+  pace: any,
+  timeSec: number | undefined,
+  distanceM: number | undefined
+): number | null {
+  const typed = toNum(pace);
+  if (typed !== undefined && typed > 0) return Math.round(typed);
+  if (timeSec && distanceM && timeSec > 0 && distanceM > 0) {
+    return Math.round((timeSec / distanceM) * 1000);
+  }
+  return null;
+}
+
 export async function saveWorkoutLog(
   input: SaveWorkoutLogInput
 ): Promise<SaveWorkoutLogResult> {
@@ -102,6 +127,8 @@ export async function saveWorkoutLog(
     submissionNote,
     sessionRpe,
     sessionDurationMin,
+    sessionAvgHr,
+    sessionMaxHr,
   } = input;
 
   const epochDate = toEpoch(workoutDate || "");
@@ -167,6 +194,7 @@ export async function saveWorkoutLog(
       const rows: Insert[] = logs.map((log: any, index: number) => {
         const skipped = log.completed === false;
         const actualTimeNum = skipped ? undefined : toNum(log.actualTime);
+        const actualDistanceNum = skipped ? undefined : toNum(log.actualDistance);
         return {
           // Random component: two same-millisecond submits (e.g. athlete
           // double-tap) collide on the PK without it.
@@ -189,8 +217,11 @@ export async function saveWorkoutLog(
           weightUnit: "kg",
           actualTime: actualTimeNum === undefined ? null : String(actualTimeNum),
           timeUnit: "s",
-          actualDistance: skipped ? null : toNum(log.actualDistance) ?? null,
+          actualDistance: actualDistanceNum ?? null,
           distanceUnit: "m",
+          actualPace: skipped ? null : resolvePaceSecPerKm(log.actualPace, actualTimeNum, actualDistanceNum),
+          avgHr: skipped ? null : bpmOrNull(log.avgHr),
+          maxHr: skipped ? null : bpmOrNull(log.maxHr),
           completed: log.completed === false ? false : true,
           athleteNotes: submissionNote ? toText(submissionNote) : null,
           exerciseOrder: intOrNull(log.exerciseOrder),
@@ -214,6 +245,10 @@ export async function saveWorkoutLog(
         if (rpeNum !== undefined && durNum !== undefined) {
           set.sessionLoad = Math.round(rpeNum * durNum);
         }
+        const avgHrNum = bpmOrNull(sessionAvgHr);
+        const maxHrNum = bpmOrNull(sessionMaxHr);
+        if (avgHrNum !== null) set.sessionAvgHr = avgHrNum;
+        if (maxHrNum !== null) set.sessionMaxHr = maxHrNum;
         const updated = await tx
           .update(assignedWorkouts)
           .set(set)

@@ -408,6 +408,9 @@ export const assignedWorkouts = pgTable(
     sessionRpe: doublePrecision("session_rpe"),
     sessionDuration: doublePrecision("session_duration"), // minutes
     sessionLoad: doublePrecision("session_load"), // RPE × duration
+    // Athlete-entered whole-session heart rate (bpm), migration 0030.
+    sessionAvgHr: integer("session_avg_hr"),
+    sessionMaxHr: integer("session_max_hr"),
     coachReviewed: boolean("coach_reviewed").default(false),
   },
   (t) => [
@@ -445,6 +448,10 @@ export const workoutLogs = pgTable(
     timeUnit: text("time_unit"),
     actualDistance: doublePrecision("actual_distance"),
     distanceUnit: text("distance_unit"),
+    // Cardio facts (migration 0030): pace in seconds per km, heart rate in bpm.
+    actualPace: doublePrecision("actual_pace_sec_km"),
+    avgHr: integer("avg_hr"),
+    maxHr: integer("max_hr"),
     completed: boolean("completed"),
     coachReviewed: boolean("coach_reviewed"),
     athleteNotes: text("athlete_notes"),

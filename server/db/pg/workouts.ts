@@ -66,6 +66,8 @@ export async function listAllWorkouts(clientCode = "", includeDrafts = false): P
       sessionRpe: str(r.sessionRpe),
       sessionDuration: str(r.sessionDuration),
       sessionLoad: str(r.sessionLoad),
+      sessionAvgHr: str(r.sessionAvgHr),
+      sessionMaxHr: str(r.sessionMaxHr),
       coachReviewed: r.coachReviewed ?? false,
     })
   );

@@ -16229,3 +16229,29 @@ input[type="date"]:disabled::-webkit-calendar-picker-indicator {
     min-height: 44px;
   }
 }
+
+/* Cardio actuals: per-set heart-rate pair and the finish-screen session HR (2026-10-01). */
+.setLogHrRow {
+  display: flex;
+  gap: 8px;
+}
+.setLogHrRow .setLogField {
+  flex: 1 1 0;
+  min-width: 0;
+}
+.finishHrFields {
+  display: flex;
+  gap: 12px;
+  margin-top: 8px;
+}
+.finishHrFields .finishSetField {
+  flex: 1 1 0;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.finishHrFields .finishSetField input {
+  width: 100%;
+  min-width: 0;
+}

@@ -21,6 +21,8 @@ export type SaveWorkoutLogInput = {
   submissionNote?: string;
   sessionRpe?: any;
   sessionDurationMin?: any;
+  sessionAvgHr?: any;
+  sessionMaxHr?: any;
 };
 
 export type SaveWorkoutLogResult = {

@@ -233,6 +233,8 @@ export type Workout = {
   sessionRpe?: string;
   sessionDuration?: string;
   sessionLoad?: string;
+  sessionAvgHr?: string;
+  sessionMaxHr?: string;
   coachReviewed?: boolean;
 };
 
@@ -541,6 +543,9 @@ export type WorkoutHistoryLog = {
   actualWeight: string;
   actualTime: string;
   actualDistance: string;
+  actualPace?: string;
+  avgHr?: string;
+  maxHr?: string;
 };
 
 export type WorkloadLog = {
@@ -979,7 +984,62 @@ export type SetLog = {
   actualDistance: string;
   actualRpe: string;
   actualRir: string;
+  // Cardio facts the athlete copies off the watch. Pace is kept as seconds
+  // per km (string, like the other actuals); heart rate in bpm.
+  actualPace: string;
+  avgHr: string;
+  maxHr: string;
 };
+
+// Blank cardio actuals, so every SetLog constructor starts from one list.
+export const EMPTY_CARDIO_ACTUALS = { actualPace: "", avgHr: "", maxHr: "" } as const;
+
+// "4:17" (or "4.17", "257") -> 257 seconds per km; "" for anything unusable.
+export function parsePaceToSecPerKm(input: string): string {
+  const s = String(input || "").trim().replace(/[′’]/g, ":").replace(/[^\d:.]/g, "");
+  if (!s) return "";
+  const m = s.match(/^(\d{1,2}):(\d{1,2})$/);
+  if (m) return String(Number(m[1]) * 60 + Number(m[2]));
+  const n = Number(s);
+  if (!Number.isFinite(n) || n <= 0) return "";
+  // A bare small number is minutes (4.5 -> 4:30); a large one is already seconds.
+  return String(Math.round(n < 30 ? n * 60 : n));
+}
+
+// 257 -> "4:17" for display; "" when there is nothing to show.
+export function formatPaceSecPerKm(secPerKm: string | number): string {
+  const n = Number(secPerKm);
+  if (!Number.isFinite(n) || n <= 0) return "";
+  const total = Math.round(n);
+  return `${Math.floor(total / 60)}:${String(total % 60).padStart(2, "0")}`;
+}
+
+// Any two of time (s), distance (m) and pace (s/km) fix the third. `edited`
+// is the field the athlete just typed, so a stale value never overrides it;
+// the field that is blank gets filled, and when all three are present the
+// least recently typed one (`prefer`) is recomputed so they always agree.
+export function reconcileCardioActuals(
+  log: { actualTime: string; actualDistance: string; actualPace: string },
+  edited: "actualTime" | "actualDistance" | "actualPace",
+  prefer: "actualTime" | "actualDistance" | "actualPace" | "" = ""
+): { actualTime: string; actualDistance: string; actualPace: string } {
+  const t = Number(log.actualTime) || 0;
+  const d = Number(log.actualDistance) || 0;
+  const p = Number(log.actualPace) || 0;
+  const out = { actualTime: log.actualTime, actualDistance: log.actualDistance, actualPace: log.actualPace };
+  const fill = (field: "actualTime" | "actualDistance" | "actualPace") => {
+    if (field === "actualPace" && t > 0 && d > 0) out.actualPace = String(Math.round((t / d) * 1000));
+    if (field === "actualDistance" && t > 0 && p > 0) out.actualDistance = String(Math.round((t / p) * 1000));
+    if (field === "actualTime" && d > 0 && p > 0) out.actualTime = String(Math.round((d / 1000) * p));
+  };
+  const blank = (["actualTime", "actualDistance", "actualPace"] as const).filter((f) => !(Number(log[f]) > 0));
+  if (blank.length === 1) fill(blank[0]);
+  else if (blank.length === 0) {
+    const target = prefer && prefer !== edited ? prefer : edited === "actualPace" ? "actualDistance" : "actualPace";
+    fill(target);
+  }
+  return out;
+}
 
 // Convert a YouTube watch/short/embed/youtu.be link to an embeddable URL.
 export function toYoutubeEmbed(url: string): string {

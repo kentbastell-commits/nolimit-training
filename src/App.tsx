@@ -864,6 +864,9 @@ function App({ onReady, bootVisible = true }: { onReady?: () => void; bootVisibl
               actualDistance: "",
               actualRpe: "",
               actualRir: "",
+              actualPace: "",
+              avgHr: "",
+              maxHr: "",
             }
           : log
     );
@@ -1324,6 +1327,9 @@ function App({ onReady, bootVisible = true }: { onReady?: () => void; bootVisibl
   const [workoutFinishOpen, setWorkoutFinishOpen] = useState(false);
   const [workoutRpe, setWorkoutRpe] = useState<number | null>(null);
   const [finishDurationMin, setFinishDurationMin] = useState(0);
+  // Whole-session heart rate the athlete copies off the watch at finish (bpm).
+  const [workoutAvgHr, setWorkoutAvgHr] = useState("");
+  const [workoutMaxHr, setWorkoutMaxHr] = useState("");
   const [finishExpanded, setFinishExpanded] = useState<Record<string, boolean>>(
     {}
   );
@@ -7334,6 +7340,9 @@ function App({ onReady, bootVisible = true }: { onReady?: () => void; bootVisibl
             actualDistance: "",
             actualRpe: "",
             actualRir: "",
+            actualPace: "",
+            avgHr: "",
+            maxHr: "",
           });
         });
       }
@@ -7526,6 +7535,9 @@ function App({ onReady, bootVisible = true }: { onReady?: () => void; bootVisibl
                 actualWeight: match.actualWeight || "",
                 actualTime: match.actualTime || "",
                 actualDistance: match.actualDistance || "",
+                actualPace: match.actualPace || "",
+                avgHr: match.avgHr || "",
+                maxHr: match.maxHr || "",
               }
             : bl;
         });
@@ -7822,6 +7834,18 @@ function App({ onReady, bootVisible = true }: { onReady?: () => void; bootVisibl
     }
   };
 
+  // Several actuals at once (cardio time/distance/pace reconcile together);
+  // two updateSetLog calls in one handler would each start from the same
+  // stale row and the second would drop the first.
+  const updateSetLogMany = (index: number, patch: Partial<SetLog>) => {
+    if (coachReviewMode || selectedWorkout?.isDraft) return;
+    const updated = [...setLogs];
+    if (!updated[index]) return;
+    updated[index] = { ...updated[index], ...patch };
+    setSetLogs(updated);
+    persistWorkoutDraft(updated, savedExerciseDraftIds, checkedWorkoutPageItems);
+  };
+
   // Background sync for an optimistically-submitted workout. The athlete sees
   // the celebration card instantly; this races the actual save behind it and
   // flips the card's sync status. On failure the local draft is kept so
@@ -7949,6 +7973,8 @@ function App({ onReady, bootVisible = true }: { onReady?: () => void; bootVisibl
       submissionNote: combinedNote,
       sessionRpe: workoutRpe ?? undefined,
       sessionDurationMin: finishDurationMin || undefined,
+      sessionAvgHr: Number(workoutAvgHr) > 0 ? Number(workoutAvgHr) : undefined,
+      sessionMaxHr: Number(workoutMaxHr) > 0 ? Number(workoutMaxHr) : undefined,
     };
 
     // Celebration stats share the app-wide completion rule (✓ or typed value);
@@ -8005,6 +8031,8 @@ function App({ onReady, bootVisible = true }: { onReady?: () => void; bootVisibl
     setWorkoutFinishOpen(false);
     setWorkoutRpe(null);
     setFinishDurationMin(0);
+    setWorkoutAvgHr("");
+    setWorkoutMaxHr("");
     setFinishExpanded({});
     resetWodState();
     setSavingWorkout(false);
@@ -19526,6 +19554,9 @@ function App({ onReady, bootVisible = true }: { onReady?: () => void; bootVisibl
       actualDistance: previous.actualDistance,
       actualRpe: previous.actualRpe,
       actualRir: previous.actualRir,
+      actualPace: previous.actualPace,
+      avgHr: previous.avgHr,
+      maxHr: previous.maxHr,
     };
     setSetLogs(updated);
     persistWorkoutDraft(
@@ -22883,6 +22914,7 @@ function App({ onReady, bootVisible = true }: { onReady?: () => void; bootVisibl
             toggleWorkoutReviewed={toggleWorkoutReviewed}
             repeatPreviousWorkoutSet={repeatPreviousWorkoutSet}
             updateSetLog={updateSetLog}
+            updateSetLogMany={updateSetLogMany}
             updateWorkoutDate={updateWorkoutDate}
             updatingWorkoutDate={updatingWorkoutDate}
             useMobileWorkoutRows={useMobileWorkoutRows}
@@ -23050,6 +23082,38 @@ function App({ onReady, bootVisible = true }: { onReady?: () => void; bootVisibl
                     </div>
                     {/* Session load (sRPE) is computed + saved, but shown only
                         to the coach in the Training Load dashboard. */}
+                  </div>
+
+                  {/* Whole-session heart rate off the watch (Garmin summary) */}
+                  <div className="finishRpeBlock finishHrBlock">
+                    <h3>{t("sessionHeartRate")}</h3>
+                    <p className="finishRpeHint">{t("sessionHeartRateHint")}</p>
+                    <div className="finishHrFields">
+                      <label className="finishSetField">
+                        <span>{t("sessionAvgHr")}</span>
+                        <input
+                          inputMode="numeric"
+                          value={workoutAvgHr}
+                          placeholder="—"
+                          onChange={(e) =>
+                            setWorkoutAvgHr(e.target.value.replace(/\D/g, "").slice(0, 3))
+                          }
+                        />
+                        <span>{t("bpm")}</span>
+                      </label>
+                      <label className="finishSetField">
+                        <span>{t("sessionMaxHr")}</span>
+                        <input
+                          inputMode="numeric"
+                          value={workoutMaxHr}
+                          placeholder="—"
+                          onChange={(e) =>
+                            setWorkoutMaxHr(e.target.value.replace(/\D/g, "").slice(0, 3))
+                          }
+                        />
+                        <span>{t("bpm")}</span>
+                      </label>
+                    </div>
                   </div>
 
                   {/* Expandable, editable exercise list — fix any mis-entry */}

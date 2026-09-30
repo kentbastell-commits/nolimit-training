@@ -153,6 +153,53 @@ describe("api/saveWorkoutLog (postgres)", () => {
     expect(Number(workout.session_load)).toBe(480);
   });
 
+  it("stores typed pace and heart rate per set, and derives pace from time and distance when blank", async () => {
+    await seedClient({ client_id: "CL-9001" });
+    await seedAssignedWorkout();
+
+    await save({
+      clientId: "CL-9001",
+      assignedWorkoutRecordId: AWID,
+      workoutDate: "2026-10-01",
+      sessionAvgHr: 166,
+      sessionMaxHr: 176,
+      logs: [
+        // Garmin interval: 6:00 for 1,400 m, pace typed as 257 s/km (4:17).
+        oneSet({ exerciseName: "Track Run", actualReps: undefined, actualWeight: undefined,
+          actualTime: 360, actualDistance: 1400, actualPace: 257, avgHr: 168, maxHr: 176 }),
+        // Pace left blank: 360 s / 1390 m -> 259 s/km (4:19).
+        oneSet({ exerciseName: "Track Run", setNumber: 2, actualReps: undefined, actualWeight: undefined,
+          actualTime: 360, actualDistance: 1390, avgHr: 170 }),
+        // Nonsense heart rate is dropped, not stored.
+        oneSet({ exerciseName: "Track Run", setNumber: 3, actualReps: undefined, actualWeight: undefined,
+          actualTime: 360, avgHr: 999 }),
+      ],
+    });
+
+    const sets = await rows(
+      "select set_number, actual_pace_sec_km, avg_hr, max_hr from workout_logs where assigned_workout_id = $1 order by set_number",
+      [AWID]
+    );
+    expect(sets.map((s) => [Number(s.set_number), s.actual_pace_sec_km, s.avg_hr, s.max_hr])).toEqual([
+      [1, 257, 168, 176],
+      [2, 259, 170, null],
+      [3, null, null, null],
+    ]);
+    const [workout] = await rows(
+      "select session_avg_hr, session_max_hr from assigned_workouts where assigned_workout_id = $1",
+      [AWID]
+    );
+    expect([workout.session_avg_hr, workout.session_max_hr]).toEqual([166, 176]);
+
+    // The athlete's history hands the same numbers back for the coach and the mini program.
+    const historyHandler = (await import("../../../api/workoutHistory.ts")).default;
+    const res = makeRes();
+    await historyHandler(makeReq({ method: "GET", query: { clientCode: "CL-9001", assignedWorkoutId: AWID } }) as any, res as any);
+    const logs = (res.body.logs as any[]).sort((a, b) => Number(a.setNumber) - Number(b.setNumber));
+    expect([logs[0].actualPace, logs[0].avgHr, logs[0].maxHr]).toEqual(["257", "168", "176"]);
+    expect(logs[1].actualPace).toBe("259");
+  });
+
   it("does not record reps or weight for a skipped set", async () => {
     await seedClient({ client_id: "CL-9001" });
     await seedAssignedWorkout();

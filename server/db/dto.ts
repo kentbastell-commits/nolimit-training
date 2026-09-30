@@ -202,6 +202,9 @@ export type WorkoutDTO = {
   sessionRpe: string;
   sessionDuration: string;
   sessionLoad: string;
+  // Athlete-entered heart rate for the whole session (Garmin summary), bpm.
+  sessionAvgHr: string;
+  sessionMaxHr: string;
   coachReviewed: boolean;
 };
 
@@ -227,6 +230,11 @@ export type LogDTO = {
   actualWeight: string;
   actualTime: string;
   actualDistance: string;
+  // Cardio facts: pace in seconds per km (derived from time + distance when
+  // the athlete did not type it) and per-set heart rate in bpm.
+  actualPace: string;
+  avgHr: string;
+  maxHr: string;
 };
 
 export type ExerciseHistoryDTO = {

@@ -1,7 +1,7 @@
 // Extracted from App.tsx (monolith split) — JSX verbatim; props threaded.
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { useEffect, useState } from "react";
-import { stripLocalizedExerciseMeta, exercisePrescription } from "./appCore";
+import { stripLocalizedExerciseMeta, exercisePrescription, formatPaceSecPerKm, parsePaceToSecPerKm, reconcileCardioActuals } from "./appCore";
 import "./WorkoutPlayerModal.css";
 import { Check, ChevronLeft, ChevronRight, ClipboardList, Clock3, Dumbbell, Film, HeartPulse, MessageSquare, MoreVertical, Play, RefreshCw, Shuffle, SquarePen, Target, Timer, Trash2, Trophy, Waves, X } from "lucide-react";
 import { getDisplayTaskStatus, isDirectMediaUrl, makeExerciseLabel, parseExerciseNotes, toMediaCdnUrl, uploadThumbUrl, videoThumbnail } from "./appCore";
@@ -92,6 +92,7 @@ export default function WorkoutPlayerModal({
   toggleWorkoutReviewed,
   repeatPreviousWorkoutSet,
   updateSetLog,
+  updateSetLogMany,
   updateWorkoutDate,
   updatingWorkoutDate,
   useMobileWorkoutRows,
@@ -1717,7 +1718,18 @@ export default function WorkoutPlayerModal({
 
                               {(showTimeInput ||
                                 showDistanceInput ||
-                                showPaceInput) && (
+                                showPaceInput) && (() => {
+                                // Any two of time, distance and pace fix the
+                                // third (Garmin parity: 6:00 for 1,400 m is
+                                // 4:17/km). The field just typed always wins.
+                                const writeCardio = (
+                                  field: "actualTime" | "actualDistance" | "actualPace",
+                                  value: string
+                                ) => {
+                                  const next = reconcileCardioActuals({ ...log, [field]: value }, field);
+                                  updateSetLogMany(globalIndex, next);
+                                };
+                                return (
                                 <>
                                   <label className="setLogField">
                                     <span>
@@ -1742,8 +1754,7 @@ export default function WorkoutPlayerModal({
                                           /[^\d.]/g,
                                           ""
                                         );
-                                        updateSetLog(
-                                          globalIndex,
+                                        writeCardio(
                                           "actualDistance",
                                           km
                                             ? String(
@@ -1765,11 +1776,7 @@ export default function WorkoutPlayerModal({
                                     const writeTime = (m: string, s: string) => {
                                       const sec =
                                         (Number(m) || 0) * 60 + (Number(s) || 0);
-                                      updateSetLog(
-                                        globalIndex,
-                                        "actualTime",
-                                        sec ? String(sec) : ""
-                                      );
+                                      writeCardio("actualTime", sec ? String(sec) : "");
                                     };
                                     return (
                                       <label className="setLogField">
@@ -1812,8 +1819,51 @@ export default function WorkoutPlayerModal({
                                       </label>
                                     );
                                   })()}
+                                  <label className="setLogField">
+                                    <span>{t("actualPace")}</span>
+                                    <input
+                                      inputMode="numeric"
+                                      enterKeyHint="next"
+                                      onKeyDown={advanceFromWorkoutInput}
+                                      defaultValue={formatPaceSecPerKm(log.actualPace)}
+                                      key={`pace-${log.actualPace}`}
+                                      placeholder="4:17"
+                                      onBlur={(e) =>
+                                        writeCardio("actualPace", parsePaceToSecPerKm(e.target.value))
+                                      }
+                                    />
+                                  </label>
+                                  <div className="setLogHrRow">
+                                    <label className="setLogField">
+                                      <span>{t("avgHr")}</span>
+                                      <input
+                                        inputMode="numeric"
+                                        enterKeyHint="next"
+                                        onKeyDown={advanceFromWorkoutInput}
+                                        value={log.avgHr}
+                                        placeholder={t("bpm")}
+                                        onChange={(e) =>
+                                          updateSetLog(globalIndex, "avgHr", e.target.value.replace(/\D/g, "").slice(0, 3))
+                                        }
+                                      />
+                                    </label>
+                                    <label className="setLogField">
+                                      <span>{t("maxHr")}</span>
+                                      <input
+                                        inputMode="numeric"
+                                        enterKeyHint="done"
+                                        onKeyDown={advanceFromWorkoutInput}
+                                        value={log.maxHr}
+                                        placeholder={t("bpm")}
+                                        onChange={(e) =>
+                                          updateSetLog(globalIndex, "maxHr", e.target.value.replace(/\D/g, "").slice(0, 3))
+                                        }
+                                      />
+                                    </label>
+                                  </div>
                                 </>
-                              )}
+                                );
+                              })()}
 
                               {isClientPortal &&
                                 !coachReviewMode &&
