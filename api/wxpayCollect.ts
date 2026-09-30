@@ -10,6 +10,7 @@ import {
   makeOutTradeNo,
   wxpayEnabled,
 } from "../server/wxpay/client.ts";
+import { digitalSalesPaused, STORE_PAUSED } from "../server/storePolicy.ts";
 
 // Coach-console "收款码 Collect payment": mint a fixed-amount WeChat Pay QR
 // for anything sold outside the store (in-person sessions, referrals from
@@ -39,6 +40,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     "Other",
   ]);
   const productType = COLLECT_TYPES.has(productTypeRaw) ? productTypeRaw : "Other";
+  if (digitalSalesPaused(productType)) return res.status(403).json(STORE_PAUSED);
   const assignCoach = String(req.body?.assignCoach || "").trim().slice(0, 80);
   if (!Number.isFinite(amount) || amount < 0.01 || amount > 100_000) {
     return res.status(400).json({ error: "amount must be between 0.01 and 100000 CNY" });

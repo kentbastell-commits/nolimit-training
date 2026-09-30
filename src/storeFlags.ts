@@ -7,6 +7,9 @@
 // the sitemap. Flip this to `true` to bring all of it back in one change —
 // nothing store-related is deleted, only gated.
 //
-// Shared by the client bundle, the SEO server module and vite.config.ts, so
+// This also blocks the public catalog, digital order creation and new digital
+// payment transactions on the server, including cached/older mini programs.
+// Existing athlete access, paid receipts and coaching checkout stay available.
+// Shared by the client bundle, checkout server, SEO and vite.config.ts, so
 // keep this file dependency-free.
 export const STORE_PUBLIC = false;

@@ -6,6 +6,7 @@ import {
   wxpayEnabled,
 } from "../server/wxpay/client.ts";
 import { prepareWxpayCharge } from "../server/wxpay/orderGroup.ts";
+import { STORE_PAUSED } from "../server/storePolicy.ts";
 
 // Creates a real WeChat Pay Native (QR) transaction for a checkout's order
 // group. The client supplies only the anchor orderId — the amount is computed
@@ -23,6 +24,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
   try {
     const charge = await prepareWxpayCharge(orderId);
+    if (charge.state === "store_paused") return res.status(403).json(STORE_PAUSED);
     if (charge.state === "not_found") {
       return res.status(404).json({ error: "Order not found" });
     }

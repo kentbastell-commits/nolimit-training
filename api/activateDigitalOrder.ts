@@ -1,10 +1,13 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
 import { notifyCoach } from "./_notify.ts";
 import { activateDigitalOrder } from "../server/db/repositories/fulfillment.ts";
+import { STORE_PUBLIC } from "../src/storeFlags.ts";
+import { STORE_PAUSED } from "../server/storePolicy.ts";
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method !== "POST")
     return res.status(405).json({ error: "Method not allowed" });
+  if (!STORE_PUBLIC) return res.status(403).json(STORE_PAUSED);
 
   const { clientName, phone, programId, paymentCode, privacyAccepted } =
     req.body || {};

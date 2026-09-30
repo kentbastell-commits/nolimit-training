@@ -9,6 +9,7 @@ import {
   wxpayEnabled,
 } from "../server/wxpay/client.ts";
 import { prepareWxpayCharge } from "../server/wxpay/orderGroup.ts";
+import { STORE_PAUSED } from "../server/storePolicy.ts";
 
 // In-WeChat-browser payment (web store): the visitor's openid arrives as the
 // signed token minted by wxAuthWeb; the transaction is created under the
@@ -34,6 +35,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
   try {
     const charge = await prepareWxpayCharge(orderId);
+    if (charge.state === "store_paused") return res.status(403).json(STORE_PAUSED);
     if (charge.state === "not_found") {
       return res.status(404).json({ error: "Order not found" });
     }

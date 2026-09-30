@@ -8,6 +8,10 @@ import { afterAll, beforeEach, describe, expect, it, vi } from "vitest";
 import handler from "../../../api/activateDigitalOrder.ts";
 import { closeDb, makeReq, makeRes, resetDb, rows, seedClient, seedProgram } from "./helpers.ts";
 
+// Exercise checkout when the store launches; storePause.test covers today's
+// closed-store policy against the same real database.
+vi.mock("../../../src/storeFlags.ts", () => ({ STORE_PUBLIC: true }));
+
 beforeEach(async () => {
   await resetDb();
   vi.unstubAllEnvs();

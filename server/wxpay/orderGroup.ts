@@ -8,10 +8,12 @@ import {
 } from "../db/repositories/productOrders.ts";
 import { queryTransaction } from "./client.ts";
 import { notifyCoach } from "../../api/_notify.ts";
+import { digitalSalesPaused } from "../storePolicy.ts";
 
 export type WxpayCharge =
   | { state: "not_found" }
   | { state: "already_paid" }
+  | { state: "store_paused" }
   | { state: "bad_currency" }
   | { state: "nothing_to_charge" }
   | {
@@ -29,6 +31,11 @@ export async function prepareWxpayCharge(orderId: string): Promise<WxpayCharge> 
     (order) => order.paymentStatus.trim().toLowerCase() !== "paid"
   );
   if (!unpaid.length) return { state: "already_paid" };
+  // Read the stored product type, never a caller-provided checkout category.
+  // Paid receipts and webhook/status reconciliation remain available.
+  if (unpaid.some((order) => digitalSalesPaused(order.productType))) {
+    return { state: "store_paused" };
+  }
 
   if (unpaid.some((order) => order.currency && order.currency.toUpperCase() !== "CNY")) {
     return { state: "bad_currency" };

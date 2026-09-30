@@ -1,9 +1,13 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
 import { listPrograms } from "../server/db/repositories/programs.ts";
-import { coachKeyOk } from "./_coachAuth.ts";
+import { isVerifiedCoach } from "./_coachAuth.ts";
+import { STORE_PUBLIC } from "../src/storeFlags.ts";
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   try {
+    res.setHeader("Cache-Control", "no-store");
+    const isCoach = isVerifiedCoach(req as never);
+    if (!isCoach && !STORE_PUBLIC) return res.status(200).json({ programs: [] });
     const programs = await listPrograms();
     // This endpoint is dual-use: the public store browses it AND the coach
     // console lists every 1:1/internal program from it (those are never
@@ -11,7 +15,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     // Without the coach key, strip anything not actually published to the
     // store — draft/unlisted/private programs (price, sales copy, coachId)
     // were otherwise fully readable by anyone who called this directly.
-    const visible = coachKeyOk(req as never)
+    const visible = isCoach
       ? programs
       : programs.filter((p) => p.publicStoreVisible);
     return res.status(200).json({ programs: visible });

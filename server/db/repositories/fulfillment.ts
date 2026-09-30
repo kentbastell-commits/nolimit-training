@@ -4,6 +4,8 @@
 // window. Composes several tables, so it gets its own domain.
 import * as pg from "../pg/fulfillment.ts";
 import { invalidateCache } from "../../../api/_cache.ts";
+import { STORE_PUBLIC } from "../../../src/storeFlags.ts";
+import { STORE_PAUSED } from "../../storePolicy.ts";
 
 export type AutoLoadProgramInput = {
   // Feishu record_id of the client; the CL-… code on Postgres.
@@ -110,6 +112,7 @@ export type CoachingSignupInput = {
 export async function activateDigitalOrder(
   input: ActivateDigitalOrderInput
 ): Promise<SignupResult> {
+  if (!STORE_PUBLIC) return { status: 403, body: STORE_PAUSED, notices: [] };
   // Referral discount is computed and priced HERE, server-side — the client
   // supplies identities, never amounts. Applies to the main program price;
   // add-ons stay full price (v1).

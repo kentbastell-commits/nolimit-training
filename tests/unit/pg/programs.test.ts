@@ -2,7 +2,7 @@
 // duplicateProgram}.test.ts. Program authoring is the coach's core tool, and
 // its riskiest edge is the storefront: a program is what buyers see and pay
 // for, so what gets published — and what must not be — is pinned here.
-import { afterAll, beforeEach, describe, expect, it } from "vitest";
+import { afterAll, beforeEach, describe, expect, it, vi } from "vitest";
 import listHandler from "../../../api/programs.ts";
 import createHandler from "../../../api/createProgram.ts";
 import updateHandler from "../../../api/updateProgram.ts";
@@ -239,7 +239,12 @@ describe("api/programs list (postgres)", () => {
     await seedProgram({ program_id: "PR-1001", name: "Season 1" });
 
     const res = makeRes();
-    await listHandler(makeReq({ method: "GET" }) as any, res as any);
+    vi.stubEnv("COACH_ACCESS_KEY", "test-coach");
+    try {
+      await listHandler(makeReq({ method: "GET", headers: { "x-coach-key": "test-coach" } }) as any, res as any);
+    } finally {
+      vi.unstubAllEnvs();
+    }
 
     expect(res.body.programs).toHaveLength(1);
     // The store's checkout sends recordId back as the program link, so this
