@@ -1377,8 +1377,8 @@ export default function WorkoutPlayerModal({
                               item.setNumber === log.setNumber &&
                               item.side === log.side
                           );
-                          const showWeightInputs = log.trackingType === "Weight";
-                          const showTimeInput = log.trackingType === "Time";
+                          const showWeightInputs = log.trackingType === "Weight" || Boolean(log.trackingFields?.length);
+                          const showTimeInput = log.trackingType === "Time" && !showWeightInputs;
                           const showDistanceInput = log.trackingType === "Distance";
                           const showPaceInput = log.trackingType === "Pace";
                           const sideLabel =

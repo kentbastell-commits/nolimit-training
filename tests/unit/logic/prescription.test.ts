@@ -1,8 +1,36 @@
 import { describe, expect, it } from "vitest";
 (globalThis as any).window = { fetch: async () => ({}), localStorage: { getItem: () => null }, location: { search: "" } };
-const { exercisePrescription } = await import("../../../src/appCore");
+const { exercisePrescription, effectiveTrackingFields, toggleExerciseTrackingField } = await import("../../../src/appCore");
+import type { ProgramExercise } from "../../../src/appCore";
 
 describe("shared exercise prescription", () => {
+  it("keeps rep counts paired with each hold duration, including varying sets and Chinese", () => {
+    const exercise = { trackingFields: ["Time", "Reps"], isUnilateral: true,
+      setPrescriptions: [{ reps: "3", time: "10" }, { reps: "2", time: "15 s" }] };
+    expect(exercisePrescription(exercise).target).toBe("3 × 10 sec / 2 × 15 s/side");
+    expect(exercisePrescription({ ...exercise, setPrescriptions: [{ reps: "3", time: "10" }] }, true).target).toBe("3 次 × 10 秒／侧");
+    expect(exercisePrescription({ ...exercise, setPrescriptions: [{ reps: "3", time: "10" }, { reps: "3", time: "10" }] }).summary).toBe("2 sets · 3 × 10 sec/side");
+    expect(exercisePrescription({ ...exercise, setPrescriptions: [{ reps: "3" }] }).target).toBe("3 × —/side");
+  });
+  it("makes timed hold fields editable without clearing the hold or other set values", () => {
+    const exercise = { trackingType: "Time", trackingFields: ["Time"], reps: "", sets: "1",
+      setPrescriptions: [{ setNumber: 1, reps: "", time: "10 s", rest: "20 sec", load: "5" }] } as ProgramExercise;
+    expect(effectiveTrackingFields("Time", ["Time"])).toEqual(["Time"]);
+    const edited = toggleExerciseTrackingField(exercise, "Reps");
+    expect(edited.trackingType).toBe("Weight");
+    expect(edited.trackingFields).toEqual(["Time", "Reps"]);
+    expect(edited.setPrescriptions).toEqual(exercise.setPrescriptions);
+    const hidden = toggleExerciseTrackingField(edited, "Time");
+    expect(toggleExerciseTrackingField(hidden, "Time").setPrescriptions).toEqual(exercise.setPrescriptions);
+  });
+  it("leaves cardio in interval mode until fields are customized, then migrates its duration", () => {
+    expect(effectiveTrackingFields("Time")).toEqual([]);
+    const exercise = { trackingType: "Time", reps: "30:00", sets: "1",
+      setPrescriptions: [{ setNumber: 1, reps: "30:00", time: "", intensityMode: "hr", intensityValue: "130-150" }] } as ProgramExercise;
+    const edited = toggleExerciseTrackingField(exercise, "Reps");
+    expect(edited.setPrescriptions?.[0]).toMatchObject({ reps: "", time: "30:00", intensityMode: "hr", intensityValue: "130-150" });
+    expect(exercise.setPrescriptions?.[0].reps).toBe("30:00");
+  });
   it("shows structured holds, units and sides instead of stale reps", () => {
     const ex = { reps: "8", sets: "2", notes: "Fields: Time\nUnilateral: Yes", isUnilateral: true,
       trackingFields: ["Time"], setPrescriptions: [{ time: "30" }, { time: "30" }], groupType: "Circuit", groupName: "B" };

@@ -7,6 +7,15 @@ import i18n from "../../../src/i18n";
 afterEach(() => { cleanup(); void i18n.changeLanguage("en"); });
 
 describe("exercise field selection", () => {
+  it("allows adding repetitions to an existing timed shoulder hold", () => {
+    const toggle = vi.fn();
+    render(<ExerciseFieldsSheet exercise={{ exerciseName: "Shoulder extension isometric", trackingType: "Time", trackingFields: ["Time"] } as ProgramExercise} toggle={toggle} close={vi.fn()} />);
+    expect(screen.getByRole("button", { name: /Time \/ hold/ })).toHaveAttribute("aria-pressed", "true");
+    expect(screen.getByRole("button", { name: "Reps" })).toBeEnabled();
+    fireEvent.click(screen.getByRole("button", { name: "Reps" }));
+    expect(toggle).toHaveBeenCalledWith("Reps");
+    expect(screen.getByText(/three times in each set/)).toBeInTheDocument();
+  });
   it("keeps one field selected and requires space before adding a fourth", () => {
     const toggle = vi.fn();
     const exercise = { exerciseName: "Split squat hold", trackingType: "Weight", trackingFields: ["Time"] } as ProgramExercise;

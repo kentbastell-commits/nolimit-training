@@ -25,6 +25,19 @@ beforeEach(async () => {
 });
 afterAll(async () => { vi.unstubAllEnvs(); await closeDb(); });
 describe("assigned session edits", () => {
+  it("round-trips repetitions and hold duration together through draft save and workout reads", async () => {
+    await pool.query("update assigned_workouts set is_draft=true where assigned_workout_id='AW-1'");
+    const before = await call();
+    const coachingNotes = 'Tracking: Weight\nFields: Reps, Time\nSet Prescriptions: [{"setNumber":1,"reps":"3","time":"10 s","rest":"20 sec"}]\nHold each repetition for ten seconds.';
+    const saved = await call("POST", { action: "draft", assignedWorkoutId: "AW-1", version: before.body.version,
+      session: { ...session, exercises: [{ ...exercise, sets: "1", reps: "3", coachingNotes }] } });
+    expect(saved.statusCode).toBe(200);
+    const reopened = await call();
+    expect(reopened.body.workout.isDraft).toBe(true);
+    expect(reopened.body.templates[0].setPrescriptions).toHaveLength(1);
+    expect(reopened.body.templates[0].setPrescriptions[0]).toMatchObject({ reps: "3", time: "10 s", rest: "20 sec" });
+    expect((await getWorkoutDetails(saved.body.programId, "1", "1"))[0].setPrescriptions?.[0]).toMatchObject({ reps: "3", time: "10 s" });
+  });
   it("persists a custom label across save/reopen and keeps builder metadata out of athlete cues", async () => {
     const before = await call();
     const notes = 'Section: Strength\nLabel: C2\nLabel Mode: Custom\nCircuit: Core\n' + exercise.coachingNotes + '\nKeep control.';

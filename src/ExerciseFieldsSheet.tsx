@@ -8,10 +8,12 @@ export default function ExerciseFieldsSheet({ exercise, toggle, close }: {
   close: () => void;
 }) {
   const { t } = useTranslation();
-  const active = effectiveTrackingFields(exercise.trackingType, exercise.trackingFields);
+  const configured = effectiveTrackingFields(exercise.trackingType, exercise.trackingFields);
+  const active = configured.length ? configured : ["Time"];
   return <ProgrammingSheet title={t("editFields")} close={close}>
     <strong>{exercise.exerciseName}</strong>
     <p>{t("editFieldsHint")}</p>
+    <p>{t("repeatedHoldFieldsHint")}</p>
     <div className="exerciseFieldChoices">
       {STRENGTH_TRACKING_FIELDS.map(field => {
         const selected = active.includes(field);

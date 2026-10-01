@@ -910,6 +910,9 @@ data between them, never "borrow" a table ID across products.
     match the library's real taxonomy (`isCardioExercise(category, name)`
     in appCore — category OR machine/run name), never a label nobody
     assigns. Same family as #50 (two ways of computing one kind).
+    Timed holds are not necessarily cardio: explicit `Fields: Time` uses
+    customizable fields; preserve both `reps` and `time` when adding Reps,
+    and verify the paired prescription in builder, preview, player, and save/reopen.
 
 66. **The four reset lists that drifted** — "new program", "new session",
     post-save and `resetBuilder` each hand-listed the state to clear, and

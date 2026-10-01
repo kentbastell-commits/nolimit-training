@@ -499,10 +499,21 @@ export function exercisePrescription(ex: PrescriptionSource, zh = false) {
   const values = rows.length
     ? rows.map(row => String(row[mode] || (mode === "reps" ? ex.reps : "") || "—").trim())
     : [String(mode === "reps" ? ex.reps || "—" : "—").trim()];
-  const varying = values.some(value => value !== values[0]);
+  const repeatedHolds = fields.includes("Reps") && fields.includes("Time");
+  const holdTargets = rows.map(row => {
+    const reps = String(row.reps || "—").trim();
+    const time = String(row.time || "—").trim();
+    const duration = time === "—" || /[a-z秒分:]/i.test(time) ? time : `${time} ${zh ? "秒" : "sec"}`;
+    return `${reps}${zh && reps !== "—" && !/次/.test(reps) ? " 次" : ""} × ${duration}`;
+  });
+  const varying = repeatedHolds && holdTargets.length
+    ? holdTargets.some(value => value !== holdTargets[0])
+    : values.some(value => value !== values[0]);
   const unit = mode === "time" ? zh ? "秒" : "sec" : mode === "distance" ? zh ? "米" : "m" : zh ? "次" : "reps";
   const withUnit = (value: string) => value === "—" || /[a-z秒米分次]/i.test(value) ? value : `${value} ${unit}`;
-  const value = varying
+  const value = repeatedHolds && holdTargets.length
+    ? varying ? holdTargets.join(" / ") : holdTargets[0]
+    : varying
     ? values.every(v => v === "—" || !/[a-z秒米分次]/i.test(v)) ? `${values.join(" / ")} ${unit}` : values.map(withUnit).join(" / ")
     : withUnit(values[0]);
   const eachSide = ex.isUnilateral ?? meta.isUnilateral;
@@ -1473,11 +1484,32 @@ export function effectiveTrackingFields(
   trackingType: TrackingType,
   trackingFields?: string[]
 ): string[] {
-  if (trackingType !== "Weight") return [];
+  // Explicit Time fields denote a hold prescription, not a cardio interval.
+  // Legacy cardio without them keeps its dedicated interval/HR controls.
+  if (trackingType !== "Weight" && !(trackingType === "Time" && trackingFields?.includes("Time"))) return [];
   const picked = (trackingFields || []).filter((f) =>
     (STRENGTH_TRACKING_FIELDS as readonly string[]).includes(f)
   );
   return picked.length ? picked.slice(0, 3) : ["Weight", "Reps"];
+}
+
+export function toggleExerciseTrackingField(exercise: ProgramExercise, field: string): ProgramExercise {
+  if (!(STRENGTH_TRACKING_FIELDS as readonly string[]).includes(field)) return exercise;
+  const configured = effectiveTrackingFields(exercise.trackingType, exercise.trackingFields);
+  const active = configured.length ? configured : ["Time"];
+  if (active.includes(field) ? active.length === 1 : active.length >= 3) return exercise;
+  const next = active.includes(field) ? active.filter(f => f !== field) : [...active, field];
+  const legacyInterval = exercise.trackingType === "Time" && !configured.length;
+  const migrate = (raw: string) => raw && !/[a-z秒分:]/i.test(raw) ? `${raw} min` : raw;
+  return {
+    ...exercise,
+    trackingType: "Weight",
+    trackingFields: next,
+    reps: legacyInterval ? "" : exercise.reps,
+    setPrescriptions: exercise.setPrescriptions?.map(set => legacyInterval && !set.time
+      ? { ...set, time: migrate(set.reps || exercise.reps || ""), reps: "" }
+      : set),
+  };
 }
 
 export type ExerciseCueSection = {

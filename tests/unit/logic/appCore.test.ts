@@ -275,7 +275,7 @@ describe("parseExerciseCueSections", () => {
 });
 
 describe("effectiveTrackingFields", () => {
-  it("only applies to Weight tracking", () => {
+  it("keeps legacy cardio separate from customizable hold fields", () => {
     expect(effectiveTrackingFields("Time", ["Weight", "Reps"])).toEqual([]);
     expect(effectiveTrackingFields("Distance")).toEqual([]);
   });

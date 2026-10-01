@@ -104,6 +104,7 @@ import {
   composeExerciseNotes,
   dateToInputValue,
   effectiveTrackingFields,
+  toggleExerciseTrackingField,
   formatCalendarLabel,
   formatCalendarRangeLabel,
   formatMonthTitle,
@@ -8969,16 +8970,7 @@ function App({ onReady, bootVisible = true }: { onReady?: () => void; bootVisibl
     setSelectedProgramExercises((current) =>
       current.map((ex, i) => {
         if (i !== index) return ex;
-        const active = effectiveTrackingFields(ex.trackingType, ex.trackingFields);
-        let next: string[];
-        if (active.includes(field)) {
-          if (active.length === 1) return ex;
-          next = active.filter((f) => f !== field);
-        } else {
-          if (active.length >= 3) return ex;
-          next = [...active, field];
-        }
-        return { ...ex, trackingFields: next };
+        return toggleExerciseTrackingField(ex, field);
       })
     );
   };
@@ -9164,7 +9156,7 @@ function App({ onReady, bootVisible = true }: { onReady?: () => void; bootVisibl
       usePercentExerciseIndexes.has(exerciseIndex) ||
       setPrescriptions.some((s) => String(s.percent || "").trim() !== "");
     const isRunning =
-      exercise.trackingType === "Time" ||
+      (exercise.trackingType === "Time" && !effectiveTrackingFields(exercise.trackingType, exercise.trackingFields).length) ||
       exercise.trackingType === "Distance" ||
       exercise.trackingType === "Pace";
     const isTimeTracked = exercise.trackingType === "Time";
@@ -9225,7 +9217,7 @@ function App({ onReady, bootVisible = true }: { onReady?: () => void; bootVisibl
           isRunning ? " builderSetPrescriptionRunning" : ""
         }`}
       >
-        {exercise.trackingType === "Weight" && (
+        {(exercise.trackingType === "Weight" || exercise.trackingType === "Time") && (
           <div className="builderEditFieldsAction">
             <button type="button" className="outlineButton" onClick={() => setCustomizeFieldsIndex(exerciseIndex)}>
               <Settings size={16} aria-hidden="true" /> {t("editFields")}
@@ -10872,7 +10864,7 @@ function App({ onReady, bootVisible = true }: { onReady?: () => void; bootVisibl
             <RefreshCw size={16} />
             Change exercise
           </button>
-          {exercise.trackingType === "Weight" && (
+          {(exercise.trackingType === "Weight" || exercise.trackingType === "Time") && (
             <button
               type="button"
               onClick={(event) => {
