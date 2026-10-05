@@ -93,6 +93,8 @@ export default function WorkoutPlayerModal({
   repeatPreviousWorkoutSet,
   updateSetLog,
   updateSetLogMany,
+  unskipExerciseSets,
+  setExerciseSkipReason,
   updateWorkoutDate,
   updatingWorkoutDate,
   useMobileWorkoutRows,
@@ -1291,6 +1293,7 @@ export default function WorkoutPlayerModal({
                                             delete next[exercise.id];
                                             return next;
                                           });
+                                          unskipExerciseSets(exercise.id || exercise.exerciseId);
                                         } else {
                                           skipExerciseSets(
                                             exercise.id || exercise.exerciseId
@@ -1899,6 +1902,24 @@ export default function WorkoutPlayerModal({
                         })}
                           </fieldset>
 
+                        {/* Reviewing a saved session (coach or athlete): the
+                            skip and its reason come back on the log rows. */}
+                        {(coachReviewMode || clientReviewMode) &&
+                          (() => {
+                            const rows = setLogs.filter(
+                              (l: any) => l.exerciseId === exercise.exerciseId && l.skipped
+                            );
+                            if (!rows.length) return null;
+                            return (
+                              <div className="exSkipBanner">
+                                <strong>
+                                  {paceZh ? "运动员已跳过" : "Skipped by athlete"}
+                                  {rows[0].skipReason ? ` · ${rows[0].skipReason}` : ""}
+                                </strong>
+                              </div>
+                            );
+                          })()}
+
                         {/* Skipped banner + reason chips */}
                         {isClientPortal &&
                           skippedExercises[exercise.id] !== undefined && (
@@ -1928,6 +1949,7 @@ export default function WorkoutPlayerModal({
                                           ...cur,
                                           [exercise.id]: reason,
                                         }));
+                                        setExerciseSkipReason(exercise.id || exercise.exerciseId, reason);
                                         void sendCoachNote(
                                           exercise.exerciseName,
                                           `${

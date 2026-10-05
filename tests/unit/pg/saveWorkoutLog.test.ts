@@ -200,6 +200,36 @@ describe("api/saveWorkoutLog (postgres)", () => {
     expect(logs[1].actualPace).toBe("259");
   });
 
+  it("keeps the athlete's skip reason on skipped rows only, and hands it back in history", async () => {
+    await seedClient({ client_id: "CL-9001" });
+    await seedAssignedWorkout();
+    await save({
+      clientId: "CL-9001",
+      assignedWorkoutRecordId: AWID,
+      workoutDate: "2026-10-06",
+      logs: [
+        oneSet({ exerciseName: "Back Squat" }),
+        oneSet({ exerciseName: "Nordic Curl", setNumber: 1, completed: false, skipReason: "pain", actualReps: 5 }),
+        // A reason on a completed set is noise, not data.
+        oneSet({ exerciseName: "Lunge", setNumber: 1, skipReason: "no-equipment" }),
+      ],
+    });
+    const sets = await rows(
+      "select exercise_name, completed, skip_reason, actual_reps from workout_logs where assigned_workout_id = $1 order by exercise_name",
+      [AWID]
+    );
+    expect(sets.map((s) => [s.exercise_name, s.completed, s.skip_reason, s.actual_reps])).toEqual([
+      ["Back Squat", true, null, 5],
+      ["Lunge", true, null, 5],
+      ["Nordic Curl", false, "pain", null],
+    ]);
+    const historyHandler = (await import("../../../api/workoutHistory.ts")).default;
+    const res = makeRes();
+    await historyHandler(makeReq({ method: "GET", query: { clientCode: "CL-9001", assignedWorkoutId: AWID } }) as any, res as any);
+    const nordic = (res.body.logs as any[]).find((l) => l.exerciseName === "Nordic Curl");
+    expect([nordic.completed, nordic.skipReason]).toEqual([false, "pain"]);
+  });
+
   it("does not record reps or weight for a skipped set", async () => {
     await seedClient({ client_id: "CL-9001" });
     await seedAssignedWorkout();

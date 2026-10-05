@@ -235,6 +235,8 @@ export type LogDTO = {
   actualPace: string;
   avgHr: string;
   maxHr: string;
+  // Set on skipped (completed=false) rows when the athlete gave a reason.
+  skipReason: string;
 };
 
 export type ExerciseHistoryDTO = {

@@ -557,6 +557,8 @@ export type WorkoutHistoryLog = {
   actualPace?: string;
   avgHr?: string;
   maxHr?: string;
+  completed?: boolean;
+  skipReason?: string;
 };
 
 export type WorkloadLog = {
@@ -1000,6 +1002,10 @@ export type SetLog = {
   actualPace: string;
   avgHr: string;
   maxHr: string;
+  // The athlete explicitly skipped this exercise (values cleared, saved as
+  // completed=false) and, optionally, why. Optional so older drafts load.
+  skipped?: boolean;
+  skipReason?: string;
 };
 
 // Blank cardio actuals, so every SetLog constructor starts from one list.

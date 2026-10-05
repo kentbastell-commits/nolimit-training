@@ -868,6 +868,8 @@ function App({ onReady, bootVisible = true }: { onReady?: () => void; bootVisibl
               actualPace: "",
               avgHr: "",
               maxHr: "",
+              skipped: true,
+              skipReason: "",
             }
           : log
     );
@@ -877,6 +879,29 @@ function App({ onReady, bootVisible = true }: { onReady?: () => void; bootVisibl
     setSetLogs(nextLogs);
     setCheckedWorkoutPageItems(nextChecked);
     persistWorkoutDraft(nextLogs, savedExerciseDraftIds, nextChecked);
+  };
+
+  // Undo a skip: the rows go back to plain unlogged sets.
+  const unskipExerciseSets = (occurrenceKey: string) => {
+    const matches = (log: SetLog) =>
+      log.occurrenceId ? log.occurrenceId === occurrenceKey : log.exerciseId === occurrenceKey;
+    const nextLogs = setLogs.map((log) =>
+      matches(log) ? { ...log, skipped: false, skipReason: "" } : log
+    );
+    setSetLogs(nextLogs);
+    persistWorkoutDraft(nextLogs, savedExerciseDraftIds, checkedWorkoutPageItems);
+  };
+
+  // The reason rides on every skipped set row, so the coach sees it in the
+  // review and history without a separate message.
+  const setExerciseSkipReason = (occurrenceKey: string, reason: string) => {
+    const matches = (log: SetLog) =>
+      log.occurrenceId ? log.occurrenceId === occurrenceKey : log.exerciseId === occurrenceKey;
+    const nextLogs = setLogs.map((log) =>
+      matches(log) ? { ...log, skipped: true, skipReason: reason } : log
+    );
+    setSetLogs(nextLogs);
+    persistWorkoutDraft(nextLogs, savedExerciseDraftIds, checkedWorkoutPageItems);
   };
   // One-time first-workout coach marks (per browser).
   const [playerTutorialOpen, setPlayerTutorialOpen] = useState(false);
@@ -7539,6 +7564,8 @@ function App({ onReady, bootVisible = true }: { onReady?: () => void; bootVisibl
                 actualPace: match.actualPace || "",
                 avgHr: match.avgHr || "",
                 maxHr: match.maxHr || "",
+                skipped: match.completed === false,
+                skipReason: match.skipReason || "",
               }
             : bl;
         });
@@ -22846,6 +22873,8 @@ function App({ onReady, bootVisible = true }: { onReady?: () => void; bootVisibl
             formVideoSentIds={formVideoSentIds}
             sendCoachNote={sendCoachNote}
             skipExerciseSets={skipExerciseSets}
+            unskipExerciseSets={unskipExerciseSets}
+            setExerciseSkipReason={setExerciseSkipReason}
             getWorkoutGroupBounds={getWorkoutGroupBounds}
             getWorkoutGroupIndexes={getWorkoutGroupIndexes}
             getWorkoutGroupRoundCount={getWorkoutGroupRoundCount}
@@ -23121,6 +23150,8 @@ function App({ onReady, bootVisible = true }: { onReady?: () => void; bootVisibl
                       const open = !!finishExpanded[ex.id];
                       const done =
                         exLogs.length > 0 && exLogs.every(isSetComplete);
+                      const skipped =
+                        exLogs.length > 0 && exLogs.every((l) => l.skipped);
                       return (
                         <div className="finishExerciseItem" key={ex.id}>
                           <button
@@ -23145,7 +23176,11 @@ function App({ onReady, bootVisible = true }: { onReady?: () => void; bootVisibl
                                   aria-hidden="true"
                                 />
                               )}
-                              {exLogs.length} {paceZh ? "组" : "sets"}
+                              {skipped
+                                ? `${paceZh ? "已跳过" : "Skipped"}${
+                                    exLogs[0].skipReason ? ` · ${exLogs[0].skipReason}` : ""
+                                  }`
+                                : `${exLogs.length} ${paceZh ? "组" : "sets"}`}
                             </span>
                             <ChevronDown
                               size={16}

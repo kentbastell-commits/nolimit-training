@@ -48,6 +48,7 @@ export async function listAllLogs(clientId = "", clientCode = "", assignedWorkou
       actualPace: str(r.actualPace),
       avgHr: str(r.avgHr),
       maxHr: str(r.maxHr),
+      skipReason: str(r.skipReason),
       ...(assignedWorkoutId ? {
         exerciseNameCn: chineseNames.get(savedName(r.exerciseName)) || "",
         assignedWorkoutId: str(r.assignedWorkoutId), completed: r.completed !== false,
@@ -222,6 +223,7 @@ export async function saveWorkoutLog(
           actualPace: skipped ? null : resolvePaceSecPerKm(log.actualPace, actualTimeNum, actualDistanceNum),
           avgHr: skipped ? null : bpmOrNull(log.avgHr),
           maxHr: skipped ? null : bpmOrNull(log.maxHr),
+          skipReason: skipped ? toText(log.skipReason).slice(0, 200) || null : null,
           completed: log.completed === false ? false : true,
           athleteNotes: submissionNote ? toText(submissionNote) : null,
           exerciseOrder: intOrNull(log.exerciseOrder),

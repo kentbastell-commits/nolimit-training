@@ -452,6 +452,8 @@ export const workoutLogs = pgTable(
     actualPace: doublePrecision("actual_pace_sec_km"),
     avgHr: integer("avg_hr"),
     maxHr: integer("max_hr"),
+    // Why the athlete skipped this exercise (migration 0031); null unless skipped.
+    skipReason: text("skip_reason"),
     completed: boolean("completed"),
     coachReviewed: boolean("coach_reviewed"),
     athleteNotes: text("athlete_notes"),
