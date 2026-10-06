@@ -4,6 +4,16 @@ const { exercisePrescription, effectiveTrackingFields, toggleExerciseTrackingFie
 import type { ProgramExercise } from "../../../src/appCore";
 
 describe("shared exercise prescription", () => {
+  it("translates maximum reps and hold times without changing the saved targets", () => {
+    const pulls = { trackingFields: ["Reps", "Time"], isUnilateral: true,
+      setPrescriptions: [{ reps: "max", time: "7" }, { reps: "max", time: "7" }] };
+    expect(exercisePrescription(pulls, true).summary).toBe("2 组 · 最多次数 × 7 秒／侧");
+    expect(exercisePrescription(pulls).summary).toBe("2 sets · max × 7 sec/side");
+    expect(pulls.setPrescriptions[0]).toEqual({ reps: "max", time: "7" });
+    expect(exercisePrescription({ trackingFields: ["Time"], setPrescriptions: [{ time: "MAX" }] }, true).target).toBe("最长时间");
+    expect(exercisePrescription({ trackingFields: ["Time"], setPrescriptions: [{ time: "20 sec" }, { time: "max" }] }, true).target).toBe("20 秒 / 最长时间");
+    expect(exercisePrescription({ trackingFields: ["Reps", "Time"], setPrescriptions: [{ reps: "2", time: "Maximum" }] }, true).target).toBe("2 次 × 最长时间");
+  });
   it("keeps rep counts paired with each hold duration, including varying sets and Chinese", () => {
     const exercise = { trackingFields: ["Time", "Reps"], isUnilateral: true,
       setPrescriptions: [{ reps: "3", time: "10" }, { reps: "2", time: "15 s" }] };

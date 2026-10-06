@@ -3,6 +3,7 @@ import { useTranslation } from "react-i18next";
 import PortalToApp from "./PortalToApp";
 import { reconcileAssignedSession, type RecoveryChoice, type SessionRecovery } from "./assignedSessionRecovery";
 import { exercisePrescription, type ProgramSession, type ProgramExercise } from "./appCore";
+import { localizePrescriptionValue } from "./prescriptionDisplay";
 import "./SessionSaveDialog.css";
 
 export function SessionSaveDialog({ title, children, onClose, busy }: { title: string; children: ReactNode; onClose: () => void; busy: boolean }) {
@@ -40,7 +41,7 @@ export default function AssignedSessionRecoveryDialog({ recovery, busy, onClose,
       const values = (e.setPrescriptions?.length ? e.setPrescriptions : [{ reps: e.reps }]).map(s => {
         const value = s.reps || (e.trackingType === "Time" ? s.time : s.distance) || "—";
         const clock = value.match(/^(\d+):(\d{2})$/);
-        return clock ? `${Number(clock[1])} ${zh ? "分" : "min"} ${Number(clock[2])} ${zh ? "秒" : "sec"}` : value;
+        return clock ? `${Number(clock[1])} ${zh ? "分" : "min"} ${Number(clock[2])} ${zh ? "秒" : "sec"}` : localizePrescriptionValue(value, zh, e.trackingType === "Time" ? "time" : "distance");
       });
       prescription = [t("recoverySets", { count: e.setPrescriptions?.length || Number(e.sets) }), [...new Set(values)].join(" / ")].join(" · ");
     }
@@ -54,7 +55,7 @@ export default function AssignedSessionRecoveryDialog({ recovery, busy, onClose,
       load && `${t("recoveryLoad")}: ${load}`, values("percent") && `${values("percent")}%1RM`,
       values("percentMas") && `${values("percentMas")}%MAS`, values("rpe") && `RPE ${values("rpe")}`, values("rir") && `RIR ${values("rir")}`,
       tempo && `${t("recoveryTempo")}: ${tempo}`,
-      e.rest && `${t("rest")} ${e.rest}${/^\d+$/.test(e.rest) ? zh ? "秒" : " sec" : ""}`].filter(Boolean).join(" · ");
+      e.rest && `${t("rest")} ${localizePrescriptionValue(e.rest, zh)}${/^\d+$/.test(e.rest) ? zh ? "秒" : " sec" : ""}`].filter(Boolean).join(" · ");
   };
   const describe = (value: unknown): string => {
     if (Array.isArray(value)) return value.map(exerciseText).join("\n");

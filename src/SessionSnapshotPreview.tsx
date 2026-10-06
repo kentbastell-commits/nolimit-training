@@ -1,5 +1,6 @@
 import { useTranslation } from "react-i18next";
 import { exercisePrescription, parseExerciseNotes } from "./appCore";
+import { localizePrescriptionValue } from "./prescriptionDisplay";
 import WorkoutNotes from "./WorkoutNotes";
 import "./CalendarDraftControls.css";
 
@@ -22,14 +23,15 @@ export default function SessionSnapshotPreview({ snapshot }: { snapshot: Session
       const sets = row.setPrescriptions?.length ? row.setPrescriptions : meta.setPrescriptions || [];
       const cues = (zh ? row.notesCn : "") || meta.coachingNotes;
       return <div key={row.recordId || index} className="sessionSnapshotExercise">
-        {meta.sectionName && meta.sectionName !== previous?.sectionName && <h4 className="workoutGlanceSection">{meta.sectionName}</h4>}
+        {meta.sectionName && meta.sectionName !== previous?.sectionName && <h4 className="workoutGlanceSection">{zh && meta.sectionName === "Finger Strength" ? "指力训练" : meta.sectionName}</h4>}
         {circuitStart && <div className="workoutGlanceCircuitHeader">{zh ? "循环" : "Circuit"} · {Math.max(...members.map(r => exercisePrescription(r, zh).sets), 1)} {zh ? "轮" : "rounds"}</div>}
         <div className="sessionSnapshotName"><span className="exerciseLabelBadge">{meta.exerciseLabel || index + 1}</span><div><strong>{(zh ? row.exerciseNameCn : "") || row.exerciseName}</strong><small>{exercisePrescription(row, zh).summary}</small></div></div>
         <details><summary>{zh ? "每组目标与教练提示" : "Set targets & coaching cues"}</summary>
           {sets.length ? <ol className="sessionSnapshotSets">{sets.map((s: any, i: number) => <li key={i}><strong>{zh ? `第 ${i + 1} 组` : `Set ${i + 1}`}</strong><span>{[
-            s.reps && `${s.reps} ${zh ? "次" : "reps"}`, s.load, s.time && `${s.time} ${zh ? "秒" : "sec"}`, s.distance,
+            s.reps && exercisePrescription({ trackingFields: ["Reps"], setPrescriptions: [s] }, zh).target, s.load,
+            s.time && exercisePrescription({ trackingFields: ["Time"], setPrescriptions: [s] }, zh).target, s.distance,
             s.percent && `${s.percent}% 1RM`, s.percentMas && `${s.percentMas}% MAS`, s.intensityValue && `${s.intensityMode || "HR"} ${s.intensityValue}`,
-            s.rpe && `RPE ${s.rpe}`, s.rir && `RIR ${s.rir}`, s.tempo && `${zh ? "节奏" : "Tempo"} ${s.tempo}`, s.rest && `${zh ? "休息" : "Rest"} ${s.rest}`,
+            s.rpe && `RPE ${localizePrescriptionValue(s.rpe, zh)}`, s.rir && `RIR ${localizePrescriptionValue(s.rir, zh)}`, s.tempo && `${zh ? "节奏" : "Tempo"} ${s.tempo}`, s.rest && `${zh ? "休息" : "Rest"} ${localizePrescriptionValue(s.rest, zh)}`,
           ].filter(Boolean).join(" · ")}</span></li>)}</ol> : null}
           {cues && <WorkoutNotes title={zh ? "教练提示" : "Coach notes"} notes={cues} />}
         </details>

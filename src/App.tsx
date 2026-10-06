@@ -18271,6 +18271,7 @@ function App({ onReady, bootVisible = true }: { onReady?: () => void; bootVisibl
       core: "核心训练",
       mobility: "灵活性训练",
       strength: "力量训练",
+      "finger strength": "指力训练",
       finisher: "收尾训练",
     };
     return map[name.trim().toLowerCase()] || name;

@@ -1,6 +1,7 @@
 // Extracted from App.tsx (monolith split) — JSX verbatim; props threaded.
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { useEffect, useState } from "react";
+import { localizePrescriptionValue } from "./prescriptionDisplay";
 import { stripLocalizedExerciseMeta, exercisePrescription, formatPaceSecPerKm, parsePaceToSecPerKm, reconcileCardioActuals } from "./appCore";
 import "./WorkoutPlayerModal.css";
 import { Check, ChevronLeft, ChevronRight, ClipboardList, Clock3, Dumbbell, Film, HeartPulse, MessageSquare, MoreVertical, Play, RefreshCw, Shuffle, SquarePen, Target, Timer, Trash2, Trophy, Waves, X } from "lucide-react";
@@ -1485,7 +1486,7 @@ export default function WorkoutPlayerModal({
                                           enterKeyHint="next"
                                           onKeyDown={advanceFromWorkoutInput}
                                           value={log.actualReps}
-                                          placeholder={log.prescribedReps || ""}
+                                          placeholder={localizePrescriptionValue(log.prescribedReps, paceZh, "reps")}
                                           onChange={(e) =>
                                             updateSetLog(
                                               globalIndex,
@@ -1503,7 +1504,7 @@ export default function WorkoutPlayerModal({
                                         <span>
                                           {paceZh ? "时间" : "Time"}
                                           {log.prescribedTime
-                                            ? ` (${log.prescribedTime})`
+                                            ? ` (${localizePrescriptionValue(log.prescribedTime, paceZh, "time")})`
                                             : ""}
                                         </span>
                                         <input
@@ -1512,7 +1513,7 @@ export default function WorkoutPlayerModal({
                                           onKeyDown={advanceFromWorkoutInput}
                                           value={log.actualTime}
                                           placeholder={
-                                            log.prescribedTime ||
+                                            localizePrescriptionValue(log.prescribedTime, paceZh, "time") ||
                                             (paceZh ? "秒" : "30 s")
                                           }
                                           onChange={(e) =>

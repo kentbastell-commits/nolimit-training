@@ -3,6 +3,7 @@
 // App.tsx as phase A of the monolith split — no behavior changes.
 import { blocksPreviewRequest, isAthletePreview } from "./athletePreviewPolicy";
 import { coachingDate, coachingToday, calendarDayOffset } from "./coachingCalendar";
+import { localizePrescriptionValue } from "./prescriptionDisplay";
 
 export type AppMode = "Coach" | "Client";
 export type Page =
@@ -501,16 +502,16 @@ export function exercisePrescription(ex: PrescriptionSource, zh = false) {
     : [String(mode === "reps" ? ex.reps || "—" : "—").trim()];
   const repeatedHolds = fields.includes("Reps") && fields.includes("Time");
   const holdTargets = rows.map(row => {
-    const reps = String(row.reps || "—").trim();
+    const reps = localizePrescriptionValue(String(row.reps || "—").trim(), zh, "reps");
     const time = String(row.time || "—").trim();
-    const duration = time === "—" || /[a-z秒分:]/i.test(time) ? time : `${time} ${zh ? "秒" : "sec"}`;
+    const duration = localizePrescriptionValue(time === "—" || /[a-z秒分:]/i.test(time) ? time : `${time} ${zh ? "秒" : "sec"}`, zh, "time");
     return `${reps}${zh && reps !== "—" && !/次/.test(reps) ? " 次" : ""} × ${duration}`;
   });
   const varying = repeatedHolds && holdTargets.length
     ? holdTargets.some(value => value !== holdTargets[0])
     : values.some(value => value !== values[0]);
   const unit = mode === "time" ? zh ? "秒" : "sec" : mode === "distance" ? zh ? "米" : "m" : zh ? "次" : "reps";
-  const withUnit = (value: string) => value === "—" || /[a-z秒米分次]/i.test(value) ? value : `${value} ${unit}`;
+  const withUnit = (value: string) => localizePrescriptionValue(value === "—" || /[a-z秒米分次]/i.test(value) ? value : `${value} ${unit}`, zh, mode);
   const value = repeatedHolds && holdTargets.length
     ? varying ? holdTargets.join(" / ") : holdTargets[0]
     : varying
