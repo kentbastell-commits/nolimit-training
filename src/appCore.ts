@@ -1006,6 +1006,8 @@ export type SetLog = {
   // completed=false) and, optionally, why. Optional so older drafts load.
   skipped?: boolean;
   skipReason?: string;
+  // Added by the athlete beyond the coach's prescribed sets.
+  extra?: boolean;
 };
 
 // Blank cardio actuals, so every SetLog constructor starts from one list.

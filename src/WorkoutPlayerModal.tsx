@@ -95,6 +95,7 @@ export default function WorkoutPlayerModal({
   updateSetLogMany,
   unskipExerciseSets,
   setExerciseSkipReason,
+  addWorkoutSet,
   updateWorkoutDate,
   updatingWorkoutDate,
   useMobileWorkoutRows,
@@ -1901,6 +1902,17 @@ export default function WorkoutPlayerModal({
                           );
                         })}
                           </fieldset>
+
+                        {/* Did more than prescribed: one tap adds set N+1. */}
+                        {isClientPortal && !coachReviewMode && !clientReviewMode && !draftPreview && (
+                          <button
+                            type="button"
+                            className="setAddButton"
+                            onClick={() => addWorkoutSet(exercise.id || exercise.exerciseId)}
+                          >
+                            + {t("addSet")}
+                          </button>
+                        )}
 
                         {/* Reviewing a saved session (coach or athlete): the
                             skip and its reason come back on the log rows. */}

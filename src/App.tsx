@@ -892,6 +892,33 @@ function App({ onReady, bootVisible = true }: { onReady?: () => void; bootVisibl
     persistWorkoutDraft(nextLogs, savedExerciseDraftIds, checkedWorkoutPageItems);
   };
 
+  // The athlete did more than prescribed: clone the exercise's last set row
+  // (both sides for unilateral work) as set N+1 with blank actuals, inserted
+  // right after the exercise's existing rows so order and grouping hold.
+  const addWorkoutSet = (occurrenceKey: string) => {
+    if (coachReviewMode || clientReviewMode || selectedWorkout?.isDraft) return;
+    const matches = (log: SetLog) =>
+      log.occurrenceId ? log.occurrenceId === occurrenceKey : log.exerciseId === occurrenceKey;
+    const own = setLogs.filter(matches);
+    if (!own.length) return;
+    const nextSet = Math.max(...own.map((l) => Number(l.setNumber) || 0)) + 1;
+    const lastIndex = setLogs.map(matches).lastIndexOf(true);
+    const sides = [...new Set(own.map((l) => l.side))];
+    const template = own[own.length - 1];
+    const added: SetLog[] = sides.map((side) => ({
+      ...template,
+      side,
+      setNumber: nextSet,
+      actualReps: "", actualWeight: "", actualTime: "", actualDistance: "",
+      actualRpe: "", actualRir: "", actualPace: "", avgHr: "", maxHr: "",
+      skipped: false, skipReason: "", extra: true,
+    }));
+    const nextLogs = [...setLogs.slice(0, lastIndex + 1), ...added, ...setLogs.slice(lastIndex + 1)];
+    setSetLogs(nextLogs);
+    persistWorkoutDraft(nextLogs, savedExerciseDraftIds, checkedWorkoutPageItems);
+    vibrate(8);
+  };
+
   // The reason rides on every skipped set row, so the coach sees it in the
   // review and history without a separate message.
   const setExerciseSkipReason = (occurrenceKey: string, reason: string) => {
@@ -7569,7 +7596,33 @@ function App({ onReady, bootVisible = true }: { onReady?: () => void; bootVisibl
               }
             : bl;
         });
-        setSetLogs(reviewLogs);
+        // Sets the athlete ADDED beyond the prescription exist only in the
+        // saved rows; synthesize a row for each from that exercise's template
+        // row so the review shows everything they actually did.
+        const extraLogs: SetLog[] = [];
+        for (const l of dayLogs as WorkoutHistoryLog[]) {
+          const base = l.exerciseName.split(" - ")[0].toLowerCase();
+          const side = / - (Left|Right)$/.exec(l.exerciseName)?.[1] as SetLog["side"] | undefined;
+          const covered = baseLogs.some(
+            (bl) => bl.exerciseName.split(" - ")[0].toLowerCase() === base &&
+              String(bl.setNumber) === String(l.setNumber) && (bl.side || undefined) === side
+          );
+          if (covered) continue;
+          const tpl = baseLogs.find((bl) => bl.exerciseName.split(" - ")[0].toLowerCase() === base);
+          if (!tpl) continue;
+          extraLogs.push({
+            ...tpl, side, setNumber: Number(l.setNumber) || tpl.setNumber + 1, extra: true,
+            actualReps: l.actualReps || "", actualWeight: l.actualWeight || "", actualTime: l.actualTime || "",
+            actualDistance: l.actualDistance || "", actualPace: l.actualPace || "", avgHr: l.avgHr || "", maxHr: l.maxHr || "",
+            actualRpe: "", actualRir: "", skipped: l.completed === false, skipReason: l.skipReason || "",
+          });
+        }
+        const merged = [...reviewLogs];
+        for (const x of extraLogs) {
+          const lastIdx = merged.map((m) => m.exerciseId === x.exerciseId && (m.occurrenceId || "") === (x.occurrenceId || "")).lastIndexOf(true);
+          merged.splice(lastIdx + 1, 0, x);
+        }
+        setSetLogs(merged);
         setSavedExerciseDraftIds([]);
         setCheckedWorkoutPageItems([]);
         // The client review lands directly on the full exercise list (their
@@ -22875,6 +22928,7 @@ function App({ onReady, bootVisible = true }: { onReady?: () => void; bootVisibl
             skipExerciseSets={skipExerciseSets}
             unskipExerciseSets={unskipExerciseSets}
             setExerciseSkipReason={setExerciseSkipReason}
+            addWorkoutSet={addWorkoutSet}
             getWorkoutGroupBounds={getWorkoutGroupBounds}
             getWorkoutGroupIndexes={getWorkoutGroupIndexes}
             getWorkoutGroupRoundCount={getWorkoutGroupRoundCount}
