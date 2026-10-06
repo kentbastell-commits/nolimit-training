@@ -1132,7 +1132,6 @@ export default function PortalTraining({
                               <div className="workoutBlockMain" data-today-label={t("today")}>
                                 {sessionActions(workout)}
                                 <b className="calendarWorkoutName">{localizedWorkoutName(workout)} <CalendarDraftBadge draft={!isClientPortal && workout.isDraft} /></b>
-                                {!isClientPortal && <span className="coachCalendarCompactMeta">{t("week")} {workout.week} · {t("day")} {workout.day} · {localizeTaskStatus(getDisplayTaskStatus(workout.completionStatus, workout.scheduledDate))}</span>}
                                 {/* Coach cards drop the "Type - Status" line
                                     (status lives in the left bar; the chain
                                     below says the rest) — except while a

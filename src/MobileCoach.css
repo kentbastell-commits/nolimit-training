@@ -1,4 +1,4 @@
-.crpMobileFiltersButton, .coachCalendarCompactMeta, .coachCalendarAddLabel, .mobileBuilderContext { display: none; }
+.crpMobileFiltersButton, .coachCalendarAddLabel, .mobileBuilderContext { display: none; }
 /* Fixed navigation and preview dialogs must remain anchored to the viewport. */
 .app.clientPortalApp { animation: none !important; transform: none !important; will-change: auto !important; }
 .builderNotesDetails { border-bottom: 1px solid #e6e0d5; margin: 8px 0 16px; }
@@ -42,7 +42,6 @@
   .app.app:not(.clientPortalApp) .calendarDayActionButton { min-width: 36px; min-height: 36px; }
   .app.app:not(.clientPortalApp) .calendarGrid .calCardGlance { display: none; }
   .app.app:not(.clientPortalApp) .calendarGrid .workoutBlock { min-height: 60px; padding: 12px; margin-top: 8px; }
-  .app.app:not(.clientPortalApp) .coachCalendarCompactMeta { display: block; font-size: 11px; font-weight: 550; color: #716b60; margin-top: 5px; }
   .app.app:not(.clientPortalApp) .crpBoard, .app.app:not(.clientPortalApp) .crpHead > div > p { display: none; }
   .app.app:not(.clientPortalApp) .crpHead { flex-direction: row; align-items: center; gap: 10px; }
   .app.app:not(.clientPortalApp) .crpHeadActions { width: auto; }
