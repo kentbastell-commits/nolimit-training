@@ -1,7 +1,7 @@
 // Extracted from App.tsx (monolith split) — JSX verbatim; props threaded.
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { useEffect, useState } from "react";
-import { labelInk, safeLabelColor } from "./workoutPresentation";
+import { labelInk, safeLabelColor, tagInk } from "./workoutPresentation";
 import "./WorkoutIdentityPanel.css";
 import { localizePrescriptionValue } from "./prescriptionDisplay";
 import { stripLocalizedExerciseMeta, exercisePrescription, formatPaceSecPerKm, parsePaceToSecPerKm, reconcileCardioActuals } from "./appCore";
@@ -377,7 +377,7 @@ export default function WorkoutPlayerModal({
                               className="workoutGlanceSection"
                               style={{
                                 ["--sectionAccent" as string]:
-                                  sectionAccentColor(sectionName),
+                                  safeLabelColor(meta.sectionColor) || sectionAccentColor(sectionName),
                               } as React.CSSProperties}
                             >
                               {sectionNameDisplay}
@@ -432,7 +432,7 @@ export default function WorkoutPlayerModal({
                                 ? index + 1 : makeExerciseLabel(index))}
                             </span>
                             <span>
-                              <strong>{localizedExerciseName(exercise)}</strong>{meta.exerciseTag && <span className="workoutExerciseTag" style={{color:safeLabelColor(meta.labelColor || meta.sectionColor) || "#65512c"}}>{paceZh && meta.exerciseTagCn || meta.exerciseTag}</span>}
+                              <strong>{localizedExerciseName(exercise)}</strong>{meta.exerciseTag && <span className="workoutExerciseTag" style={{color:tagInk(meta.labelColor || meta.sectionColor)}}>{paceZh && meta.exerciseTagCn || meta.exerciseTag}</span>}
                               {meta.isAccessory && (
                                 <em className="exerciseAccessoryInline">
                                   {accessoryLabel}
@@ -898,7 +898,7 @@ export default function WorkoutPlayerModal({
                             className="workoutSectionHeading"
                             style={{
                               ["--sectionAccent" as string]:
-                                sectionAccentColor(sectionName),
+                                safeLabelColor(meta.sectionColor) || sectionAccentColor(sectionName),
                             } as React.CSSProperties}
                           >
                             {sectionNameDisplay}
@@ -917,7 +917,7 @@ export default function WorkoutPlayerModal({
                           }`}
                           style={{
                             ["--sectionAccent" as string]:
-                              sectionAccentColor(sectionName),
+                              safeLabelColor(meta.sectionColor) || sectionAccentColor(sectionName),
                           } as React.CSSProperties}
                           id={`workout-exercise-${index}`}
                         >
@@ -1022,7 +1022,7 @@ export default function WorkoutPlayerModal({
                                 ? index + 1 : makeExerciseLabel(index))}
                             </span>
                             <div>
-                              <h3>{localizedExerciseName(exercise)}</h3>{meta.exerciseTag && <span className="workoutExerciseTag" style={{color:safeLabelColor(meta.labelColor || meta.sectionColor) || "#65512c"}}>{paceZh && meta.exerciseTagCn || meta.exerciseTag}</span>}
+                              <h3>{localizedExerciseName(exercise)}</h3>{meta.exerciseTag && <span className="workoutExerciseTag" style={{color:tagInk(meta.labelColor || meta.sectionColor)}}>{paceZh && meta.exerciseTagCn || meta.exerciseTag}</span>}
                               {meta.isAccessory && (
                                 <em className="exerciseAccessoryInline">
                                   {accessoryLabel}

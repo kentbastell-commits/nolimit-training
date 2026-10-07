@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import { describe, it, expect } from 'vitest';
 import { parseExerciseNotes, type ProgramExercise } from '../../../src/appCore';
-import { editWorkoutBlock, presentationMetadata, labelInk, safeLabelColor } from '../../../src/workoutPresentation';
+import { editWorkoutBlock, presentationMetadata, labelInk, safeLabelColor, tagInk } from '../../../src/workoutPresentation';
 import { humanTranslationText } from '../../../server/db/contentTranslations';
 import { stripLocalizedExerciseMeta } from '../../../server/db/templateMeta';
 
@@ -27,5 +27,6 @@ describe('workout presentation', () => {
   it('validates colours and keeps code text readable on light and dark choices', () => {
     expect(safeLabelColor('red;display:none')).toBe('');expect(safeLabelColor('#eacaca')).toBe('#eacaca');
     expect(labelInk('#ffffff')).toBe('#161715');expect(labelInk('#000000')).toBe('#ffffff');
+    expect(tagInk('#ffffff')).toBe('#3a3d34');expect(tagInk('#80528c')).toBe('#80528c');
   });
 });
