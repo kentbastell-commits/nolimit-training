@@ -126,9 +126,12 @@ export async function getWorkoutDetails(
         rest: str(t.rest),
         // The builder alone needs override mode. Older mini-program players
         // understand Label but would show this new metadata line as a cue.
-        notes: str(t.coachingNotes).replace(/^[ \t]*Label Mode:[^\r\n]*(?:\r?\n)?/gmi, ""),
+        notes: str(t.coachingNotes).replace(/^[ \t]*(?:Label Mode|Section Name CN|Exercise Tag|Exercise Tag CN|Label Color):[^\r\n]*(?:\r?\n)?/gmi, ""),
         notesCn: stripLocalizedExerciseMeta(str(t.coachingNotesCn)),
-        sectionNameCn: "",
+        sectionNameCn: str(t.coachingNotes).match(/^Section Name CN:\s*(.+)$/mi)?.[1]?.trim() || "",
+        exerciseTag: str(t.coachingNotes).match(/^Exercise Tag:\s*(.+)$/mi)?.[1]?.trim().slice(0,40) || "",
+        exerciseTagCn: str(t.coachingNotes).match(/^Exercise Tag CN:\s*(.+)$/mi)?.[1]?.trim().slice(0,40) || "",
+        labelColor: str(t.coachingNotes).match(/^Label Color:\s*(#[0-9a-f]{6})\s*$/mi)?.[1] || "",
         targetSource: str(t.targetSource),
         targetMetric: str(t.targetMetric),
         targetPercent: str(t.targetPercent),

@@ -311,6 +311,10 @@ export type ExerciseNoteMeta = {
   sectionColor: string;
   exerciseLabel: string;
   isLabelCustom?: boolean;
+  sectionNameCn?: string;
+  exerciseTag?: string;
+  exerciseTagCn?: string;
+  labelColor?: string;
   groupType?: ProgramExercise["groupType"];
   groupName: string;
   groupMode?: "" | "AMRAP" | "EMOM";
@@ -669,6 +673,10 @@ export type ProgramExercise = {
   sectionName: string;
   exerciseLabel: string;
   isLabelCustom?: boolean;
+  sectionNameCn?: string;
+  exerciseTag?: string;
+  exerciseTagCn?: string;
+  labelColor?: string;
   sets: string;
   reps: string;
   load: string;
@@ -1246,7 +1254,7 @@ export function parseExerciseNotes(notes = ""): ExerciseNoteMeta {
   lines.forEach((line) => {
     const trimmed = line.trim();
     const match = trimmed.match(
-      /^(Section|Section Color|Label|Label Mode|Superset|Circuit|Circuit Mode|Circuit Minutes|Tracking|Fields|Unilateral|Accessory|Accessory Parent|Accessory Color|Set Prescriptions|Alternate Exercises):\s*(.+)$/i
+      /^(Section|Section Color|Section Name CN|Exercise Tag|Exercise Tag CN|Label Color|Label|Label Mode|Superset|Circuit|Circuit Mode|Circuit Minutes|Tracking|Fields|Unilateral|Accessory|Accessory Parent|Accessory Color|Set Prescriptions|Alternate Exercises):\s*(.+)$/i
     );
 
     if (!match) {
@@ -1259,6 +1267,10 @@ export function parseExerciseNotes(notes = ""): ExerciseNoteMeta {
 
     if (key === "section") meta.sectionName = value;
     if (key === "section color") meta.sectionColor = value;
+    if (key === "section name cn") meta.sectionNameCn = value;
+    if (key === "exercise tag") meta.exerciseTag = value.slice(0, 40);
+    if (key === "exercise tag cn") meta.exerciseTagCn = value.slice(0, 40);
+    if (key === "label color" && /^#[0-9a-f]{6}$/i.test(value)) meta.labelColor = value;
     if (key === "label") meta.exerciseLabel = value;
     if (key === "label mode") meta.isLabelCustom = value.toLowerCase() === "custom";
     if (key === "tracking") {

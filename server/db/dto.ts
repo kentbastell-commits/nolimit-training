@@ -292,6 +292,9 @@ export type WorkoutDetailDTO = {
   notes: string;
   notesCn: string;
   sectionNameCn: string;
+  exerciseTag?: string;
+  exerciseTagCn?: string;
+  labelColor?: string;
   targetSource: string;
   targetMetric: string;
   targetPercent: string;

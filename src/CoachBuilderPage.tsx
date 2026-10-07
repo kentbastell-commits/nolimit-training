@@ -1,3 +1,4 @@
+import WorkoutIdentityPanel from "./WorkoutIdentityPanel";
 import ExerciseLabelControl from "./ExerciseLabelControl";
 import { SaveCalendarDraftButton } from "./CalendarDraftControls";
 // Extracted from App.tsx (monolith split) — JSX verbatim; props threaded.
@@ -229,6 +230,9 @@ export default function CoachBuilderPage({
   saveBusyLabel = "Saving…",
   selectBuilderSection,
   setCustomSectionColors,
+  editPresentationBlock,
+  addPresentationBlock,
+  editPresentationExercise,
   selectWorkoutTab,
   builderReturnClientName,
   returnToBuilderOrigin,
@@ -1962,6 +1966,9 @@ export default function CoachBuilderPage({
                   </div>
                 )}
 
+                <WorkoutIdentityPanel name={isSingleWorkoutBuilder ? programName : sessionName} nameCn={sessionNameCn || ""}
+                  setName={name => { setSessionName(name); if (isSingleWorkoutBuilder) setProgramName(name); }} setNameCn={setSessionNameCn}
+                  exercises={selectedProgramExercises} editBlock={editPresentationBlock} addBlock={addPresentationBlock} editExercise={editPresentationExercise} />
                 <details
                   className="builderCollapsiblePanel builderSessionDetails"
                   open={sessionSetupOpen}
@@ -3044,6 +3051,9 @@ export default function CoachBuilderPage({
                       <div><strong>{programName || (isSingleWorkoutBuilder ? t("mobileNewSession") : t("mobileNewProgram"))}</strong>
                         <small>{builderSaveStatus === "dirty" ? (cloudDraftStatus || t(coachDraftStatus === "saved" ? "coachDraftSavedLocally" : coachDraftStatus === "conflict" ? "coachDraftConflict" : coachDraftStatus === "unavailable" ? "coachDraftUnavailable" : "coachDraftSaving")) : t("mobileAllChangesSaved")}</small></div>
                     </div>
+                    {mobileBuilderStep !== "overview" && <WorkoutIdentityPanel name={isSingleWorkoutBuilder ? programName : sessionName} nameCn={sessionNameCn || ""}
+                  setName={name => { setSessionName(name); if (isSingleWorkoutBuilder) setProgramName(name); }} setNameCn={setSessionNameCn}
+                  exercises={selectedProgramExercises} editBlock={editPresentationBlock} addBlock={addPresentationBlock} editExercise={editPresentationExercise} />}
                     {mobileBuilderStep !== "overview" && (
                     <section className="mobileBuilder">
                       {mobileBuilderStep === "details" ? (

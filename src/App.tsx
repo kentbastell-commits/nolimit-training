@@ -1,3 +1,4 @@
+import { presentationMetadata, editWorkoutBlock, safeLabelColor, labelInk } from "./workoutPresentation";
 import { normalizeBuilderSection, isWarmupSection, relabelProgramExercises, changeExerciseLabel, exerciseLabelMetadata, accessoryGroupIndexes } from "./exerciseLabels";
 import CalendarSessionTools from "./CalendarSessionTools";
 import SessionPublishReview from "./SessionPublishReview";
@@ -5496,6 +5497,10 @@ function App({ onReady, bootVisible = true }: { onReady?: () => void; bootVisibl
           accessoryParentLabel: meta.accessoryParentLabel,
           accessoryColor: meta.accessoryColor,
           sectionColor: meta.sectionColor,
+          sectionNameCn: meta.sectionNameCn,
+          exerciseTag: meta.exerciseTag,
+          exerciseTagCn: meta.exerciseTagCn,
+          labelColor: meta.labelColor,
           // The set_prescriptions table is the real per-set store; older
           // rows only carry the JSON in the notes.
           setPrescriptions:
@@ -8866,7 +8871,7 @@ function App({ onReady, bootVisible = true }: { onReady?: () => void; bootVisibl
   function renderExerciseLabelBadge(exercise: ProgramExercise, index: number) {
     // A coach-picked custom colour beats the warmup keyword guess (a section
     // named "Sprint Prep" with its own colour is not a warmup).
-    const customHex = resolveSectionColor(exercise);
+    const customHex = safeLabelColor(exercise.labelColor) || resolveSectionColor(exercise);
     if (isWarmupSection(exercise.sectionName) && !customHex) {
       return (
         <span className="exerciseLabelBadge exerciseLabelBadgeWarmup">
@@ -8883,7 +8888,7 @@ function App({ onReady, bootVisible = true }: { onReady?: () => void; bootVisibl
         )}${customHex ? " labelCustomHex" : ""}`}
         style={
           customHex
-            ? ({ "--section-custom": customHex } as React.CSSProperties)
+            ? ({ "--section-custom": customHex, color: labelInk(customHex) } as React.CSSProperties)
             : undefined
         }
       >
@@ -10838,6 +10843,7 @@ function App({ onReady, bootVisible = true }: { onReady?: () => void; bootVisibl
       exercise.sectionName ? `Section: ${exercise.sectionName}` : "",
       sectionColor ? `Section Color: ${sectionColor}` : "",
       ...exerciseLabelMetadata(exercise),
+      ...presentationMetadata(exercise),
       `Tracking: ${exercise.trackingType || "Weight"}`,
       exercise.trackingFields && exercise.trackingFields.length > 0
         ? `Fields: ${exercise.trackingFields.join(", ")}`
@@ -21640,6 +21646,22 @@ function App({ onReady, bootVisible = true }: { onReady?: () => void; bootVisibl
                 }
                 selectBuilderSection={selectBuilderSection}
                 setCustomSectionColors={setCustomSectionColors}
+                editPresentationBlock={(name: string, patch: { name?: string; nameCn?: string; color?: string }) => {
+                  setSelectedProgramExercises(current => editWorkoutBlock(current, name, patch));
+                  setCustomSectionColors(current => { const next = { ...current }; delete next[name.toLowerCase()]; if (patch.color) next[(patch.name || name).toLowerCase()] = patch.color; return next; });
+                }}
+                addPresentationBlock={(name: string, index: number) => {
+                  setPendingSectionName(name);
+                  setSelectedProgramExercises(current => relabelProgramExercises(current.map((e, i) => i === index ? { ...e, sectionName: name, sectionNameCn: "", sectionColor: "" } : e)));
+                }}
+                editPresentationExercise={(index: number, field: keyof ProgramExercise, value: string) => {
+                  if (field === "exerciseLabel") { setSelectedProgramExercises(current => changeExerciseLabel(current, index, value)); return; }
+                  setSelectedProgramExercises(current => relabelProgramExercises(current.map((e, i) => {
+                    if (i !== index) return e;
+                    const block = field === "sectionName" ? current.find(x => x.sectionName === value) : null;
+                    return { ...e, [field]: value, ...(block ? { sectionNameCn: block.sectionNameCn, sectionColor: block.sectionColor } : {}) };
+                  })));
+                }}
                 selectWorkoutTab={selectWorkoutTab}
                 builderReturnClientName={builderReturnClientName}
                 returnToBuilderOrigin={returnToBuilderOrigin}

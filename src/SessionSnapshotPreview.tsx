@@ -1,6 +1,8 @@
 import { useTranslation } from "react-i18next";
 import { exercisePrescription, parseExerciseNotes } from "./appCore";
 import { localizePrescriptionValue } from "./prescriptionDisplay";
+import { labelInk, safeLabelColor } from "./workoutPresentation";
+import "./WorkoutIdentityPanel.css";
 import WorkoutNotes from "./WorkoutNotes";
 import "./CalendarDraftControls.css";
 
@@ -23,9 +25,9 @@ export default function SessionSnapshotPreview({ snapshot }: { snapshot: Session
       const sets = row.setPrescriptions?.length ? row.setPrescriptions : meta.setPrescriptions || [];
       const cues = (zh ? row.notesCn : "") || meta.coachingNotes;
       return <div key={row.recordId || index} className="sessionSnapshotExercise">
-        {meta.sectionName && meta.sectionName !== previous?.sectionName && <h4 className="workoutGlanceSection">{zh && meta.sectionName === "Finger Strength" ? "指力训练" : meta.sectionName}</h4>}
+        {meta.sectionName && meta.sectionName !== previous?.sectionName && <h4 className="workoutGlanceSection">{zh && meta.sectionNameCn || (zh && meta.sectionName === "Finger Strength" ? "指力训练" : meta.sectionName)}</h4>}
         {circuitStart && <div className="workoutGlanceCircuitHeader">{zh ? "循环" : "Circuit"} · {Math.max(...members.map(r => exercisePrescription(r, zh).sets), 1)} {zh ? "轮" : "rounds"}</div>}
-        <div className="sessionSnapshotName"><span className="exerciseLabelBadge">{meta.exerciseLabel || index + 1}</span><div><strong>{(zh ? row.exerciseNameCn : "") || row.exerciseName}</strong><small>{exercisePrescription(row, zh).summary}</small></div></div>
+        <div className="sessionSnapshotName"><span className="exerciseLabelBadge" style={{background:safeLabelColor(meta.labelColor || meta.sectionColor)||undefined,color:labelInk(meta.labelColor || meta.sectionColor)}}>{meta.exerciseLabel || index + 1}</span><div><strong>{(zh ? row.exerciseNameCn : "") || row.exerciseName}</strong>{meta.exerciseTag && <span className="workoutExerciseTag">{zh && meta.exerciseTagCn || meta.exerciseTag}</span>}<small>{exercisePrescription(row, zh).summary}</small></div></div>
         <details><summary>{zh ? "每组目标与教练提示" : "Set targets & coaching cues"}</summary>
           {sets.length ? <ol className="sessionSnapshotSets">{sets.map((s: any, i: number) => <li key={i}><strong>{zh ? `第 ${i + 1} 组` : `Set ${i + 1}`}</strong><span>{[
             s.reps && exercisePrescription({ trackingFields: ["Reps"], setPrescriptions: [s] }, zh).target, s.load,

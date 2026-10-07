@@ -1,6 +1,8 @@
 // Extracted from App.tsx (monolith split) — JSX verbatim; props threaded.
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { useEffect, useState } from "react";
+import { labelInk, safeLabelColor } from "./workoutPresentation";
+import "./WorkoutIdentityPanel.css";
 import { localizePrescriptionValue } from "./prescriptionDisplay";
 import { stripLocalizedExerciseMeta, exercisePrescription, formatPaceSecPerKm, parsePaceToSecPerKm, reconcileCardioActuals } from "./appCore";
 import "./WorkoutPlayerModal.css";
@@ -332,7 +334,7 @@ export default function WorkoutPlayerModal({
                     )}
 
                     {workoutDetails.map((exercise: any, index: any) => {
-                      const meta = parseExerciseNotes(exercise.notes);
+                      const meta = { ...parseExerciseNotes(exercise.notes), ...(exercise.labelColor ? { labelColor: exercise.labelColor } : {}), ...(exercise.exerciseTag ? { exerciseTag: exercise.exerciseTag, exerciseTagCn: exercise.exerciseTagCn } : {}) };
                       const previousMeta =
                         index > 0
                           ? parseExerciseNotes(workoutDetails[index - 1].notes)
@@ -413,14 +415,15 @@ export default function WorkoutPlayerModal({
                                       sectionName
                                     )
                               }${
-                                meta.sectionColor
+                                (meta.labelColor || meta.sectionColor)
                                   ? " labelCustomHex"
                                   : ""
                               }`}
                               style={
-                                meta.sectionColor
+                                (meta.labelColor || meta.sectionColor)
                                   ? ({
-                                      "--section-custom": meta.sectionColor,
+                                      "--section-custom": safeLabelColor(meta.labelColor || meta.sectionColor),
+                                      color: labelInk(meta.labelColor || meta.sectionColor),
                                     } as React.CSSProperties)
                                   : undefined
                               }
@@ -429,7 +432,7 @@ export default function WorkoutPlayerModal({
                                 ? index + 1 : makeExerciseLabel(index))}
                             </span>
                             <span>
-                              <strong>{localizedExerciseName(exercise)}</strong>
+                              <strong>{localizedExerciseName(exercise)}</strong>{meta.exerciseTag && <span className="workoutExerciseTag" style={{color:safeLabelColor(meta.labelColor || meta.sectionColor) || "#65512c"}}>{paceZh && meta.exerciseTagCn || meta.exerciseTag}</span>}
                               {meta.isAccessory && (
                                 <em className="exerciseAccessoryInline">
                                   {accessoryLabel}
@@ -650,7 +653,7 @@ export default function WorkoutPlayerModal({
                           (log: any) => Number(log.setNumber) === workoutFocusSetRound
                         )
                       : exerciseLogs;
-                    const meta = parseExerciseNotes(exercise.notes);
+                    const meta = { ...parseExerciseNotes(exercise.notes), ...(exercise.labelColor ? { labelColor: exercise.labelColor } : {}), ...(exercise.exerciseTag ? { exerciseTag: exercise.exerciseTag, exerciseTagCn: exercise.exerciseTagCn } : {}) };
                     const previousMeta =
                       index > 0
                         ? parseExerciseNotes(workoutDetails[index - 1].notes)
@@ -1002,14 +1005,15 @@ export default function WorkoutPlayerModal({
                                       sectionName
                                     )
                               }${
-                                meta.sectionColor
+                                (meta.labelColor || meta.sectionColor)
                                   ? " labelCustomHex"
                                   : ""
                               }`}
                               style={
-                                meta.sectionColor
+                                (meta.labelColor || meta.sectionColor)
                                   ? ({
-                                      "--section-custom": meta.sectionColor,
+                                      "--section-custom": safeLabelColor(meta.labelColor || meta.sectionColor),
+                                      color: labelInk(meta.labelColor || meta.sectionColor),
                                     } as React.CSSProperties)
                                   : undefined
                               }
@@ -1018,7 +1022,7 @@ export default function WorkoutPlayerModal({
                                 ? index + 1 : makeExerciseLabel(index))}
                             </span>
                             <div>
-                              <h3>{localizedExerciseName(exercise)}</h3>
+                              <h3>{localizedExerciseName(exercise)}</h3>{meta.exerciseTag && <span className="workoutExerciseTag" style={{color:safeLabelColor(meta.labelColor || meta.sectionColor) || "#65512c"}}>{paceZh && meta.exerciseTagCn || meta.exerciseTag}</span>}
                               {meta.isAccessory && (
                                 <em className="exerciseAccessoryInline">
                                   {accessoryLabel}

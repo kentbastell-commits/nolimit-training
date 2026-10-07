@@ -14,6 +14,7 @@ const labels: Record<string, [string, string]> = {
   rest: ["Rest", "休息"], time: ["Time (sec)", "时间（秒）"], distance: ["Distance", "距离"],
   percent: ["% 1RM", "% 1RM"], percentMas: ["% MAS", "% MAS"], rpe: ["RPE", "RPE"], rir: ["RIR", "RIR"],
   tempo: ["Tempo", "节奏"], intensityMode: ["Intensity measure", "强度指标"], intensityValue: ["Intensity target", "强度目标"],
+  exerciseTag: ["Exercise tag", "动作标签"], exerciseTagCn: ["Chinese exercise tag", "中文动作标签"], labelColor: ["Exercise colour", "动作颜色"], sectionColor: ["Block colour", "板块颜色"], sectionNameCn: ["Chinese block name", "中文板块名称"],
   isLabelCustom: ["Custom label", "自定义编号"],
   sectionName: ["Section", "训练部分"], exerciseLabel: ["Label", "动作编号"], groupType: ["Grouping", "编排方式"],
   groupName: ["Group", "组别"], groupMode: ["Circuit format", "循环方式"], groupMinutes: ["Circuit minutes", "循环分钟数"],
@@ -74,7 +75,7 @@ export function sessionChanges(before: SessionSnapshot, after: SessionSnapshot, 
       add(entry.changes, zh ? "重复动作（按顺序）" : "Repeated exercise (in order)", describe(old), describe(next));
     } else {
       const x = rowFields(old[0]), y = rowFields(next[0]);
-      for (const key of ["sets", "sectionName", "exerciseLabel", "isLabelCustom", "groupType", "groupName", "groupMode", "groupMinutes", "isUnilateral", "isAccessory", "accessoryParentLabel", "trackingType", "trackingFields", "coachingNotes", "notesCn", "alternateExercises", "targetSource", "targetMetric", "targetPercent", "targetAdjustment", "autoTarget", "displayTarget"]) add(entry.changes, key, x[key], y[key]);
+      for (const key of ["sets", "sectionName", "sectionNameCn", "sectionColor", "exerciseTag", "exerciseTagCn", "labelColor", "exerciseLabel", "isLabelCustom", "groupType", "groupName", "groupMode", "groupMinutes", "isUnilateral", "isAccessory", "accessoryParentLabel", "trackingType", "trackingFields", "coachingNotes", "notesCn", "alternateExercises", "targetSource", "targetMetric", "targetPercent", "targetAdjustment", "autoTarget", "displayTarget"]) add(entry.changes, key, x[key], y[key]);
       const xs = targets(old[0]), ys = targets(next[0]);
       for (let i = 0; i < Math.max(xs.length, ys.length); i++) {
         if (!xs[i] || !ys[i]) continue; // Added/removed sets are already explained by the set-count change and full preview.

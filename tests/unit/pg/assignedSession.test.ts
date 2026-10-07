@@ -25,6 +25,21 @@ beforeEach(async () => {
 });
 afterAll(async () => { vi.unstubAllEnvs(); await closeDb(); });
 describe("assigned session edits", () => {
+  it("saves a renamed workout and bilingual exercise styling without leaking metadata to older players", async () => {
+    const before = await call();
+    const notes = 'Section: Shoulder Control\nSection Name CN: 肩部控制\nSection Color: #307563\nLabel: A1\nExercise Tag: 8 of each letter\nExercise Tag CN: 每个字母8次\nLabel Color: #80528c\n' + exercise.coachingNotes + '\nKeep control.';
+    const saved = await call('POST', {assignedWorkoutId:'AW-1',version:before.body.version,
+      session:{...session,sessionName:'Shoulders, Legs & Core',sessionNameCn:'肩部、下肢与核心',exercises:[{...exercise,coachingNotes:notes}]}});
+    expect(saved.statusCode).toBe(200);
+    const reopened = await call();
+    expect(reopened.body.workout.sessionName).toBe('Shoulders, Legs & Core');
+    expect(reopened.body.workout.sessionNameCn).toBe('肩部、下肢与核心');
+    expect(reopened.body.templates[0].notes).toBe(notes);
+    const detail=(await getWorkoutDetails(saved.body.programId,'1','1'))[0];
+    expect(detail).toMatchObject({sectionNameCn:'肩部控制',exerciseTag:'8 of each letter',exerciseTagCn:'每个字母8次',labelColor:'#80528c'});
+    expect(detail.notes).not.toMatch(/Exercise Tag|Label Color|Section Name CN/);
+    expect(detail.notes).toContain('Section Color: #307563');
+  });
   it("round-trips repetitions and hold duration together through draft save and workout reads", async () => {
     await pool.query("update assigned_workouts set is_draft=true where assigned_workout_id='AW-1'");
     const before = await call();

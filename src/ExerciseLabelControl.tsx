@@ -1,11 +1,12 @@
 import { useTranslation } from "react-i18next";
+import { useId } from "react";
 import type { ProgramExercise } from "./appCore";
 
 export default function ExerciseLabelControl({ exercise, index, change }: {
   exercise: ProgramExercise; index: number; change: (value: string) => void;
 }) {
   const { t } = useTranslation();
-  const id = `exercise-label-${index}`;
+  const id = `exercise-label-${index}-${useId()}`;
   return <div className="builderLabelControl">
     <label htmlFor={id}>{t("polishLabel7434")}</label>
     <div className="builderLabelInputRow">
