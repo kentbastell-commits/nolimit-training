@@ -26,7 +26,7 @@ function stashedOpenidToken(): string {
 
 // Inside the WeChat browser: silently round-trip through the service
 // account's snsapi_base authorize page once per session so the checkout can
-// open the NATIVE payment sheet instead of a long-press QR. Invisible to the
+// open the JSAPI payment sheet instead of a QR. Invisible to the
 // user (base scope shows no consent screen); any failure just leaves the QR
 // fallback in place.
 async function bootstrapWechatOpenid(): Promise<void> {
@@ -163,7 +163,7 @@ export default function WxPayPanel({
       }, 4_000);
     };
 
-    // Inside WeChat with an authorized session: open the NATIVE payment
+    // Inside WeChat with an authorized session: open the JSAPI payment
     // sheet. Falls through to the QR path on any failure.
     const tryJsapi = async (): Promise<boolean> => {
       const openidToken = stashedOpenidToken();
@@ -302,8 +302,8 @@ export default function WxPayPanel({
       <p className="wxpayHint">
         {isWeChat
           ? zh
-            ? "长按二维码，选择“识别图中二维码”即可付款。"
-            : "Long-press the QR code and choose “Extract QR code” to pay."
+            ? "请在电脑或另一台设备上打开此付款链接，再用微信“扫一扫”扫描二维码付款。不支持长按或从相册识别付款码。"
+            : "Open this payment link on a computer or another device, then scan the code with WeChat’s camera. Long-press and photo-library recognition are not supported."
           : zh
             ? "打开微信，使用“扫一扫”扫描二维码完成付款。"
             : "Open WeChat and use Scan to pay."}
