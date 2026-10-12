@@ -5,6 +5,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { useEffect, useState } from "react";
 import CollectPaymentModal from "./CollectPaymentModal";
+import { groupUnpaidCheckouts, isOrderCancelled, isOrderPaid, isTestOrder, orderIntakeState } from "./orderPresentation";
 import "./CoachOrdersPage.css";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import {
@@ -36,7 +37,6 @@ const initialsOf = (name: string) =>
     .slice(0, 2)
     .join("")
     .toUpperCase() || "?";
-const COACH_CAP = 12; // FLAG: coach capacity isn't in the Coach record — default.
 
 export default function CoachOrdersPage(props: { [key: string]: any }) {
   const [collectOpen, setCollectOpen] = useState(false);
@@ -74,7 +74,7 @@ export default function CoachOrdersPage(props: { [key: string]: any }) {
 
   const reduce = useReducedMotion();
   const [segment, setSegment] = useState<"online" | "inperson">("online");
-  const [onFilter, setOnFilter] = useState<"all" | "coach" | "intake" | "active">("all");
+  const [onFilter, setOnFilter] = useState<"all" | "coach" | "intake" | "paid" | "pending">("all");
   const [ipFilter, setIpFilter] = useState<"all" | "Paid" | "Pending" | "Refunded">("all");
   const [assignTarget, setAssignTarget] = useState<any>(null);
 
@@ -83,13 +83,15 @@ export default function CoachOrdersPage(props: { [key: string]: any }) {
   const isArchived = (o: any) => /archived|cancelled/i.test(o.fulfillmentStatus || "");
   const [showArchived, setShowArchived] = useState(false);
   const allOrders = (visibleProductOrders as any[]) || [];
-  const archivedOrders = allOrders.filter(isArchived);
-  const orders = allOrders.filter((o) => !isArchived(o));
+  const testOrders = allOrders.filter(isTestOrder);
+  const customerOrders = allOrders.filter(o => !isTestOrder(o));
+  const archivedOrders = customerOrders.filter(o => isArchived(o) || isOrderCancelled(o));
+  const orders = customerOrders.filter((o) => !isArchived(o) && !isOrderCancelled(o));
   const money = (amt: any, cur?: string) =>
     `${cur || "CNY"} ${Number(amt || 0).toLocaleString("en-US")}`;
-  const intakeDone = (o: any) =>
-    /submitted|reviewed|received|complete|done/i.test(o.intakeStatus || "");
-  const isPaid = (o: any) => /^paid$/i.test(o.paymentStatus || "");
+  const intakeState = (o: any) => orderIntakeState(o, getOrderClient(o));
+  const intakeDone = (o: any) => intakeState(o) !== "pending";
+  const isPaid = isOrderPaid;
   const isPending = (o: any) => /pending/i.test(o.paymentStatus || "");
   const coachOf = (o: any) => (o.assignedCoach || "").trim();
   const termOf = (o: any) => {
@@ -109,20 +111,30 @@ export default function CoachOrdersPage(props: { [key: string]: any }) {
   );
 
   // ---- digital roll-up ----
-  const digSales = digital.length;
-  const digRevenue = digital.reduce((a, o) => a + (Number(o.amount) || 0), 0);
-  const digitalPending = digital.filter((o) => !isPaid(o));
+  const digitalPaid = digital.filter(isPaid);
+  const digSales = digitalPaid.length;
+  const received = (paidOrders: any[]) => {
+    const totals = new Map<string, number>();
+    paidOrders.forEach(o => totals.set(o.currency || "CNY", (totals.get(o.currency || "CNY") || 0) + (Number(o.amount) || 0)));
+    return [...totals].map(([currency, amount]) => money(amount, currency)).join(" · ") || money(0);
+  };
+  const digitalPending = digital.filter(isPending);
+  const unpaidGroups = groupUnpaidCheckouts(digitalPending);
 
   // ---- online board ----
-  const awaitingCoach = online.filter((o) => !coachOf(o)).length;
-  const intakePending = online.filter((o) => !intakeDone(o)).length;
-  const onActive = online.filter((o) => coachOf(o) && intakeDone(o)).length;
-  const onQueue = online.filter((o) => !coachOf(o) || !intakeDone(o)).length;
+  const onlinePaid = online.filter(isPaid);
+  const onlinePending = online.filter(isPending);
+  const needsCoach = (o: any) => isPaid(o) && intakeState(o) !== "not-required" && !coachOf(o);
+  const needsIntake = (o: any) => isPaid(o) && !intakeDone(o);
+  const awaitingCoach = online.filter(needsCoach).length;
+  const intakePending = online.filter(needsIntake).length;
+  const onQueue = online.filter((o) => needsCoach(o) || needsIntake(o)).length;
 
   let onList = online;
-  if (onFilter === "coach") onList = online.filter((o) => !coachOf(o));
-  else if (onFilter === "intake") onList = online.filter((o) => !intakeDone(o));
-  else if (onFilter === "active") onList = online.filter((o) => coachOf(o) && intakeDone(o));
+  if (onFilter === "coach") onList = online.filter(needsCoach);
+  else if (onFilter === "intake") onList = online.filter(needsIntake);
+  else if (onFilter === "paid") onList = onlinePaid;
+  else if (onFilter === "pending") onList = onlinePending;
 
   // ---- in-person board (real paymentStatus — no deposit concept in the data) ----
   const collected = inperson.filter(isPaid).reduce((a, o) => a + (Number(o.amount) || 0), 0);
@@ -219,10 +231,10 @@ export default function CoachOrdersPage(props: { [key: string]: any }) {
           <span className="copDigitalEyebrow">Digital programs · self-serve</span>
           <span className="copDigitalLine">
             <strong>
-              {digSales} {digSales === 1 ? "sale" : "sales"}
+              {digSales} {tr(digSales === 1 ? "paid order" : "paid orders", "笔已付订单")}
             </strong>{" "}
-            · <strong>{money(digRevenue)}</strong>{" "}
-            · hands-off, no onboarding
+            · <strong>{received(digitalPaid)}</strong> {tr("received", "已收款")}
+            <span className="copDigitalUnpaid">{digitalPending.length} {tr("unpaid checkout attempts · excluded from sales", "笔未付结账记录 · 不计入销售")}</span>
           </span>
         </span>
         <span className="copDigitalLink">
@@ -265,18 +277,22 @@ export default function CoachOrdersPage(props: { [key: string]: any }) {
       )}
 
       {digitalPending.length > 0 && (
-        <section className="copDigitalPayments" aria-label={tr("Digital payment verification", "数字计划付款核对")}>
+        <details className="copDigitalPayments" aria-label={tr("Unpaid digital checkouts", "未付数字计划结账记录")}>
+          <summary className="copHistorySummary">{digitalPending.length} {tr(digitalPending.length === 1 ? "unpaid digital checkout attempt — not a sale" : "unpaid digital checkout attempts — not sales", "笔未付数字计划结账记录 — 非销售")}</summary>
           <div className="copSectionHead">
             <div>
-              <span className="copEyebrow">{tr("Payment verification", "付款核对")}</span>
-              <h2>{tr("Digital orders awaiting confirmation", "待确认的数字计划订单")}</h2>
+              <span className="copEyebrow">{tr("Unpaid history", "未付历史")}</span>
+              <h2>{tr("Unpaid checkout history", "未付结账历史")}</h2>
             </div>
             <span className="copPendChip">
               <Clock size={12} /> {digitalPending.length} {tr("pending", "笔待核对")}
             </span>
           </div>
+          <p className="copHistoryHint">{tr("Repeated checkouts can create several records for the same athlete. These are unpaid attempts, not purchased programs or money received.", "同一训练者重复结账可能产生多条记录。这些是未付款尝试，不是已购计划，也不计入收款。")}</p>
+          {unpaidGroups.map(group => <details className="copCheckoutGroup" key={group.orders[0].clientId || group.name}>
+            <summary>{group.name} · {group.orders.length} {tr(group.orders.length === 1 ? "unpaid attempt" : "unpaid attempts", "笔未付尝试")}</summary>
           <div className="copLedger">
-            {digitalPending.map((order) => (
+            {group.orders.map((order) => (
               <div className="copRow" key={order.recordId || order.orderId}>
                 <div className="copRowMain">
                   <div className="copRowLabel">{order.clientName || tr("Unnamed buyer", "未命名买家")}</div>
@@ -293,12 +309,12 @@ export default function CoachOrdersPage(props: { [key: string]: any }) {
                     </div>
                   )}
                 </div>
-                <div className="copRowAmt">{money(order.amount, order.currency)}</div>
+                <div className="copRowAmt">{Number(order.amount) > 0 ? money(order.amount, order.currency) : tr("Amount not set", "金额未设置")}</div>
                 <div className="copRowEnd">
                   <button
                     type="button"
                     className="copMarkPaid"
-                    disabled={orderProcessingId === order.recordId || !order.paymentReference}
+                    disabled={orderProcessingId === order.recordId || !order.paymentReference || !(Number(order.amount) > 0)}
                     title={
                       order.paymentReference
                         ? tr(
@@ -315,7 +331,8 @@ export default function CoachOrdersPage(props: { [key: string]: any }) {
               </div>
             ))}
           </div>
-        </section>
+          </details>)}
+        </details>
       )}
 
       {/* segmented control */}
@@ -346,8 +363,8 @@ export default function CoachOrdersPage(props: { [key: string]: any }) {
                 <span>{onQueue}</span>
                 <small>
                   {onQueue === 1
-                    ? "athlete needs attention"
-                    : "athletes need attention"}
+                    ? "paid order needs attention"
+                    : "paid orders need attention"}
                 </small>
               </div>
               <div className="copBoardBreak">
@@ -356,12 +373,12 @@ export default function CoachOrdersPage(props: { [key: string]: any }) {
               </div>
             </div>
             <div className="copBoardLight">
-              <span className="copBoardEyebrowGreen">Active this month</span>
+              <span className="copBoardEyebrowGreen">{tr("Payments received", "已收款")}</span>
               <div className="copBoardBig">
-                <span className="copBoardBigDark">{onActive}</span>
-                <small>coaching athletes</small>
+                <span className="copBoardBigDark">{onlinePaid.length}</span>
+                <small>{tr("paid coaching orders", "笔已付私教订单")}</small>
               </div>
-              <p>Paid, coach assigned, plan running.</p>
+              <p>{received(onlinePaid)} {tr("received", "已收款")} · {onlinePending.length} {tr("unpaid orders", "笔未付订单")}</p>
             </div>
           </div>
 
@@ -371,7 +388,8 @@ export default function CoachOrdersPage(props: { [key: string]: any }) {
                 { k: "all", l: `All · ${online.length}` },
                 { k: "coach", l: `Awaiting coach · ${awaitingCoach}` },
                 { k: "intake", l: `Questionnaire pending · ${intakePending}` },
-                { k: "active", l: `Active · ${onActive}` },
+                { k: "paid", l: `${tr("Paid", "已付")} · ${onlinePaid.length}` },
+                { k: "pending", l: `${tr("Unpaid", "未付")} · ${onlinePending.length}` },
               ].map((t) => (
                 <button
                   key={t.k}
@@ -420,7 +438,7 @@ export default function CoachOrdersPage(props: { [key: string]: any }) {
                           <span className="copTerm">{termOf(o)}</span>
                         </div>
                         <div className="copCardMeta">
-                          starts {getOrderStartDate(o) || "—"} · {o.orderId || "no ID"}
+                          {o.orderId || "no ID"}{getOrderStartDate(o) ? ` · ${tr("Starts", "开始")} ${getOrderStartDate(o)}` : ""}
                         </div>
                       </div>
                     </div>
@@ -430,7 +448,7 @@ export default function CoachOrdersPage(props: { [key: string]: any }) {
                       </span>
                     ) : (
                       <span className="copPendChip">
-                        <Clock size={12} /> {o.paymentStatus || "Pending"}
+                        <Clock size={12} /> {o.paymentStatus || "Pending"} · {money(o.amount, o.currency)}
                         <button
                           type="button"
                           className="copVerify"
@@ -456,7 +474,7 @@ export default function CoachOrdersPage(props: { [key: string]: any }) {
                       </span>
                       <div>
                         <span className="copStripK">Questionnaire</span>
-                        <strong>{done ? "Complete" : "Pending — qualifier only"}</strong>
+                        <strong>{intakeState(o) === "not-required" ? tr("Not required", "无需填写") : done ? tr("Complete", "已完成") : isPaid(o) ? tr("Pending", "待填写") : tr("After payment", "付款后填写")}</strong>
                       </div>
                     </div>
                     <div className={`copStripTile${coach ? " ok" : " bad"}`}>
@@ -474,16 +492,16 @@ export default function CoachOrdersPage(props: { [key: string]: any }) {
 
                   <div className="copCardFoot">
                     <div className="copFootMeta">
-                      Purchased <strong>{o.purchasedAt || "—"}</strong>
+                      {isPaid(o) ? tr("Purchased", "购买日期") : tr("Created", "创建日期")} <strong>{o.purchasedAt || "—"}</strong>
                     </div>
                     <div className="copFootActions">
-                      <button
+                      {isPaid(o) && intakeState(o) !== "not-required" && <button
                         type="button"
                         className="copGhostBtn"
                         onClick={() => void openOrderReview(o)}
                       >
                         Review intake
-                      </button>
+                      </button>}
                       {!coach ? (
                         <button
                           type="button"
@@ -492,7 +510,7 @@ export default function CoachOrdersPage(props: { [key: string]: any }) {
                         >
                           Assign coach
                         </button>
-                      ) : done ? (
+                      ) : client && done ? (
                         <button
                           type="button"
                           className="copGhostBtn"
@@ -503,7 +521,7 @@ export default function CoachOrdersPage(props: { [key: string]: any }) {
                         >
                           Open client
                         </button>
-                      ) : (
+                      ) : client && isPaid(o) ? (
                         <button
                           type="button"
                           className="copGhostBtn"
@@ -518,7 +536,7 @@ export default function CoachOrdersPage(props: { [key: string]: any }) {
                         >
                           Nudge questionnaire
                         </button>
-                      )}
+                      ) : null}
                     </div>
                   </div>
                 </div>
@@ -674,9 +692,7 @@ export default function CoachOrdersPage(props: { [key: string]: any }) {
                 <div className="copPickLabel">Pick a coach</div>
                 <div className="copCoachList">
                   {(activeCoaches as any[]).map((c: any) => {
-                    const load = online.filter((o) => coachOf(o) === c.name).length;
-                    const pct = Math.min(100, Math.round((load / COACH_CAP) * 100));
-                    const barColor = pct >= 90 ? "#c0546a" : pct >= 70 ? "#c79a2e" : "#2f9e55";
+                    const load = new Set(onlinePaid.filter((o) => coachOf(o) === c.name).map(o => o.clientId || o.clientName)).size;
                     return (
                       <button
                         key={c.recordId || c.name}
@@ -690,10 +706,7 @@ export default function CoachOrdersPage(props: { [key: string]: any }) {
                             <em>{c.role || "Coach"}</em>
                           </span>
                           <span className="copCoachBarRow">
-                            <span className="copCoachBar">
-                              <span style={{ width: `${pct}%`, background: barColor }} />
-                            </span>
-                            <span className="copCoachLoad">{load}/{COACH_CAP} athletes</span>
+                            <span className="copCoachLoad">{load} {tr("athletes with paid orders", "位已有付款订单的训练者")}</span>
                           </span>
                         </span>
                         <ChevronRight size={18} className="copCoachChev" />
@@ -997,7 +1010,7 @@ export default function CoachOrdersPage(props: { [key: string]: any }) {
           onToggle={(e) => setShowArchived((e.currentTarget as HTMLDetailsElement).open)}
         >
           <summary>
-            {isChinese ? "已归档订单" : "Archived orders"} · {archivedOrders.length}
+            {isChinese ? "已取消与归档订单" : "Cancelled and archived orders"} · {archivedOrders.length}
           </summary>
           <div className="copArchivedList">
             {archivedOrders.map((o: any) => (
@@ -1009,18 +1022,28 @@ export default function CoachOrdersPage(props: { [key: string]: any }) {
                     {o.paymentStatus || (isChinese ? "无状态" : "No status")}
                   </span>
                 </div>
-                <button
+                {!isOrderCancelled(o) && <button
                   type="button"
                   className="copGhostBtn"
                   onClick={() => void updateProductOrder(o, { fulfillmentStatus: "" })}
                 >
                   {isChinese ? "取消归档" : "Unarchive"}
-                </button>
+                </button>}
               </div>
             ))}
           </div>
         </details>
       )}
+
+      {testOrders.length > 0 && <details className="copReviewsFold">
+        <summary>{tr("Test and demo records", "测试与演示记录")} · {testOrders.length}</summary>
+        <p className="copHistoryHint">{tr("Excluded from customer sales and onboarding totals. Original records are retained.", "不计入客户销售和入门任务统计，保留原始记录。")}</p>
+        <div className="copArchivedList">
+          {testOrders.map((o: any) => <div className="copArchivedRow" key={o.recordId || o.orderId}>
+            <div><strong>{o.clientName}</strong><span>{o.orderId} · {o.productName} · {money(o.amount, o.currency)} · {o.paymentStatus}</span></div>
+          </div>)}
+        </div>
+      </details>}
 
       {/* Program reviews — collapsed at the bottom (they read as revenue
           feedback, not roster work; moved off the Clients page). */}

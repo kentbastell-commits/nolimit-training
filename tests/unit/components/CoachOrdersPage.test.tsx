@@ -60,7 +60,7 @@ describe("CoachOrdersPage", () => {
     // segmented layout; the default Online Coaching segment shows an
     // onboarding-queue board and an empty state
     expect(screen.getByText("Onboarding queue")).toBeInTheDocument();
-    expect(screen.getByText("athletes need attention")).toBeInTheDocument();
+    expect(screen.getByText("paid orders need attention")).toBeInTheDocument();
     expect(screen.getByText("No coaching orders here")).toBeInTheDocument();
   });
 
@@ -106,12 +106,60 @@ describe("CoachOrdersPage", () => {
       />
     );
 
+    fireEvent.click(screen.getByText("1 unpaid digital checkout attempt — not a sale"));
+    fireEvent.click(screen.getByText("Wei Chen · 1 unpaid attempt"));
     expect(screen.getByText("NL-7KQ9")).toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "Verify payment" }));
     expect(updateProductOrder).toHaveBeenCalledWith(
       order,
       { paymentStatus: "Paid" }
     );
+  });
+
+  it("separates CC's unpaid attempts and historical fixtures from paid sales", () => {
+    const digital = (recordId: string, extras = {}) => ({ recordId, orderId: recordId, productType: "Digital Program", clientName: "CC", clientId: "CL-CC", amount: "299", currency: "CNY", paymentStatus: "Pending", ...extras });
+    const orders = [
+      ...Array.from({length:38},(_,i)=>digital(`ORD-${i}`)),
+      digital("paid",{clientName:"Claire",clientId:"CL-CLAIRE",amount:"288",paymentStatus:"Paid"}),
+      digital("demo",{paymentStatus:"Paid",paymentProvider:"Internal Demo",amount:"0"}),
+      digital("test1",{paymentStatus:"Paid",clientName:"Battery Test 1784644538425"}),
+      digital("test2",{paymentStatus:"Paid",clientName:"Battery Test 1784644585867"}),
+      digital("penny",{paymentStatus:"Paid",productName:"Payment Test 0.01",amount:"0.01"}),
+    ];
+    render(<CoachOrdersPage {...baseProps} visibleProductOrders={orders} />);
+    expect(screen.getByText("1 paid order")).toBeInTheDocument();
+    expect(screen.getByText("CNY 288")).toBeInTheDocument();
+    expect(screen.queryByText(/43 sales/)).not.toBeInTheDocument();
+    const history=screen.getByText("38 unpaid digital checkout attempts — not sales").closest("details");
+    expect(history).not.toHaveAttribute("open");
+    expect(screen.getByText("CC · 38 unpaid attempts")).toBeInTheDocument();
+    expect(screen.getByText("Test and demo records · 4")).toBeInTheDocument();
+  });
+
+  it("shows Xiaowei paid without inventing questionnaire work or active athletes", () => {
+    const paid={recordId:"XW",orderId:"XW",clientName:"Xiaowei",productType:"Online Coaching",amount:"16800",currency:"CNY",paymentStatus:"Paid",intakeStatus:"Not Needed",assignedCoach:"Mario"};
+    const pending={...paid,recordId:"UNPAID",orderId:"UNPAID",clientName:"Unpaid prospect",paymentStatus:"Pending",intakeStatus:"Not Sent",assignedCoach:""};
+    render(<CoachOrdersPage {...baseProps} visibleProductOrders={[paid,pending]} />);
+    expect(screen.getByText("Paid CNY 16,800")).toBeInTheDocument();
+    expect(screen.getByText("Not required")).toBeInTheDocument();
+    expect(screen.queryByRole("button",{name:"Review intake"})).not.toBeInTheDocument();
+    expect(screen.queryByText("Active this month")).not.toBeInTheDocument();
+    expect(screen.getByRole("button",{name:"Questionnaire pending · 0"})).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button",{name:"Paid · 1"}));
+    expect(screen.queryByText("Unpaid prospect")).not.toBeInTheDocument();
+  });
+
+  it("uses a completed client intake instead of the order's stale Sent status", () => {
+    render(<CoachOrdersPage {...baseProps} getOrderClient={()=>({intakeStatus:"Submitted"})} visibleProductOrders={[{recordId:"CC",clientName:"CC",productType:"Online Coaching",paymentStatus:"Paid",intakeStatus:"Sent",assignedCoach:"Kent"}]} />);
+    expect(screen.getByRole("button",{name:"Questionnaire pending · 0"})).toBeInTheDocument();
+    expect(screen.getByText("Complete")).toBeInTheDocument();
+  });
+
+  it("puts cancelled requests in history with no action to mark them paid", () => {
+    render(<CoachOrdersPage {...baseProps} visibleProductOrders={[{recordId:"OLD",clientName:"Xiaowei",productType:"Manual Collection",paymentStatus:"Cancelled",amount:"16866"}]} />);
+    expect(screen.getByText("Cancelled and archived orders · 1")).toBeInTheDocument();
+    expect(screen.queryByRole("button",{name:"Unarchive"})).not.toBeInTheDocument();
+    expect(screen.queryByText("Payments outside the three streams")).not.toBeInTheDocument();
   });
 
   it("presents the manual order form as a dialog and closes it with Escape", () => {
