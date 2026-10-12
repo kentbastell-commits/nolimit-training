@@ -5,7 +5,8 @@
 // After (or before) paying, the payer can request a 发票 by filling in the
 // invoice title; issuing stays manual until an e-invoice provider exists.
 import { useEffect, useState } from "react";
-import WxPayPanel, { useWxpayEnabled } from "./WxPayPanel";
+import WxPayPanel from "./WxPayPanel";
+import { useWxpayEnabled } from "./useWxpayEnabled";
 import "./PayLinkPage.css";
 
 type LinkInfo = {

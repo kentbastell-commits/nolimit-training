@@ -3,9 +3,9 @@ import { fireEvent, render, screen } from "@testing-library/react";
 import PayLinkPage from "../../../src/PayLinkPage";
 
 vi.mock("../../../src/WxPayPanel", () => ({
-  useWxpayEnabled: () => true,
   default: ({ onPaid }: { onPaid: () => void }) => <button onClick={onPaid}>Pay with WeChat</button>,
 }));
+vi.mock("../../../src/useWxpayEnabled", () => ({ useWxpayEnabled: () => true }));
 
 beforeEach(() => {
   window.history.replaceState(null, "", "/pay/test-key-123?lang=en");
