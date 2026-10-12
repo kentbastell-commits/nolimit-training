@@ -1,30 +1,48 @@
 // /api/payLink — the shareable payment page's data. Amount must come from
 // the stored order (never the caller), unknown links must 404, and a fapiao
 // request must land on the order's notes and read back.
-import { afterAll, beforeEach, describe, expect, it } from "vitest";
+import { afterAll, beforeEach, describe, expect, it, vi } from "vitest";
 import handler from "../../../api/payLink.ts";
+import collect from "../../../api/wxpayCollect.ts";
 import {
   attachWxpayTradeNo,
   createProductOrder,
+  markOrdersPaidByWxpay,
+  updateProductOrder,
 } from "../../../server/db/repositories/productOrders.ts";
-import { closeDb, makeReq, makeRes, resetDb, rows } from "./helpers.ts";
+import { closeDb, makeReq, makeRes, resetDb, rows, seedClient } from "./helpers.ts";
 import { makePayLinkKey, verifyPayLinkKey } from "../../../server/wxpay/client.ts";
+import { ONLINE_RENEWAL_NOTE } from "../../../server/payLinkPolicy.ts";
+
+const provider = vi.hoisted(() => ({ native: vi.fn(), invite: vi.fn() }));
+vi.mock("../../../server/wxpay/client.ts", async (importOriginal) => ({
+  ...await importOriginal<typeof import("../../../server/wxpay/client.ts")>(),
+  wxpayEnabled: () => true,
+  createNativeTransaction: provider.native,
+}));
+vi.mock("../../../server/wechat/invite.ts", () => ({
+  makeInviteToken: (code: string) => `invite-${code}`,
+  inviteCodeDataUrl: provider.invite,
+}));
 
 process.env.PAY_LINK_SECRET = "test-pay-link-secret";
 
 beforeEach(async () => {
   await resetDb();
+  vi.clearAllMocks();
+  provider.native.mockResolvedValue({ codeUrl: "weixin://test-collect" });
+  provider.invite.mockResolvedValue("data:image/png;base64,test-invite");
 });
 
 afterAll(async () => {
   await closeDb();
 });
 
-async function seedCollectOrder(tradeNo = "NLTESTTRADE0001") {
+async function seedCollectOrder(tradeNo = "NLTESTTRADE0001", productType = "In-Person Training") {
   const created = await createProductOrder({
     clientName: "Zhang San",
     productName: "3 in-person sessions",
-    productType: "In-Person Training",
+    productType,
     amount: 900,
     currency: "CNY",
     paymentStatus: "Pending",
@@ -56,7 +74,7 @@ describe("payLink", () => {
   });
 
   it("identify creates the client from name + phone, attaches the order, and reuses the client next time", async () => {
-    const orderId = await seedCollectOrder();
+    const orderId = await seedCollectOrder("NLTESTTRADE0001", "Online Coaching");
     const key = makePayLinkKey(orderId);
     const before = makeRes();
     await handler(makeReq({ method: "GET", query: { key } }) as any, before as any);
@@ -88,11 +106,66 @@ describe("payLink", () => {
     expect(after.body).toMatchObject({ needsIdentity: false, clientCode: code });
 
     // Same person, second link: found, not duplicated.
-    const orderId2 = await seedCollectOrder("NLTESTTRADE0002");
+    const orderId2 = await seedCollectOrder("NLTESTTRADE0002", "Online Coaching");
     const again = makeRes();
     await handler(makeReq({ method: "POST", body: { key: makePayLinkKey(orderId2), action: "identify", name: "Li Meini", phone: "13800001234" } }) as any, again as any);
     expect(again.body.clientCode).toBe(code);
     expect((await rows("select client_id from clients")).length).toBe(1);
+
+    await markOrdersPaidByWxpay("NLTESTTRADE0001", "WX-ONLINE-PAID");
+    const paid = makeRes();
+    await handler(makeReq({ method: "GET", query: { key } }) as any, paid as any);
+    expect(paid.body).toMatchObject({ paid: true, paymentOnly: false, clientCode: code, inviteImage: "data:image/png;base64,test-invite" });
+    expect(provider.invite).toHaveBeenCalledWith(`invite-${code}`);
+  });
+
+  it.each([
+    ["In-Person Training", undefined],
+    ["Online Coaching", "renewal"],
+  ])("collects %s (%s) without signup, before and after payment", async (productType, paymentPurpose) => {
+    const created = makeRes();
+    await collect(makeReq({ method: "POST", body: {
+      amount: 1500, label: "Training payment", clientName: "Existing Athlete", productType, paymentPurpose,
+    } }) as any, created as any);
+    expect(created.statusCode).toBe(200);
+    const { orderId, payLinkKey: key, tradeNo } = created.body;
+    const [saved] = await rows("select * from product_orders where order_id=$1", [orderId]);
+    expect(saved.product_type).toBe(productType);
+    if (paymentPurpose) expect(saved.order_notes).toBe(ONLINE_RENEWAL_NOTE);
+    expect(provider.native).toHaveBeenCalledWith(expect.objectContaining({ totalFen: 150000 }));
+
+    const before = makeRes();
+    await handler(makeReq({ method: "GET", query: { key } }) as any, before as any);
+    expect(before.body).toMatchObject({ paymentOnly: true, needsIdentity: false, clientCode: "", paid: false });
+
+    // Even a stale page or direct API call cannot create an account for this link.
+    const identify = makeRes();
+    await handler(makeReq({ method: "POST", body: { key, action: "identify", name: "Existing Athlete", phone: "13800001234" } }) as any, identify as any);
+    expect(identify.statusCode).toBe(409);
+    expect(await rows("select * from clients")).toEqual([]);
+
+    // Saving an invoice must preserve the renewal's payment-only purpose.
+    const invoice = makeRes();
+    await handler(makeReq({ method: "POST", body: { key, title: "Test Company", email: "billing@example.com" } }) as any, invoice as any);
+    expect(invoice.statusCode).toBe(200);
+    await markOrdersPaidByWxpay(tradeNo, "WX-PAYMENT-ONLY");
+    const after = makeRes();
+    await handler(makeReq({ method: "GET", query: { key } }) as any, after as any);
+    expect(after.body).toMatchObject({ paid: true, paymentOnly: true, needsIdentity: false, clientCode: "", inviteImage: "", fapiao: { title: "Test Company" } });
+    expect(await rows("select * from clients")).toEqual([]);
+    expect(await rows("select * from assigned_forms")).toEqual([]);
+    expect(provider.invite).not.toHaveBeenCalled();
+  });
+
+  it.each(["In-Person Training", "Online Coaching"])("hides app invitations on payment-only %s links even when attached to a client", async (productType) => {
+    await seedClient();
+    const orderId = await seedCollectOrder("NLTESTTRADE0001", productType);
+    await updateProductOrder({ recordId: orderId, clientCode: "CL-9001", notes: productType === "Online Coaching" ? ONLINE_RENEWAL_NOTE : "" });
+    await markOrdersPaidByWxpay("NLTESTTRADE0001", "WX-LINKED-PAID");
+    const result = makeRes();
+    await handler(makeReq({ method: "GET", query: { key: makePayLinkKey(orderId) } }) as any, result as any);
+    expect(result.body).toMatchObject({ paid: true, paymentOnly: true, needsIdentity: false, clientCode: "", inviteImage: "" });
+    expect(provider.invite).not.toHaveBeenCalled();
   });
 
   it("returns the stored amount and label for a known trade, 404 for unknown, 400 for junk", async () => {

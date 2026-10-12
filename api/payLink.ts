@@ -8,6 +8,7 @@ import { verifyPayLinkKey } from "../server/wxpay/client.ts";
 import { createClient, findClientByPhoneName } from "../server/db/repositories/clients.ts";
 import { inviteCodeDataUrl, makeInviteToken } from "../server/wechat/invite.ts";
 import { ensureIntakeOnSignup } from "../server/db/pg/coachingJourney.ts";
+import { isPaymentOnlyOrder } from "../server/payLinkPolicy.ts";
 
 // Public payment link (/pay/<tradeNo>) — the shareable alternative to the
 // coach's collect-payment QR. A WeChat Pay Native QR can only be paid by a
@@ -74,6 +75,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   const amount = orders.reduce((sum, o) => sum + (o.amount > 0 ? o.amount : 0), 0);
   const paid = orders.every((o) => String(o.paymentStatus || "").trim().toLowerCase() === "paid");
   const notes = String(order.notes || "");
+  const paymentOnly = orders.every(isPaymentOnlyOrder);
 
   if (req.method === "GET") {
     // Paid + attached to a client → the page shows THAT athlete's personal
@@ -81,7 +83,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     // may forward to whoever will actually train (a parent to a child).
     // Best-effort: a WeChat hiccup must never break the paid page.
     let inviteImage = "";
-    if (paid && order.clientId) {
+    if (paid && order.clientId && !paymentOnly) {
       try {
         inviteImage = await inviteCodeDataUrl(makeInviteToken(String(order.clientId)));
       } catch {
@@ -95,10 +97,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       label: order.productName || "",
       clientName: order.clientName || "",
       paid,
-      // No client attached yet → the page asks for name + phone before paying.
-      needsIdentity: !order.clientId,
+      paymentOnly,
+      // In-person payments and online renewals never require an app account.
+      needsIdentity: !paymentOnly && !order.clientId,
       // The payer's own account code, for the "your account is ready" step.
-      clientCode: order.clientId || "",
+      clientCode: paymentOnly ? "" : order.clientId || "",
       inviteImage,
       fapiao: parseFapiao(notes),
     });
@@ -106,6 +109,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
   const body = (req.body ?? {}) as Record<string, unknown>;
   if (String(body.action || "") === "identify") {
+    if (paymentOnly) {
+      return res.status(409).json({ error: "This link is payment-only" });
+    }
     const name = String(body.name || "").trim().replace(/\s+/g, " ").slice(0, 60);
     const phone = String(body.phone || "").replace(/[\s-]/g, "").slice(0, 20);
     const email = String(body.email || "").trim().slice(0, 120);

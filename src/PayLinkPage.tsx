@@ -15,6 +15,7 @@ type LinkInfo = {
   label: string;
   clientName: string;
   paid: boolean;
+  paymentOnly: boolean;
   needsIdentity: boolean;
   clientCode: string;
   /** Data URL of the athlete's personal invite scan code, once paid. */
@@ -35,7 +36,7 @@ export default function PayLinkPage() {
   const [lang, setLang] = useState<"en" | "zh">(detectLang);
   const tr = (en: string, zh: string) => (lang === "zh" ? zh : en);
   const [info, setInfo] = useState<LinkInfo | null>(null);
-  const [error, setError] = useState("");
+  const [error, setError] = useState(key ? "" : "missing");
   const [paid, setPaid] = useState(false);
   const wxpayEnabled = useWxpayEnabled();
 
@@ -83,10 +84,7 @@ export default function PayLinkPage() {
   }, [lang]);
 
   useEffect(() => {
-    if (!key) {
-      setError("missing");
-      return;
-    }
+    if (!key) return;
     let cancelled = false;
     fetch(`/api/payLink?key=${encodeURIComponent(key)}`)
       .then(async (res) => {
@@ -190,7 +188,7 @@ export default function PayLinkPage() {
                   <span aria-hidden="true">✓</span>
                   <strong>{tr("Paid. Thank you!", "已付款，谢谢！")}</strong>
                 </div>
-                {info.clientCode ? (
+                {!info.paymentOnly && info.clientCode ? (
                   <div className="payLinkAccount">
                     <strong>{tr("Your training account is ready", "你的训练账户已开通")}</strong>
                     <p className="payLinkHint">
@@ -222,7 +220,7 @@ export default function PayLinkPage() {
                   </div>
                 ) : null}
               </>
-            ) : info.needsIdentity ? (
+            ) : !info.paymentOnly && info.needsIdentity ? (
               <form
                 className="payLinkForm"
                 onSubmit={(event) => {

@@ -35,7 +35,7 @@ export default function CollectPaymentModal({
   const [phase, setPhase] = useState<Phase>({ step: "form" });
   const pollRef = useRef<number | null>(null);
   const onCollectedRef = useRef(onCollected);
-  onCollectedRef.current = onCollected;
+  useEffect(() => { onCollectedRef.current = onCollected; }, [onCollected]);
 
   useEffect(() => {
     return () => {
@@ -102,7 +102,8 @@ export default function CollectPaymentModal({
           amount: value,
           label: label.trim(),
           clientName: clientName.trim() || undefined,
-          productType,
+          productType: productType === "Online Coaching Renewal" ? "Online Coaching" : productType,
+          ...(productType === "Online Coaching Renewal" ? { paymentPurpose: "renewal" } : {}),
           assignCoach: assignCoach || undefined,
         }),
       });
@@ -176,6 +177,7 @@ export default function CollectPaymentModal({
                   <span>{tr("Type", "类型")}</span>
                   <select value={productType} onChange={(event) => setProductType(event.target.value)}>
                     <option value="Online Coaching">{tr("Online coaching", "线上私教")}</option>
+                    <option value="Online Coaching Renewal">{tr("Online coaching — renewal", "线上私教 — 续费")}</option>
                     <option value="In-Person Training">{tr("In-person training", "线下训练")}</option>
                     <option value="Digital Program">{tr("Digital program", "数字计划")}</option>
                     <option value="Other">{tr("Other", "其他")}</option>
@@ -191,6 +193,13 @@ export default function CollectPaymentModal({
                   </select>
                 </label>
               </div>
+              <p className="collectPayHint">
+                {productType === "In-Person Training" || productType === "Online Coaching Renewal"
+                  ? tr("Payment only — no app signup or training-account prompts.", "仅付款，不要求注册应用，也不显示训练账户提示。")
+                  : productType === "Online Coaching"
+                    ? tr("New clients enter their details and receive a training account. For an existing client's next month, choose Online coaching — renewal.", "新客户填写信息后将开通训练账户。现有客户支付下个月费用时，请选择「线上私教 — 续费」。")
+                    : null}
+              </p>
               {error ? <p className="collectPayError">{error}</p> : null}
               <button
                 type="button"

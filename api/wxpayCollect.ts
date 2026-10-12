@@ -11,6 +11,7 @@ import {
   wxpayEnabled,
 } from "../server/wxpay/client.ts";
 import { digitalSalesPaused, STORE_PAUSED } from "../server/storePolicy.ts";
+import { ONLINE_RENEWAL_NOTE } from "../server/payLinkPolicy.ts";
 
 // Coach-console "收款码 Collect payment": mint a fixed-amount WeChat Pay QR
 // for anything sold outside the store (in-person sessions, referrals from
@@ -40,6 +41,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     "Other",
   ]);
   const productType = COLLECT_TYPES.has(productTypeRaw) ? productTypeRaw : "Other";
+  const isRenewal = productType === "Online Coaching" && req.body?.paymentPurpose === "renewal";
   if (digitalSalesPaused(productType)) return res.status(403).json(STORE_PAUSED);
   const assignCoach = String(req.body?.assignCoach || "").trim().slice(0, 80);
   if (!Number.isFinite(amount) || amount < 0.01 || amount > 100_000) {
@@ -59,6 +61,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       paymentStatus: "Pending",
       paymentProvider: "WeChat Pay",
       intakeStatus: "Not Needed",
+      ...(isRenewal ? { notes: ONLINE_RENEWAL_NOTE } : {}),
       ...(assignCoach ? { assignedCoach: assignCoach } : {}),
     });
     if (!created.success) {
