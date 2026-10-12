@@ -1,5 +1,9 @@
 /* Public payment link page — forced-light, phone-first, brand gold. Owns its
    own foreground tokens (mistake #24) so a dark-mode OS can't blank it. */
+.payLink,
+.payLink * {
+  box-sizing: border-box;
+}
 .payLink {
   --pl-ink: #151515;
   --pl-ink-soft: #6b6b63;
