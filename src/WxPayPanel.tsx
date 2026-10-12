@@ -84,9 +84,12 @@ export function useWxpayEnabled(): boolean {
     if (!enabledPromise) {
       enabledPromise = fetch("/api/wxpayConfig")
         .then((res) => (res.ok ? res.json() : { enabled: false }))
-        .then((data) => {
-          enabledCache = data?.enabled === true;
-          if (enabledCache) void bootstrapWechatOpenid();
+        .then(async (data) => {
+          const enabled = data?.enabled === true;
+          // Finish exchanging the OAuth callback before mounting the panel;
+          // otherwise it sees no token yet and falls back to a scan-only QR.
+          if (enabled) await bootstrapWechatOpenid();
+          enabledCache = enabled;
           return enabledCache;
         })
         .catch(() => {
