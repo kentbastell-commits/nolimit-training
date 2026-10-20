@@ -11,7 +11,8 @@ import PortalToApp from "./PortalToApp";
 import { useTranslation } from "react-i18next";
 import { CheckSquare, ChevronDown, X } from "lucide-react";
 import "./ReviewPage.css";
-import { normalizeDate, toMediaCdnUrl } from "./appCore";
+import { normalizeDate } from "./appCore";
+import ReviewVideo from "./ReviewVideo";
 import CountUp from "./CountUp";
 import ReviewPager, { reviewPageNumber, REVIEW_PAGE_SIZE } from "./ReviewPager";
 
@@ -432,13 +433,7 @@ export default function ReviewPage({
                     </span>
                   </div>
                   {video.videoUrl && (
-                    <video
-                      className="rvVideo"
-                      src={toMediaCdnUrl(video.videoUrl)}
-                      controls
-                      playsInline
-                      preload="metadata"
-                    />
+                    <ReviewVideo url={video.videoUrl} title={video.exerciseName || "Workout video"} />
                   )}
                   {video.clientNote && (
                     <p className="rvNote">{video.clientNoteEn || video.clientNote}</p>

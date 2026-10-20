@@ -1,0 +1,7 @@
+.reviewVideoPlayer { min-width: 0; }
+.reviewVideoPlayer .rvVideo { display: block; }
+.reviewVideoActions { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 16px; padding-top: 8px; }
+.reviewVideoActions button, .reviewVideoActions a { min-height: 44px; display: inline-flex; align-items: center; font: inherit; font-size: 14px; }
+.reviewVideoActions button { border: 1px solid #d9d7cd; border-radius: 8px; background: #fff; color: #29271f; padding: 6px 12px; cursor: pointer; }
+.reviewVideoActions a { color: #765b29; text-decoration: underline; }
+.reviewVideoError { color: #9a332a; margin: 8px 0 0; font-size: 14px; }
