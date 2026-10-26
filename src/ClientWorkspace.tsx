@@ -144,6 +144,8 @@ export default function ClientWorkspace({
   openAssignmentHubFromCalendar,
   openCalendarActionMenu,
   openEditClientForm,
+  openAccountModal,
+  openCoachAssignment,
   openMetricsEditor,
   openWorkout,
   overviewDetailsOpen,
@@ -682,7 +684,7 @@ export default function ClientWorkspace({
                     </div>
                     <div className="coachClientIdentity">
                       <span>{t("coachModeLabel")}</span>
-                      <h1><CoachAthleteSwitcher clients={switchableAthletes} selected={selectedClient.id} name={selectedClient.name} select={switchAthlete} /></h1>
+                      <h1><CoachAthleteSwitcher clients={switchableAthletes} selected={selectedClient.id} name={selectedClient.coachAlias ? `${selectedClient.name} · ${selectedClient.coachAlias}` : selectedClient.name} select={switchAthlete} /></h1>
                       <p>
                         {selectedClient.clientType || t("client")} ·{" "}
                         {getCoachDisplayName(
@@ -693,6 +695,9 @@ export default function ClientWorkspace({
                       </p>
                     </div>
                     <div className="coachClientContextActions">
+                      <button type="button" className="coachClientPortalButton" onClick={() => openCoachAssignment(selectedClient)}>
+                        <UserCircle size={16} aria-hidden="true" />{paceZh ? "分配教练" : "Assign coaches"}
+                      </button>
                       <button
                         type="button"
                         className="coachClientPortalButton"
@@ -892,7 +897,7 @@ export default function ClientWorkspace({
 
                 <button
                   className={clientTab === "Overview" ? "tab activeTab" : "tab"}
-                  onClick={() => setClientTab("Overview")}
+                  onClick={() => openAccountModal(selectedClient)}
                 >
                   <UserCircle size={16} aria-hidden="true" /> {t("coachWorkspaceProfileTitle")}
                 </button>
@@ -913,7 +918,7 @@ export default function ClientWorkspace({
                 client={selectedClient} workouts={workouts} checkIns={coachingCheckIns} checkInsReady={coachingCheckInsReady} items={coachingItems} decisions={coachingDecisions} videos={coachingVideos}
                 loading={workoutsLoading} loadFailed={workoutsLoadFailed} feedLoading={coachingFeedLoading} feedError={coachingFeedError} retry={retryWorkouts}
                 openWorkout={openWorkout} adjustNext={adjustNextSession} openReview={openCoachingReview} openCalendar={() => setClientTab("Training")}
-                openProgress={() => { setClientTab("Home"); setCoachDashTab("science"); }} openNotes={() => setClientTab("Overview")} workoutName={localizedWorkoutName} />}
+                openProgress={() => { setClientTab("Home"); setCoachDashTab("science"); }} openNotes={() => openAccountModal(selectedClient)} workoutName={localizedWorkoutName} />}
               {!isClientPortal && clientTab === "Home" && coachDashTab !== "activity" && (
                 <PortalHome
                   t={t}
@@ -961,7 +966,7 @@ export default function ClientWorkspace({
                 />
               )}
 
-              {!isClientPortal && clientTab === "Overview" && accountPanel}
+              {!isClientPortal && clientTab === "Overview" && <section className="profileCard"><h3>{selectedClient.name}</h3><p>{paceZh ? "联系方式、教练、付款记录与账户信息。" : "Contact details, coaches, payments, and account information."}</p><button type="button" className="outlineButton" onClick={() => openAccountModal(selectedClient)}>{paceZh ? "查看资料" : "View profile"}</button></section>}
 
               {clientTab === "Programs" && (
                 <PortalPrograms

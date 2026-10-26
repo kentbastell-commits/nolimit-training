@@ -8,9 +8,8 @@ vi.mock("../../../src/PortalTraining", () => ({
   ),
 }));
 
-// ClientWorkspace routes between PortalHome / PortalTraining / PortalPrograms /
-// ClientOverview by clientTab. The Overview tab has the smallest prop surface,
-// so the smoke test renders the coach view on that tab.
+// Smoke-test the coach workspace on its small Overview entry point. Profile
+// editing opens the separate ClientProfilePanel rather than changing tabs.
 const baseProps = {
   t: (k: string) => k,
   clientTab: "Overview",
@@ -39,6 +38,7 @@ const baseProps = {
   getCoachDisplayName: (name: string) => name,
   inboxSeenAt: 0,
   openEditClientForm: vi.fn(),
+  openAccountModal: vi.fn(),
   setClientTab: vi.fn(),
   setSelectedClient: vi.fn(),
   setSelectedWorkout: vi.fn(),
@@ -49,7 +49,7 @@ const baseProps = {
   updateClientPackage: vi.fn(),
   updatingClientStatus: false,
   paceZh: false,
-  // ClientOverview (rendered for clientTab === "Overview")
+  // Legacy overview props retained by ClientWorkspace's prop interface.
   coachNotesDraft: "",
   editingMetrics: false,
   formatPace: () => "4:00 /km",
@@ -108,10 +108,10 @@ describe("ClientWorkspace", () => {
   it("renders the coach view header and overview tab", () => {
     render(<ClientWorkspace {...baseProps} />);
     expect(
-      screen.getByRole("heading", { name: "Ada Lovelace" })
+      screen.getByRole("heading", { name: "Ada Lovelace", level: 1 })
     ).toBeInTheDocument();
-    expect(screen.getByText("Online Coaching")).toBeInTheDocument();
-    expect(screen.getByText("Coach Notes")).toBeInTheDocument();
+    expect(screen.getByText(/Online Coaching/, { selector: ".coachClientIdentity p" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "View profile" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "clients" })).toBeInTheDocument();
   });
 
@@ -124,12 +124,14 @@ describe("ClientWorkspace", () => {
     expect(setSelectedClient).toHaveBeenCalledWith(null);
   });
 
-  it("switches tabs via the client tab bar", () => {
+  it("opens the athlete profile from the client tab bar", () => {
     const setClientTab = vi.fn();
-    render(<ClientWorkspace {...baseProps} setClientTab={setClientTab} />);
+    const openAccountModal = vi.fn();
+    render(<ClientWorkspace {...baseProps} setClientTab={setClientTab} openAccountModal={openAccountModal} />);
     fireEvent.click(
       screen.getByRole("button", { name: "coachWorkspaceProfileTitle" })
     );
-    expect(setClientTab).toHaveBeenCalledWith("Overview");
+    expect(openAccountModal).toHaveBeenCalledWith(baseProps.selectedClient);
+    expect(setClientTab).not.toHaveBeenCalled();
   });
 });

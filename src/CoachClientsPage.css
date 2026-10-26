@@ -444,6 +444,7 @@
   box-shadow: 0 10px 26px -18px rgba(0, 0, 0, 0.45);
   border-color: #d8cfb6;
 }
+.crpRow:focus-visible { outline: 2px solid #68815a; outline-offset: 3px; }
 .crpCheck {
   flex: none;
   width: 20px;
@@ -938,3 +939,4 @@
   .crpIconBtn,
   .crpQuick button { transition: none; }
 }
+.crpAlias { display: inline-block; padding: 2px 7px; border-radius: 5px; background: #f2ead7; color: #74561e; font-size: 12px; font-weight: 600; overflow-wrap: anywhere; }

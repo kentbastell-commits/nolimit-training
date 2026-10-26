@@ -1,0 +1,148 @@
+.cpScrim { position: fixed; z-index: 1550; inset: 0; display: flex; align-items: center; justify-content: center; padding: 24px; background: #12241d80; backdrop-filter: blur(5px); }
+.cpPanel { width: min(1060px, 100%); height: min(840px, calc(100dvh - 48px)); display: flex; flex-direction: column; border: 1px solid #d8decf; border-radius: 22px; background: #fcfcf7; color: #263e32; box-shadow: 0 30px 100px #10291d40; overflow: hidden; font-size: 14px; }
+.cpPanel *, .clientActionPopover * { box-sizing: border-box; }
+.cpPanel button, .cpPanel input, .cpPanel select, .cpPanel textarea { font: inherit; }
+.cpPanel button { display: inline-flex; justify-content: center; align-items: center; gap: 7px; min-height: 38px; padding: 8px 13px; border: 1px solid #d9ded2; border-radius: 9px; background: #fffefb; color: #3c5142; cursor: pointer; font-size: 12px; font-weight: 600; }
+.cpPanel button:hover { background: #edf2e9; border-color: #b7c7b3; }
+.cpPanel button:disabled { opacity: .45; cursor: default; }
+.cpPanel button:focus-visible { outline: 2px solid #46745a; outline-offset: 3px; }
+.cpHeader { display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; padding: 26px 30px 21px; background: #fffefb; }
+.cpIdentity { display: flex; gap: 16px; align-items: center; min-width: 0; }
+.cpIdentity > div:last-child { min-width: 0; }
+.cpAvatar { display: flex; align-items: center; justify-content: center; width: 66px; height: 66px; flex: none; border-radius: 19px; background: #e6eddf; color: #486642; font-size: 25px; font-weight: 700; }
+.cpEyebrow { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 1.2px; color: #7b8775; }
+.cpEyebrow > span { font-weight: 500; color: #9a9f94; letter-spacing: .2px; }
+.cpHeader h2 { font-size: clamp(22px, 3vw, 29px); line-height: 1.2; letter-spacing: -.7px; margin: 5px 0 8px; overflow-wrap: anywhere; }
+.cpAlias { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; font-size: 15px; font-weight: 600; margin: 0 0 10px; overflow-wrap: anywhere; }
+.cpAlias span { font-size: 10px; font-weight: 500; color: #737467; border: 1px solid #dedfd3; border-radius: 4px; padding: 2px 5px; }
+.cpPrivateIdentity { border-left: 3px solid #b19046; }
+.cpSummary .cpAssignLink { align-self: flex-start; min-height: 32px; padding: 3px 0; color: #7d5c1e; background: transparent; border: 0; text-align: left; justify-content: flex-start; }
+.cpTagList { display: flex; gap: 10px; flex-wrap: wrap; }
+.cpTagRow { display: flex; align-items: center; gap: 8px; min-width: 0; max-width: 100%; }
+.cpTag { display: inline-block; font-size: 12px; font-weight: 600; padding: 7px 11px; border-radius: 6px; overflow-wrap: anywhere; min-width: 0; }
+.cpTagColour { display: flex; align-items: center; gap: 5px; font-size: 10px; color: #70766a; }
+.cpPanel input[type="color"] { width: 42px; min-width: 42px; height: 42px; padding: 4px; border-radius: 8px; cursor: pointer; }
+.cpTagPalette { display: flex; flex-wrap: wrap; gap: 7px; margin-top: 10px; }
+.cpPanel .cpTagPalette button { width: 36px; min-height: 36px; padding: 0; border: 2px solid transparent; }
+.cpPanel .cpTagPalette button[aria-pressed="true"] { outline: 2px solid #94722c; outline-offset: 2px; }
+.cpChipInput { margin-top: 16px; }
+.cpIdentityMeta { display: flex; align-items: center; gap: 9px; flex-wrap: wrap; font-size: 12px; color: #778170; }
+.cpStatus { display: inline-flex; gap: 5px; align-items: center; border-radius: 5px; background: #f0eee5; padding: 3px 7px; font-size: 10px; color: #807663; }
+.cpStatus.active { background: #edf4e8; color: #507443; }
+.cpStatus.active::before { content: ''; width: 4px; height: 4px; background: #749963; border-radius: 50%; }
+.cpPanel .cpIconButton { width: 36px; flex: none; padding: 0; background: transparent; border-color: transparent; }
+.cpActionBar { display: flex; gap: 8px; align-items: center; padding: 0 30px 20px; border-bottom: 1px solid #e1e5d9; background: #fffefb; }
+.cpActionBar .cpEditButton { margin-left: auto; background: #eaf0e3; border-color: #dae4d0; color: #44603b; }
+.cpLayout { display: grid; grid-template-columns: 190px minmax(0, 1fr); flex: 1; min-height: 0; }
+.cpTabs { display: flex; flex-direction: column; gap: 5px; padding: 24px 14px; border-right: 1px solid #e3e6da; }
+.cpTabs button { min-height: 43px; justify-content: flex-start; border-color: transparent; background: transparent; font-size: 12px; font-weight: 500; padding: 9px 11px; }
+.cpTabs button svg { flex: none; color: #85927a; }
+.cpTabs button[aria-current="page"] { color: #315529; background: #eaf0e1; font-weight: 650; }
+.cpTabs p { margin: auto 12px 5px; padding-top: 35px; font-size: 11px; line-height: 1.6; color: #919888; }
+.cpScroll { overflow-y: auto; overscroll-behavior: contain; padding: 24px 28px 32px; scrollbar-width: thin; scrollbar-color: #c7cdbd transparent; }
+.cpSummary { display: grid; grid-template-columns: repeat(3, minmax(0,1fr)); padding: 18px 0; border: 1px solid #dde4d4; background: #f2f5eb; border-radius: 12px; margin-bottom: 23px; }
+.cpSummary > div { display: flex; flex-direction: column; gap: 7px; padding: 0 18px; min-width: 0; border-right: 1px solid #dfe6d5; }
+.cpSummary > div:last-child { border: 0; }
+.cpSummary span { font-size: 11px; color: #66745a; font-weight: 600; }
+.cpSummary strong { font-size: 15px; font-weight: 650; line-height: 1.4; overflow-wrap: anywhere; }
+.cpSummary small { font-size: 11px; color: #6f7b63; line-height: 1.5; }
+.cpSection { background: #fffefb; border: 1px solid #e4e6dc; border-radius: 13px; padding: 23px; margin-bottom: 17px; }
+.cpSection:last-child { margin-bottom: 0; }
+.cpSectionHead { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; margin-bottom: 19px; }
+.cpSectionHead > svg { color: #a4b096; }
+.cpSectionHead h3 { font-size: 15px; font-weight: 650; letter-spacing: -.2px; margin: 0 0 5px; }
+.cpSectionHead p { color: #6f7865; font-size: 12px; line-height: 1.55; margin: 0; }
+.cpSectionHead button { flex: none; padding: 4px 7px; min-height: 30px; border-color: transparent; background: transparent; font-size: 11px; }
+.cpFieldGrid { display: grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap: 22px 30px; }
+.cpField { display: flex; flex-direction: column; gap: 7px; min-width: 0; }
+.cpField > label, .cpField > span, .cpPosition > span { display: block; font-size: 12px; color: #6b765f; font-weight: 500; }
+.cpField p { margin: 0; font-size: 14px; line-height: 1.6; overflow-wrap: anywhere; white-space: pre-wrap; }
+.cpPanel input:not([type="checkbox"]), .cpPanel select, .cpPanel textarea { display: block; width: 100%; min-width: 0; min-height: 40px; padding: 9px 10px; border: 1px solid #d4ddca; background: #fff; color: #2e4537; border-radius: 8px; font-size: 13px; outline: none; }
+.cpPanel input:focus, .cpPanel select:focus, .cpPanel textarea:focus { border-color: #8bab76; box-shadow: 0 0 0 3px #b3cba328; }
+.cpPanel textarea { min-height: 145px; resize: vertical; line-height: 1.7; }
+.cpNotes { white-space: pre-wrap; overflow-wrap: anywhere; line-height: 1.8; font-size: 13px; margin: 0; }
+.cpEmptyValue { color: #a2a798 !important; font-weight: 400; font-size: 12px; }
+.cpFooter { display: flex; gap: 18px; align-items: center; justify-content: space-between; padding: 17px 28px; background: #fffefb; border-top: 1px solid #e1e5d9; }
+.cpFooter > div:first-child { min-width: 0; font-size: 11px; color: #919783; line-height: 1.5; }
+.cpFooter > div:last-child { display: flex; gap: 8px; flex: none; }
+.cpPanel .cpPrimary { color: #fff; background: #48663b; border-color: #48663b; }
+.cpPanel .cpPrimary:hover { background: #36532a; }
+.cpSaved { display: inline-flex; align-items: center; gap: 5px; color: #4e7440; }
+.cpError { color: #a44834; }
+.cpDiscard { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; padding: 12px 24px; color: #7d5a28; background: #fff4df; font-size: 12px; }
+.cpDiscard > span { margin-right: auto; }
+.cpPaymentList { display: grid; gap: 14px; }
+.cpPayment { padding: 15px; border: 1px solid #e4e8dc; border-radius: 9px; }
+.cpPaymentTop { display: flex; justify-content: space-between; align-items: flex-start; gap: 18px; }
+.cpPaymentTop > div { display: flex; flex-direction: column; gap: 7px; min-width: 0; }
+.cpPaymentTop > div:last-child { flex: none; align-items: flex-end; }
+.cpPaymentTop strong { font-size: 12px; overflow-wrap: anywhere; }
+.cpPaymentTop small, .cpPaymentBottom { font-size: 10px; color: #949b88; line-height: 1.6; }
+.cpPaymentStatus { font-size: 10px; padding: 2px 6px; border-radius: 4px; background: #f3efe4; color: #998254; }
+.cpPaymentStatus.paid { background: #edf4e8; color: #6a8a51; }
+.cpPaymentBottom { display: flex; gap: 10px; align-items: center; justify-content: space-between; margin-top: 14px; }
+.cpPaymentBottom button { flex: none; min-height: 28px; border: 0; background: transparent; font-size: 10px; padding: 3px 5px; color: #76895f; }
+.cpPaymentBottom small { font-size: inherit; }
+.cpPaymentEdit { display: flex; align-items: flex-end; flex-wrap: wrap; gap: 8px; margin-top: 15px; }
+.cpPaymentEdit label { display: grid; gap: 7px; font-size: 11px; color: #839275; margin-right: auto; }
+.cpPaymentHint { background: #faf5e6; border-radius: 7px; padding: 10px 12px; font-size: 11px; color: #9b8755; line-height: 1.6; margin: 0 0 16px; }
+.cpEmptyHistory { display: flex; flex-direction: column; align-items: center; gap: 10px; text-align: center; padding: 30px 12px; color: #a3ae96; }
+.cpEmptyHistory strong { font-size: 13px; color: #65795a; }
+.cpEmptyHistory p { font-size: 11px; line-height: 1.6; margin: 0; }
+.cpLoadError { font-size: 12px; color: #a9774f; display: flex; justify-content: space-between; align-items: center; gap: 12px; }
+.cpCheckbox { display: flex; align-items: center; gap: 9px; font-size: 12px; color: #647558; margin-top: 16px; }
+.cpCheckbox input { accent-color: #66884f; width: 16px; height: 16px; }
+.cpInlineActions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 20px; }
+.cpTeamList { display: grid; gap: 10px; }
+.cpTeamRow { display: flex; justify-content: space-between; align-items: center; gap: 16px; border: 1px solid #e4e8dc; border-radius: 9px; padding: 12px; }
+.cpTeamRow .cpCheckbox { margin: 0; }
+.cpPosition { display: grid; gap: 5px; max-width: 180px; }
+.cpChips { display: flex; flex-wrap: wrap; gap: 7px; }
+.cpChips > span { display: inline-flex; align-items: center; gap: 7px; padding: 5px 9px; border: 1px solid #e2e8d7; border-radius: 7px; font-size: 12px; background: #f3f6ec; color: #70845e; }
+.cpChips button { min-height: 20px; padding: 0 3px; border: 0; background: transparent; font-size: 17px; }
+.cpChipInput { display: flex; gap: 8px; margin-top: 15px; }
+.cpChipInput button { flex: none; }
+@media(max-width: 700px) {
+  .cpScrim { padding: 0; }
+  .cpPanel { width: 100%; height: 100dvh; max-height: none; border-radius: 0; border: 0; }
+  .cpHeader { padding: 21px 18px 17px; }
+  .cpAvatar { width: 51px; height: 51px; border-radius: 15px; font-size: 21px; }
+  .cpIdentity { gap: 12px; }
+  .cpEyebrow { font-size: 9px; letter-spacing: .6px; }
+  .cpActionBar { padding: 0 18px 16px; gap: 6px; flex-wrap: wrap; }
+  .cpPanel button { min-height: 44px; }
+  .cpActionBar button { font-size: 11px; padding: 8px 10px; }
+  .cpActionBar .cpEditButton { margin-left: 0; }
+  .cpLayout { display: flex; flex-direction: column; }
+  .cpTabs { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); flex: none; gap: 4px; padding: 8px 10px; border-right: 0; border-bottom: 1px solid #e3e6da; }
+  .cpTabs button { min-width: 0; min-height: 58px; font-size: 10px; padding: 6px 4px; gap: 5px; flex-direction: column; justify-content: center; line-height: 1.3; text-align: center; }
+  .cpTabs button svg { width: 16px; height: 16px; }
+  .cpTabs p { display: none; }
+  .cpScroll { padding: 17px 14px 24px; }
+  .cpSummary { padding: 14px 0; margin-bottom: 16px; }
+  .cpSummary > div { padding: 0 10px; gap: 7px; }
+  .cpSummary span { font-size: 10px; }
+  .cpSummary strong { font-size: 12px; }
+  .cpSummary small { font-size: 10px; }
+  .cpSection { padding: 19px 16px; }
+  .cpSectionHead { gap: 7px; }
+  .cpSectionHead h3 { font-size: 14px; }
+  .cpSectionHead p { font-size: 11px; }
+  .cpSectionHead button { min-height: 40px; font-size: 10px; padding: 5px; }
+  .cpFieldGrid { gap: 21px 17px; }
+  .cpPanel input:not([type="checkbox"]), .cpPanel select { min-height: 44px; font-size: 14px; }
+  .cpFooter { padding: 12px 14px max(12px, env(safe-area-inset-bottom)); gap: 10px; }
+  .cpFooter > div:first-child { font-size: 10px; }
+  .cpFooter button { padding: 8px 11px; font-size: 11px; }
+  .cpPayment { padding: 13px 10px; }
+  .cpPaymentBottom { align-items: flex-start; }
+  .cpPaymentBottom small { display: block; }
+  .cpPaymentBottom button { min-height: 44px; }
+  .cpTeamRow { flex-wrap: wrap; }
+  .cpPosition { width: 100%; max-width: none; }
+  .cpDiscard { padding: 12px 16px; }
+}
+@media(max-width: 380px) { .cpFieldGrid { grid-template-columns: 1fr; } .cpFooter { flex-wrap: wrap; } .cpFooter > div:last-child { margin-left: auto; } }
+.cpPanel .cpTagColour input[type="color"], .cpPanel .cpChipInput input[type="color"] { flex: 0 0 42px; width: 42px; min-width: 42px; max-width: 42px; height: 42px; padding: 4px; }
+.cpChipInput > input:not([type="color"]) { flex: 1 1 auto; }
+.cpTagRow > .cpTagColour, .cpTagRow > button { flex-shrink: 0; }

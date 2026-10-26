@@ -20,8 +20,8 @@ export default function AddClientModal({
                   <h2>{editingClient ? "Edit Client" : "Add Client"}</h2>
                   <p>
                     {editingClient
-                      ? "Update this client record in Feishu."
-                      : "Create a client record in Feishu."}
+                      ? "Update this athlete’s details and coach assignment."
+                      : "Create an athlete and choose their coaches, or leave them unassigned."}
                   </p>
                 </div>
 
@@ -67,24 +67,28 @@ export default function AddClientModal({
                       const selectedCoach = activeCoaches.find(
                         (coach: any) =>
                           coach.recordId === e.target.value ||
+                          coach.coachId === e.target.value ||
                           coach.name === e.target.value
                       );
 
                       setNewClient({
                         ...newClient,
                         coach: selectedCoach?.name || e.target.value,
-                        primaryCoachId: selectedCoach?.recordId || "",
+                        primaryCoachId: selectedCoach?.recordId || selectedCoach?.coachId || "",
+                        secondaryCoachId: newClient.secondaryCoachId === e.target.value ? "" : newClient.secondaryCoachId,
                       });
                     }}
                   >
+                    <option value="">Unassigned</option>
                     {/* Phantom-select guard (named mistake 21): without a
                         matching option for the initial "Kent Bastell"/""
                         state, the select DISPLAYED the first coach while
                         save assigned someone else. */}
-                    {!activeCoaches.some(
+                    {(newClient.primaryCoachId || newClient.coach) && !activeCoaches.some(
                       (coach: any) =>
                         coach.recordId ===
                           (newClient.primaryCoachId || newClient.coach) ||
+                        coach.coachId === (newClient.primaryCoachId || newClient.coach) ||
                         coach.name === (newClient.primaryCoachId || newClient.coach)
                     ) && (
                       <option value={newClient.primaryCoachId || newClient.coach}>
@@ -94,7 +98,7 @@ export default function AddClientModal({
                     {activeCoaches.map((coach: any) => (
                       <option
                         key={coach.recordId || coach.coachId}
-                        value={coach.recordId || coach.name}
+                        value={coach.recordId || coach.coachId || coach.name}
                       >
                         {coach.name}
                       </option>
@@ -114,10 +118,11 @@ export default function AddClientModal({
                     }
                   >
                     <option value="">None</option>
+                    {newClient.secondaryCoachId && !activeCoaches.some((coach: any) => (coach.recordId || coach.coachId || coach.name) === newClient.secondaryCoachId) && <option value={newClient.secondaryCoachId}>{newClient.secondaryCoachId} (current)</option>}
                     {activeCoaches.map((coach: any) => (
                       <option
                         key={coach.recordId || coach.coachId}
-                        value={coach.recordId}
+                        value={coach.recordId || coach.coachId || coach.name}
                       >
                         {coach.name}
                       </option>

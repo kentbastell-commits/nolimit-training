@@ -46,6 +46,8 @@ export type WriteResult = { success: boolean; [key: string]: unknown };
 
 export type UpdateClientInput = {
   clientRecordId: string;
+  coachAlias?: string;
+  tagColors?: Record<string, string>;
   name?: string;
   email?: string;
   phone?: string;
@@ -136,6 +138,8 @@ export type ProgramDTO = {
 };
 
 export type ClientDTO = {
+  coachAlias?: string;
+  tagColors?: Record<string, string>;
   id: string;
   clientCode: string;
   name: string;
@@ -523,6 +527,7 @@ export type OrderDTO = {
   marketingAttributionCode?: string;
   paymentProvider: string;
   purchasedAt: string;
+  paidAt?: string;
   accessStartDate: string;
   accessEndDate: string;
   intakeStatus: string;

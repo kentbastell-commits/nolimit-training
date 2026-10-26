@@ -38,6 +38,7 @@ export default function CoachEditModal(props: { [key: string]: any }) {
     updateCoachStatus,
     setCoachScope,
     setActivePage,
+    openCoachAssignment,
   } = props;
 
   const assigned =
@@ -253,6 +254,7 @@ export default function CoachEditModal(props: { [key: string]: any }) {
             <>
               <div className="capSectionLabel capSectionSpaced">
                 Assigned clients ({assigned.length})
+                {editingCoach.status !== "Inactive" && <button type="button" className="capFootBtn" onClick={() => { closeCoachForm(); openCoachAssignment(undefined, editingCoach); }}>Assign athlete</button>}
               </div>
               <div className="capAssignedList">
                 {assigned.length === 0 ? (
@@ -269,6 +271,7 @@ export default function CoachEditModal(props: { [key: string]: any }) {
                           {cl.status || "Active client"}
                         </div>
                       </div>
+                      <button type="button" className="capFootBtn" onClick={() => { closeCoachForm(); openCoachAssignment(cl); }}>Assign coaches</button>
                     </div>
                   ))
                 )}

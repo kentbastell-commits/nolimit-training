@@ -1,0 +1,8 @@
+.clientActionPopover { position: fixed; z-index: 1700; width: 252px; max-width: calc(100vw - 16px); padding: 7px; border: 1px solid #dfdfd4; border-radius: 15px; background: #fffef9; box-shadow: 0 12px 48px #17382a26, 0 3px 8px #17382a12; }
+.clientActionPopoverIdentity { display: grid; gap: 3px; padding: 10px 12px 13px; margin-bottom: 4px; border-bottom: 1px solid #eaeae2; }
+.clientActionPopoverIdentity strong { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 14px; color: #223d32; }
+.clientActionPopoverIdentity span { font-size: 11px; color: #747b71; }
+.clientActionPopover button { width: 100%; display: flex; gap: 11px; align-items: center; min-height: 43px; border: 0; padding: 10px 12px; border-radius: 8px; background: transparent; color: #32473c; font: inherit; font-size: 13px; text-align: left; cursor: pointer; }
+.clientActionPopover button:hover, .clientActionPopover button:focus-visible { background: #edf2e9; outline: 0; }
+.clientActionPopover button svg { color: #74846b; flex: none; }
+@media(max-width: 600px) { .clientActionPopover button { min-height: 46px; } }

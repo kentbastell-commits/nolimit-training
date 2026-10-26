@@ -8,6 +8,7 @@ import listHandler from "../../../api/clients.ts";
 import createHandler from "../../../api/createClient.ts";
 import updateHandler from "../../../api/updateClient.ts";
 import loginHandler from "../../../api/recordLogin.ts";
+import profileHandler from "../../../api/myProfile.ts";
 import { closeDb, makeReq, makeRes, resetDb, rows, seedClient, seedProgram } from "./helpers.ts";
 
 beforeEach(async () => {
@@ -25,6 +26,14 @@ async function post(handler: any, body: Record<string, any>) {
 }
 
 describe("api/createClient (postgres)", () => {
+  it("leaves new signups unassigned instead of defaulting to Kent", async () => {
+    const res = await post(createHandler, { name: "New athlete", source: "Mini program" });
+    expect(res.statusCode).toBe(200);
+    const [client] = await rows("select coach_assigned, primary_coach_id, secondary_coach_id from clients");
+    expect(client.coach_assigned).toBe("");
+    expect(client.primary_coach_id).toBeNull();
+    expect(client.secondary_coach_id).toBeNull();
+  });
   it("rejects non-POST with 405", async () => {
     const res = makeRes();
     await createHandler(makeReq({ method: "GET" }) as any, res as any);
@@ -83,6 +92,20 @@ describe("api/createClient (postgres)", () => {
 });
 
 describe("api/updateClient (postgres)", () => {
+  it("reassigns both coaches and updates the miniprogram profile, then clears the assignment", async () => {
+    await rows("insert into coaches (coach_id, name) values ('COACH-MARIO', 'Mario Artukovic'), ('COACH-KENT', 'Kent Bastell')");
+    await seedClient({ coach_assigned: "Kent Bastell", primary_coach_id: "COACH-KENT" });
+    const assigned = await post(updateHandler, { clientRecordId: "CL-9001", primaryCoachId: "COACH-MARIO", secondaryCoachId: "COACH-KENT" });
+    expect(assigned.statusCode).toBe(200);
+    const profile = makeRes();
+    await profileHandler(makeReq({ query: { clientId: "CL-9001" } }) as any, profile as any);
+    expect(profile.body.profile.coach).toBe("Mario Artukovic");
+    expect((await rows("select secondary_coach_id, coach_assigned from clients"))[0]).toMatchObject({ secondary_coach_id: "COACH-KENT", coach_assigned: "Mario Artukovic" });
+    await post(updateHandler, { clientRecordId: "CL-9001", primaryCoachId: "", secondaryCoachId: "" });
+    const cleared = makeRes();
+    await profileHandler(makeReq({ query: { clientId: "CL-9001" } }) as any, cleared as any);
+    expect(cleared.body.profile.coach).toBe("");
+  });
   it("400s without a clientRecordId", async () => {
     const res = await post(updateHandler, { name: "Nope" });
     expect(res.statusCode).toBe(400);
@@ -147,6 +170,40 @@ describe("api/recordLogin (postgres)", () => {
 });
 
 describe("api/clients list (postgres)", () => {
+  it("persists the coach alias and colours while excluding the alias from portal responses", async () => {
+    await seedClient({ full_name: "闫俊祎" });
+    const saved = await post(updateHandler, { clientRecordId: "CL-9001", coachAlias: "Jason", tags: ["Youth"], tagColors: { Youth: "#223344" } });
+    expect(saved.statusCode).toBe(200);
+    expect((await rows("select full_name, coach_alias, tag_colors from clients"))[0]).toMatchObject({ full_name: "闫俊祎", coach_alias: "Jason", tag_colors: { Youth: "#223344" } });
+    const coach = makeRes();
+    await listHandler(makeReq({ method: "GET" }) as any, coach as any);
+    expect(coach.body.clients[0].coachAlias).toBe("Jason");
+    const portal = makeRes();
+    await listHandler(makeReq({ method: "GET", query: { code: "CL-9001" } }) as any, portal as any);
+    expect(portal.body.clients[0]).not.toHaveProperty("coachAlias");
+    const preview = makeRes();
+    await listHandler(makeReq({ method: "GET", headers: { "x-coach-key": "coach-preview" }, query: { code: "CL-9001" } }) as any, preview as any);
+    expect(preview.body.clients[0]).not.toHaveProperty("coachAlias");
+    const profile = makeRes();
+    await profileHandler(makeReq({ query: { clientId: "CL-9001" } }) as any, profile as any);
+    expect(JSON.stringify(profile.body)).not.toContain("Jason");
+    const clear = await post(updateHandler, { clientRecordId: "CL-9001", coachAlias: "", tagColors: {} });
+    expect(clear.statusCode).toBe(200);
+    expect((await rows("select coach_alias, tag_colors from clients"))[0]).toMatchObject({ coach_alias: "", tag_colors: {} });
+  });
+  it("requires coach access to edit aliases and rejects invalid colour values", async () => {
+    const { vi } = await import("vitest");
+    await seedClient();
+    vi.stubEnv("COACH_ACCESS_KEY", "test-coach");
+    try {
+      const blocked = await post(updateHandler, { clientRecordId: "CL-9001", coachAlias: "Private" });
+      expect(blocked.statusCode).toBe(401);
+      const invalid = makeRes();
+      await updateHandler(makeReq({ method: "POST", headers: { "x-coach-key": "test-coach" }, body: { clientRecordId: "CL-9001", tagColors: { Youth: "red;display:none" } } }) as any, invalid as any);
+      expect(invalid.body.success).toBe(false);
+      expect((await rows("select coach_alias from clients"))[0].coach_alias).toBeNull();
+    } finally { vi.unstubAllEnvs(); }
+  });
   it("returns [] when there are no clients", async () => {
     const res = makeRes();
     await listHandler(makeReq({ method: "GET" }) as any, res as any);

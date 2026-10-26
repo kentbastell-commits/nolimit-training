@@ -1,6 +1,6 @@
 import { and, eq, sql, type SQL } from "drizzle-orm";
 import { db } from "../client.ts";
-import { clients, assignedWorkouts, programs } from "../schema.ts";
+import { clients, coaches, assignedWorkouts, programs } from "../schema.ts";
 
 // Phone matching that survives formatting. WeChat hands us pure digits
 // ("13900001111"); coaches type "+86 139 0000 1111", "139-0000-1111" or the
@@ -79,6 +79,8 @@ export async function listClients(): Promise<ClientDTO[]> {
       zoneEasyPct: str(r.zoneEasyPct),
       tags: r.tags ?? [],
       categories: r.categories ?? [],
+      coachAlias: str(r.coachAlias),
+      tagColors: r.tagColors ?? {},
       lastLogin: r.lastLogin ?? 0,
     };
   });
@@ -119,7 +121,7 @@ export async function createClient(i: CreateClientInput): Promise<WriteResult> {
     fullName: i.name,
     email: i.email || "",
     phone: i.phone || "",
-    coachAssigned: i.coach || "Kent Bastell",
+    coachAssigned: i.coach || "",
     packageType: i.packageType || "Active",
     languagePreference: i.languagePreference || "English",
     notes: i.notes || "",
@@ -177,11 +179,29 @@ export async function recordLogin(
 
 export async function updateClient(i: UpdateClientInput): Promise<WriteResult> {
   const set: Partial<typeof clients.$inferInsert> = {};
+  if (i.coachAlias !== undefined) {
+    if (typeof i.coachAlias !== "string" || i.coachAlias.trim().length > 80) return { success: false, error: "Coach alias must be 80 characters or fewer." };
+    set.coachAlias = i.coachAlias.trim();
+  }
+  if (i.tagColors !== undefined) {
+    if (!i.tagColors || typeof i.tagColors !== "object" || Array.isArray(i.tagColors) || Object.keys(i.tagColors).length > 100 || Object.entries(i.tagColors).some(([tag, color]) => !tag.trim() || tag.length > 100 || typeof color !== "string" || !/^#[0-9a-f]{6}$/i.test(color))) return { success: false, error: "Choose a valid colour for each tag." };
+    set.tagColors = i.tagColors;
+  }
   if (i.name !== undefined) set.fullName = i.name;
   if (i.email !== undefined) set.email = i.email;
   if (i.phone !== undefined) set.phone = i.phone;
   if (i.coach !== undefined) set.coachAssigned = i.coach;
-  if (i.primaryCoachId !== undefined) set.primaryCoachId = i.primaryCoachId || null;
+  if (i.primaryCoachId !== undefined) {
+    set.primaryCoachId = i.primaryCoachId || null;
+    // Keep the legacy name in sync: otherwise clearing a primary coach makes
+    // the athlete profile fall back to the previous coach again.
+    if (i.coach === undefined) {
+      const [coach] = i.primaryCoachId
+        ? await db.select({ name: coaches.name }).from(coaches).where(eq(coaches.coachId, i.primaryCoachId)).limit(1)
+        : [];
+      set.coachAssigned = coach?.name || i.primaryCoachId || "";
+    }
+  }
   if (i.secondaryCoachId !== undefined) set.secondaryCoachId = i.secondaryCoachId || null;
   if (i.clientType !== undefined) set.clientType = i.clientType;
   if (i.packageType !== undefined) set.packageType = i.packageType;

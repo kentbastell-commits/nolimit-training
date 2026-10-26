@@ -54,6 +54,7 @@ const baseProps = {
   setClientSearch: vi.fn(),
   setClientStatusFilter: vi.fn(),
   setClientTab: vi.fn(),
+  setCoachDashTab: vi.fn(),
   setCoachScope: vi.fn(),
   setRosterGroupBy: vi.fn(),
   setRosterTriage: vi.fn(),
@@ -79,7 +80,7 @@ const client = {
 describe("CoachClientsPage", () => {
   it("keeps the athlete accessible while activity loads without claiming an empty history", () => {
     const open = vi.fn();
-    const props = { ...baseProps, clients: [client], rosterClients: [client], setSelectedClient: open };
+    const props = { ...baseProps, clients: [client], rosterClients: [client], openAccountModal: open };
     const { rerender } = render(<CoachClientsPage {...props} activityState="loading" />);
     expect(screen.queryByText("No sessions yet")).not.toBeInTheDocument();
     expect(screen.queryByText("No compliance data this week.")).not.toBeInTheDocument();
@@ -107,10 +108,10 @@ describe("CoachClientsPage", () => {
     expect(screen.getByText("No compliance data this week.")).toBeInTheDocument();
   });
 
-  it("renders a roster row and opens the client on click", () => {
-    // Row click is the primary route into the full client workspace.
+  it("opens the profile from the roster row and the calendar from its shortcut", () => {
     const setSelectedClient = vi.fn();
     const setClientTab = vi.fn();
+    const openAccountModal = vi.fn();
     render(
       <CoachClientsPage
         {...baseProps}
@@ -119,11 +120,15 @@ describe("CoachClientsPage", () => {
         rosterGroups={[{ key: "all", label: "", clients: [client] }]}
         setSelectedClient={setSelectedClient}
         setClientTab={setClientTab}
+        openAccountModal={openAccountModal}
       />
     );
     fireEvent.click(screen.getByText("Ada Lovelace"));
+    expect(openAccountModal).toHaveBeenCalledWith(client);
+    expect(setSelectedClient).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByRole("button", { name: "Calendar: Ada Lovelace" }));
     expect(setSelectedClient).toHaveBeenCalledWith(client);
-    expect(setClientTab).toHaveBeenCalledWith("Home");
+    expect(setClientTab).toHaveBeenCalledWith("Training");
   });
 
   it("refreshes the roster", () => {
@@ -133,7 +138,7 @@ describe("CoachClientsPage", () => {
     expect(loadClients).toHaveBeenCalledWith(true);
   });
 
-  it("opens and closes the optional client quick view", async () => {
+  it("opens and dismisses the client actions menu with Escape", async () => {
     render(
       <CoachClientsPage
         {...baseProps}
@@ -142,12 +147,15 @@ describe("CoachClientsPage", () => {
       />
     );
 
-    fireEvent.click(screen.getByRole("button", { name: "Quick view" }));
-    const dialog = screen.getByRole("dialog", { name: "Ada Lovelace" });
-    expect(dialog).toBeInTheDocument();
-    fireEvent.keyDown(dialog, { key: "Escape" });
+    const trigger = screen.getByRole("button", { name: "Client actions: Ada Lovelace" });
+    trigger.focus();
+    fireEvent.click(trigger);
+    const menu = screen.getByRole("menu", { name: "Actions for Ada Lovelace" });
+    expect(screen.getByRole("menuitem", { name: "View profile" })).toBeInTheDocument();
+    fireEvent.keyDown(menu, { key: "Escape" });
     await waitFor(() =>
-      expect(screen.queryByRole("dialog")).not.toBeInTheDocument()
+      expect(screen.queryByRole("menu")).not.toBeInTheDocument()
     );
+    expect(trigger).toHaveFocus();
   });
 });

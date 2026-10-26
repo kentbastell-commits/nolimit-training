@@ -1,3 +1,7 @@
+import { clientTags } from "./clientIdentity";
+import type { ProfilePayload } from "./clientProfile";
+import CoachAssignmentModal, { type CoachAssignmentPayload } from "./CoachAssignmentModal";
+import { primaryCoachValue, type AssignmentAthlete, type AssignmentCoach } from "./coachAssignment";
 import { presentationMetadata, editWorkoutBlock, safeLabelColor, labelInk } from "./workoutPresentation";
 import { normalizeBuilderSection, isWarmupSection, relabelProgramExercises, changeExerciseLabel, exerciseLabelMetadata, accessoryGroupIndexes } from "./exerciseLabels";
 import CalendarSessionTools from "./CalendarSessionTools";
@@ -247,7 +251,7 @@ const CoachStorePage = withSuspense(() => import("./CoachStorePage"));
 const WorkoutPlayerModal = withSuspense(() => import("./WorkoutPlayerModal"), null);
 const ContentAssignmentModal = withSuspense(() => import("./ContentAssignmentModal"), null);
 const AddClientModal = withSuspense(() => import("./AddClientModal"), null);
-const AccountModal = withSuspense(() => import("./AccountModal"), null);
+const ClientProfilePanel = withSuspense(() => import("./ClientProfilePanel"), null);
 const ExerciseModal = withSuspense(() => import("./ExerciseModal"), null);
 const ExerciseHistoryModal = withSuspense(() => import("./ExerciseHistoryModal"), null);
 const CoachEditModal = withSuspense(() => import("./CoachEditModal"), null);
@@ -426,6 +430,8 @@ function App({ onReady, bootVisible = true }: { onReady?: () => void; bootVisibl
   const [coaches, setCoaches] = useState<Coach[]>([]);
   const [productOrders, setProductOrders] = useState<ProductOrder[]>([]);
   const [coachScope, setCoachScope] = useState("All Coaches");
+  const [coachAssignment, setCoachAssignment] = useState<{ athlete?: AssignmentAthlete; presetCoach?: AssignmentCoach } | null>(null);
+  const openCoachAssignment = (athlete?: AssignmentAthlete, presetCoach?: AssignmentCoach) => setCoachAssignment({ athlete, presetCoach });
   const [coachMenuOpen, setCoachMenuOpen] = useState(false);
   const [coachSharePercent, setCoachSharePercent] = useState(70);
   const [orderSearch, setOrderSearch] = useState("");
@@ -961,7 +967,7 @@ function App({ onReady, bootVisible = true }: { onReady?: () => void; bootVisibl
     name: "",
     email: "",
     phone: "",
-    coach: "Kent Bastell",
+    coach: "",
     primaryCoachId: "",
     secondaryCoachId: "",
     clientType: "Online Coaching",
@@ -1551,29 +1557,6 @@ function App({ onReady, bootVisible = true }: { onReady?: () => void; bootVisibl
 
   // Subscriptions
   const [subscriptions, setSubscriptions] = useState<Subscription[]>([]);
-  const [subDraft, setSubDraft] = useState<{
-    plan: string;
-    price: string;
-    currency: string;
-    billingCycle: string;
-    startDate: string;
-    nextBillingDate: string;
-    status: string;
-    autoRenew: boolean;
-    paymentId: string;
-  }>({
-    plan: "Online Coaching",
-    price: "",
-    currency: "CNY",
-    billingCycle: "1 Month",
-    startDate: "",
-    nextBillingDate: "",
-    status: "Active",
-    autoRenew: false,
-    paymentId: "",
-  });
-  const [savingSub, setSavingSub] = useState(false);
-
   // Teams
   const [teams, setTeams] = useState<Team[]>([]);
   const [teamsLoading, setTeamsLoading] = useState(false);
@@ -1606,12 +1589,9 @@ function App({ onReady, bootVisible = true }: { onReady?: () => void; bootVisibl
   >({});
   // Athlete Account modal
   const [accountClientId, setAccountClientId] = useState("");
-  const [accountDraft, setAccountDraft] = useState<{
-    tags: string[];
-    categories: string[];
-  }>({ tags: [], categories: [] });
-  const [accountTagInput, setAccountTagInput] = useState("");
-  const [accountCategoryInput, setAccountCategoryInput] = useState("");
+  const profileCloseRef = useRef<(() => boolean) | null>(null);
+  const [accountProfileEditing, setAccountProfileEditing] = useState(false);
+  const [profileSubscriptionState, setProfileSubscriptionState] = useState<"loading" | "ready" | "error">("loading");
   // Roster: multi-select bulk actions + sort + group-by
   const [rosterSelectedIds, setRosterSelectedIds] = useState<string[]>([]);
   const [rosterSort, setRosterSort] = useState<{
@@ -1630,11 +1610,6 @@ function App({ onReady, bootVisible = true }: { onReady?: () => void; bootVisibl
   const [bulkTeamId, setBulkTeamId] = useState("");
   const [bulkTag, setBulkTag] = useState("");
   const [bulkBusy, setBulkBusy] = useState(false);
-  const [accountProgramId, setAccountProgramId] = useState("");
-  const [accountStartDate, setAccountStartDate] = useState(
-    coachingToday()
-  );
-  const [savingAccount, setSavingAccount] = useState(false);
   const [teamAssignProgramId, setTeamAssignProgramId] = useState("");
   const [teamAssignStartDate, setTeamAssignStartDate] = useState(
     coachingToday()
@@ -2111,7 +2086,7 @@ function App({ onReady, bootVisible = true }: { onReady?: () => void; bootVisibl
   const getCoachRecordIdByName = (name: string) =>
     allCoaches.find((coach) => coach.name === name)?.recordId || "";
   const getCoachDisplayName = (value = "") => {
-    const match = activeCoaches.find(
+    const match = allCoaches.find(
       (coach) =>
         coach.recordId === value ||
         coach.coachId === value ||
@@ -2316,7 +2291,7 @@ function App({ onReady, bootVisible = true }: { onReady?: () => void; bootVisibl
       name: "",
       email: "",
       phone: "",
-      coach: "Kent Bastell",
+      coach: "",
       primaryCoachId: "",
       secondaryCoachId: "",
       clientType: "Online Coaching",
@@ -2342,7 +2317,7 @@ function App({ onReady, bootVisible = true }: { onReady?: () => void; bootVisibl
       name: "",
       email: "",
       phone: "",
-      coach: "Kent Bastell",
+      coach: "",
       primaryCoachId: "",
       secondaryCoachId: "",
       clientType: "Online Coaching",
@@ -2363,43 +2338,7 @@ function App({ onReady, bootVisible = true }: { onReady?: () => void; bootVisibl
     setShowAddClientModal(true);
   };
 
-  const openEditClientForm = (client: Client) => {
-    setEditingClient(client);
-    setNewClient({
-      name: client.name,
-      email: client.email || "",
-      phone: client.phone || "",
-      coach: getCoachDisplayName(client.coach || client.primaryCoach || "Kent Bastell"),
-      primaryCoachId: getCoachRecordIdByName(
-        getCoachDisplayName(client.coach || client.primaryCoach || "Kent Bastell")
-      ),
-      secondaryCoachId: getCoachRecordIdByName(
-        getCoachDisplayName(client.secondaryCoach || "")
-      ),
-      clientType: client.clientType || "Online Coaching",
-      packageType: client.status || "Active",
-      packageName: client.package || "",
-      subscriptionStatus: client.subscriptionStatus || "Active",
-      intakeStatus: client.intakeStatus || "Not Sent",
-      paymentStatus: client.paymentStatus || "Unpaid",
-      source: client.source || "Manual Entry",
-      purchasedProgramId: client.purchasedProgramId || "",
-      accessStartDate:
-        client.accessStartDate && client.accessStartDate !== "--"
-          ? client.accessStartDate
-          : "",
-      accessEndDate:
-        client.accessEndDate && client.accessEndDate !== "--"
-          ? client.accessEndDate
-          : "",
-      paymentId: client.paymentId || "",
-      startDate:
-        client.startDate && client.startDate !== "--" ? client.startDate : "",
-      notes: client.notes || "",
-      languagePreference: client.languagePreference || "English",
-    });
-    setShowAddClientModal(true);
-  };
+  const openEditClientForm = (client: Client) => openAccountModal(client, true);
 
   const loadClients = async (force = false) => {
     const shouldForce = force === true;
@@ -6947,52 +6886,43 @@ function App({ onReady, bootVisible = true }: { onReady?: () => void; bootVisibl
   };
 
   // ---- Athlete Account modal ----
-  const accountClient = clients.find((c) => c.id === accountClientId) || null;
-  const openAccountModal = (client: Client) => {
-    setAccountClientId(client.id);
-    setAccountDraft({
-      tags: [...(client.tags || [])],
-      categories: [...(client.categories || [])],
-    });
-    setAccountTagInput("");
-    setAccountCategoryInput("");
-    setAccountProgramId("");
-    setAccountStartDate(coachingToday());
-    if (programs.length === 0) void loadPrograms();
-    if (teams.length === 0) void loadTeams();
-    const sub = subscriptions.find((s) => s.clientRecordIds.includes(client.id));
-    setSubDraft(
-      sub
-        ? {
-            plan: sub.plan || "Online Coaching",
-            price: sub.price ? String(sub.price) : "",
-            currency: sub.currency || "CNY",
-            billingCycle: sub.billingCycle || "1 Month",
-            startDate: sub.startDate || "",
-            nextBillingDate: sub.nextBillingDate || "",
-            status: sub.status || "Active",
-            autoRenew: sub.autoRenew,
-            paymentId: sub.paymentId || "",
-          }
-        : {
-            plan: "Online Coaching",
-            price: "",
-            currency: "CNY",
-            billingCycle: "1 Month",
-            startDate: coachingToday(),
-            nextBillingDate: "",
-            status: "Active",
-            autoRenew: false,
-            paymentId: "",
-          }
-    );
+  const saveAthleteProfile = async (payload: ProfilePayload) => {
+    const response = await fetch("/api/updateClient", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) });
+    const data = await response.json();
+    if (!response.ok || !data.success) throw new Error(data.error || "Could not save profile. Your changes are still here.");
+    const { clientRecordId, primaryCoachId, secondaryCoachId, packageType, packageName, ...fields } = payload;
+    const patch = { ...fields, primaryCoach: primaryCoachId, secondaryCoach: secondaryCoachId, status: packageType, package: packageName };
+    setClients(current => current.map(c => c.id === clientRecordId ? { ...c, ...patch } : c));
+    setSelectedClient(current => current?.id === clientRecordId ? { ...current, ...patch } : current);
+    clientsCacheRef.current = null;
+    clearPersistentCache(CACHE_KEYS.clients);
+    clearPersistentCache(CACHE_KEYS.portalClient(clientRecordId));
+  };
+  const saveProfileTeam = async (team: Team, memberIds: string[], positions: Record<string, string>) => {
+    const res = await fetch("/api/upsertTeam", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ recordId: team.id, memberRecordIds: memberIds, positions }) });
+    const data = await res.json();
+    if (!res.ok || !data.success) throw new Error(data.error || "Could not save team. Please retry.");
+    setTeams(current => current.map(t => t.id === team.id ? { ...t, memberIds, positions } : t));
   };
 
-  const cycleMonths = (label: string): number => {
-    if (/1\s*year|annual/i.test(label)) return 12;
-    if (/6\s*month/i.test(label)) return 6;
-    if (/3\s*month|quarter/i.test(label)) return 3;
-    return 1;
+  const accountClient = clients.find((c) => c.id === accountClientId) || null;
+  const reloadProfileSubscriptions = async () => {
+    setProfileSubscriptionState("loading");
+    try {
+      const res = await fetch("/api/subscriptions");
+      const data = await res.json();
+      if (!res.ok || !Array.isArray(data.subscriptions)) throw new Error("Could not load subscription details. Please retry.");
+      setSubscriptions(data.subscriptions);
+      setProfileSubscriptionState("ready");
+      return data.subscriptions;
+    } catch (error) { setProfileSubscriptionState("error"); throw error; }
+  };
+  const openAccountModal = (client: Client, editing = false) => {
+    setAccountProfileEditing(editing);
+    setAccountClientId(client.id);
+    void reloadProfileSubscriptions().catch(() => {});
+    if (programs.length === 0) void loadPrograms();
+    if (teams.length === 0) void loadTeams();
   };
 
   // Derived status: an Active/Trial sub whose next billing date has passed is
@@ -7018,232 +6948,6 @@ function App({ onReady, bootVisible = true }: { onReady?: () => void; bootVisibl
     ? subscriptions.find((s) => s.clientRecordIds.includes(accountClient.id)) ||
       null
     : null;
-
-  const saveSubscription = async () => {
-    if (!accountClient) return;
-    setSavingSub(true);
-    try {
-      // Default the next billing date to start + one cycle if left blank.
-      let nextBilling = subDraft.nextBillingDate;
-      if (!nextBilling && subDraft.startDate) {
-        const d = new Date(subDraft.startDate);
-        d.setMonth(d.getMonth() + cycleMonths(subDraft.billingCycle));
-        nextBilling = dateToInputValue(d);
-      }
-      const res = await fetch("/api/upsertSubscription", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          recordId: accountSubscription?.id || undefined,
-          clientRecordId: accountClient.id,
-          plan: subDraft.plan,
-          price: subDraft.price,
-          currency: subDraft.currency,
-          billingCycle: subDraft.billingCycle,
-          startDate: subDraft.startDate,
-          nextBillingDate: nextBilling,
-          status: subDraft.status,
-          coach: currentCoachName,
-          autoRenew: subDraft.autoRenew,
-          paymentId: subDraft.paymentId,
-        }),
-      });
-      const data = await res.json();
-      if (!res.ok || !data.success) {
-        console.error(data);
-        notify("Could not save subscription.");
-        return;
-      }
-      await loadSubscriptions();
-      notify("Subscription saved.", "success");
-    } catch (error) {
-      console.error(error);
-      notify("Could not save subscription.");
-    } finally {
-      setSavingSub(false);
-    }
-  };
-
-  const deleteSubscription = async () => {
-    if (!accountSubscription) return;
-    if (!window.confirm("Remove this subscription? This cannot be undone."))
-      return;
-    setSavingSub(true);
-    try {
-      const res = await fetch("/api/deleteRecord", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          resource: "subscription",
-          recordId: accountSubscription.id,
-        }),
-      });
-      const data = await res.json();
-      if (!res.ok || !data.success) {
-        notify("Could not remove subscription.");
-        return;
-      }
-      await loadSubscriptions();
-      notify("Subscription removed.", "success");
-    } catch (error) {
-      console.error(error);
-      notify("Could not remove subscription.");
-    } finally {
-      setSavingSub(false);
-    }
-  };
-  const addAccountChip = (kind: "tags" | "categories", value: string) => {
-    const v = value.trim();
-    if (!v) return;
-    setAccountDraft((d) =>
-      d[kind].includes(v) ? d : { ...d, [kind]: [...d[kind], v] }
-    );
-    if (kind === "tags") setAccountTagInput("");
-    else setAccountCategoryInput("");
-  };
-  const removeAccountChip = (kind: "tags" | "categories", value: string) =>
-    setAccountDraft((d) => ({ ...d, [kind]: d[kind].filter((x) => x !== value) }));
-  const saveAccountTagsCategories = async () => {
-    if (!accountClient) return;
-    setSavingAccount(true);
-    try {
-      const res = await fetch("/api/updateClient", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          clientRecordId: accountClient.id,
-          tags: accountDraft.tags,
-          categories: accountDraft.categories,
-        }),
-      });
-      const data = await res.json();
-      if (!res.ok || !data.success) {
-        notify("Could not save athlete details.");
-        return;
-      }
-      setClients((cur) =>
-        cur.map((c) =>
-          c.id === accountClient.id
-            ? { ...c, tags: accountDraft.tags, categories: accountDraft.categories }
-            : c
-        )
-      );
-
-      // Two-way sync: a category matching a team's group sets that team position.
-      const catSet = new Set(accountDraft.categories);
-      const teamPatches = teams
-        .filter((t) => t.memberIds.includes(accountClient.id))
-        .map((t) => {
-          const matched = t.groups.find((g) => catSet.has(g)) || "";
-          const cur = t.positions[accountClient.id] || "";
-          if (matched === cur) return null;
-          const positions = { ...t.positions };
-          if (matched) positions[accountClient.id] = matched;
-          else delete positions[accountClient.id];
-          return { id: t.id, positions };
-        })
-        .filter(Boolean) as { id: string; positions: Record<string, string> }[];
-      if (teamPatches.length) {
-        await Promise.all(
-          teamPatches.map((p) =>
-            fetch("/api/upsertTeam", {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({ recordId: p.id, positions: p.positions }),
-            })
-          )
-        );
-        await loadTeams();
-      }
-
-      notify("Athlete details saved.", "success");
-    } catch (error) {
-      console.error(error);
-      notify("Could not save athlete details.");
-    } finally {
-      setSavingAccount(false);
-    }
-  };
-  const updateAccountTeamPositionLocal = (teamId: string, value: string) => {
-    setTeams((cur) =>
-      cur.map((t) => {
-        if (t.id !== teamId) return t;
-        const positions = { ...t.positions };
-        if (value.trim()) positions[accountClientId] = value;
-        else delete positions[accountClientId];
-        return { ...t, positions };
-      })
-    );
-  };
-  const saveAccountTeamPosition = async (teamId: string, value: string) => {
-    const team = teams.find((t) => t.id === teamId);
-    if (!team) return;
-    const positions = { ...team.positions };
-    if (value.trim()) positions[accountClientId] = value.trim();
-    else delete positions[accountClientId];
-    try {
-      const res = await fetch("/api/upsertTeam", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ recordId: teamId, positions }),
-      });
-      const data = await res.json().catch(() => ({}));
-      if (!res.ok || data.success === false) {
-        notify("Could not save the position — please retry.", "error");
-      }
-    } catch (error) {
-      console.error(error);
-      // The local UI already shows the new position; a silent failure would
-      // look saved while being lost.
-      notify("Could not save the position — network error.", "error");
-    }
-  };
-  const toggleAccountTeam = async (team: Team) => {
-    const isMember = team.memberIds.includes(accountClientId);
-    const nextMembers = isMember
-      ? team.memberIds.filter((id) => id !== accountClientId)
-      : [...team.memberIds, accountClientId];
-    try {
-      const res = await fetch("/api/upsertTeam", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ recordId: team.id, memberRecordIds: nextMembers }),
-      });
-      const data = await res.json();
-      if (!res.ok || !data.success) {
-        notify("Could not update team.");
-        return;
-      }
-      await loadTeams();
-    } catch (error) {
-      console.error(error);
-      notify("Could not update team.");
-    }
-  };
-  const assignProgramFromAccount = async () => {
-    if (!accountClient) return;
-    if (!accountProgramId) {
-      notify("Select a program to assign.");
-      return;
-    }
-    setSavingAccount(true);
-    try {
-      const created = await assignProgramByIds(
-        [accountClient.id],
-        accountProgramId,
-        accountStartDate
-      );
-      if (created > 0) {
-        notify(`Program assigned — ${created} workouts created.`, "success");
-        setAccountProgramId("");
-      }
-    } catch (error) {
-      console.error(error);
-      notify("Could not assign the program — network error. Please retry.", "error");
-    } finally {
-      setSavingAccount(false);
-    }
-  };
 
   const updateAssignableWorkoutDate = (localId: string, scheduledDate: string) => {
     setAssignableWorkouts((prev) =>
@@ -12870,6 +12574,7 @@ function App({ onReady, bootVisible = true }: { onReady?: () => void; bootVisibl
 
   const clientBelongsToCoachScope = (client: Client) => {
     if (coachScope === "All Coaches") return true;
+    if (coachScope === "Unassigned") return !primaryCoachValue(client);
 
     const scopedCoach = activeCoaches.find((coach) => coach.name === coachScope);
     const coachValues = [
@@ -13694,6 +13399,8 @@ function App({ onReady, bootVisible = true }: { onReady?: () => void; bootVisibl
     const search = clientSearch.toLowerCase();
     const matchesSearch =
       client.name.toLowerCase().includes(search) ||
+      client.coachAlias?.toLowerCase().includes(search) ||
+      clientTags(client).some(tag => tag.toLowerCase().includes(search)) ||
       client.clientCode.toLowerCase().includes(search) ||
       client.email?.toLowerCase().includes(search) ||
       client.phone?.toLowerCase().includes(search);
@@ -16958,6 +16665,17 @@ function App({ onReady, bootVisible = true }: { onReady?: () => void; bootVisibl
     await assignOrderProgram(updatedOrder);
   };
 
+  const saveCoachAssignment = async (payload: CoachAssignmentPayload) => {
+    const response = await fetch("/api/updateClient", {
+      method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload),
+    });
+    const data = await response.json();
+    if (!response.ok || !data.success) throw new Error(data.error || "Could not save assignment. Try again.");
+    const refreshed = await loadClients(true);
+    refreshSelectedClient(refreshed);
+    notify(paceZh ? "教练分配已保存。" : "Coach assignment saved.", "success");
+  };
+
   const saveClientForm = async () => {
     if (!newClient.name.trim()) {
       notify("Please enter a client name.", "error");
@@ -16967,6 +16685,10 @@ function App({ onReady, bootVisible = true }: { onReady?: () => void; bootVisibl
     setSavingClient(true);
 
     try {
+      if (newClient.primaryCoachId && newClient.primaryCoachId === newClient.secondaryCoachId) {
+        notify("Choose different primary and supporting coaches.", "error");
+        return;
+      }
       const primaryCoachId =
         newClient.primaryCoachId || getCoachRecordIdByName(newClient.coach);
       const selectedPrimaryCoach =
@@ -19407,11 +19129,12 @@ function App({ onReady, bootVisible = true }: { onReady?: () => void; bootVisibl
   const connectionNotice = () => <CoachConnectionStatus onRefresh={refreshCoachWorkspace} busy={workoutsLoading || coachReviewLoading}
     failed={Boolean(selectedClient ? workoutsLoadFailed : coachReviewError)} updatedAt={selectedClient ? workoutsUpdatedAt : 0}
     draftsStatus={replyDraftState} showDrafts={activePage === "Review" && hasReplyDrafts} />;
-  const historyOverlay = showNotificationsPanel || coachPreviewOpen || Boolean(calendarBuilderContext || selectedWorkout) || workoutPageTab === "Program Builder";
+  const historyOverlay = Boolean(accountClientId) || showNotificationsPanel || coachPreviewOpen || Boolean(calendarBuilderContext || selectedWorkout) || workoutPageTab === "Program Builder";
   useCoachHistory(coachBackgroundReady && !isClientPortal, {
     page: activePage, client: selectedClient?.clientCode || "", tab: clientTab, libraryTab: workoutPageTab,
     calendarStyle: clientCalendarStyle, calendarView, week: clientWeekStartDate, month: clientMonthAnchorDate, date: calendarAnchorDate, scroll: 0,
   }, historyOverlay, () => {
+    if (accountClientId) return profileCloseRef.current?.() ?? false;
     if (showNotificationsPanel) { setShowNotificationsPanel(false); return true; }
     if (coachPreviewOpen) { setCoachPreviewOpen(false); return true; }
     if (sessionRecovery) { setSessionRecovery(null); return false; }
@@ -21144,7 +20867,10 @@ function App({ onReady, bootVisible = true }: { onReady?: () => void; bootVisibl
                 activityState={rosterActivityState}
                 loading={loading}
                 clients={clients}
+                setCoachDashTab={setCoachDashTab}
                 openNewClientForm={openNewClientForm}
+                openCoachAssignment={openCoachAssignment}
+                getCoachDisplayName={getCoachDisplayName}
                 todayValue={todayValue}
                 activeCoaches={activeCoaches}
                 buildClientPortalLink={buildClientPortalLink}
@@ -21352,6 +21078,7 @@ function App({ onReady, bootVisible = true }: { onReady?: () => void; bootVisibl
                 activeCoaches={activeCoaches}
                 allCoaches={allCoaches}
                 clientBelongsToCoach={clientBelongsToCoach}
+                openCoachAssignment={openCoachAssignment}
                 clients={clients}
                 openEditCoachForm={openEditCoachForm}
                 savingCoach={savingCoach}
@@ -21992,6 +21719,8 @@ function App({ onReady, bootVisible = true }: { onReady?: () => void; bootVisibl
             openAssignmentHubFromCalendar={openAssignmentHubFromCalendar}
             openCalendarActionMenu={openCalendarActionMenu}
             openEditClientForm={openEditClientForm}
+            openAccountModal={openAccountModal}
+            openCoachAssignment={openCoachAssignment}
             openMetricsEditor={openMetricsEditor}
             openWorkout={openWorkout}
             overviewDetailsOpen={overviewDetailsOpen}
@@ -22553,39 +22282,25 @@ function App({ onReady, bootVisible = true }: { onReady?: () => void; bootVisibl
           })()}
 
         {accountClient && (
-          <AccountModal
-            relativeDue={relativeDue}
-            accountCategoryInput={accountCategoryInput}
+          <ClientProfilePanel
+            key={accountClient.id}
+            registerClose={handler => { profileCloseRef.current = handler; }}
             accountClient={accountClient}
-            accountClientId={accountClientId}
-            accountDraft={accountDraft}
-            accountProgramId={accountProgramId}
-            accountStartDate={accountStartDate}
+            tagOptions={[...new Set(clients.flatMap(clientTags))].sort()}
+            allCoaches={allCoaches}
+            paceZh={paceZh}
+            initialEditing={accountProfileEditing}
+            saveProfile={saveAthleteProfile}
+            reloadProfileSubscriptions={reloadProfileSubscriptions}
+            subscriptionState={profileSubscriptionState}
+            saveProfileTeam={saveProfileTeam}
             accountSubscription={accountSubscription}
-            accountTagInput={accountTagInput}
-            addAccountChip={addAccountChip}
-            assignProgramFromAccount={assignProgramFromAccount}
-            clients={clients}
-            deleteSubscription={deleteSubscription}
+            setAccountClientId={setAccountClientId}
             openAthleteCalendar={openAthleteCalendar}
             programs={programs}
-            removeAccountChip={removeAccountChip}
-            saveAccountTagsCategories={saveAccountTagsCategories}
-            saveAccountTeamPosition={saveAccountTeamPosition}
-            saveSubscription={saveSubscription}
-            savingAccount={savingAccount}
-            savingSub={savingSub}
-            setAccountCategoryInput={setAccountCategoryInput}
-            setAccountClientId={setAccountClientId}
-            setAccountProgramId={setAccountProgramId}
-            setAccountStartDate={setAccountStartDate}
-            setAccountTagInput={setAccountTagInput}
-            setSubDraft={setSubDraft}
-            subDraft={subDraft}
-            subEffectiveStatus={subEffectiveStatus}
             teams={teams}
-            toggleAccountTeam={toggleAccountTeam}
-            updateAccountTeamPositionLocal={updateAccountTeamPositionLocal}
+            openProfileTraining={client => { setAccountClientId(""); setSelectedClient(client); setClientTab("Home"); setCoachDashTab("activity"); setActivePage("Clients"); }}
+            openProfileOrders={client => { setAccountClientId(""); setSelectedClient(null); setOrderSearch(client.name); setActivePage("Orders"); }}
           />
         )}
 
@@ -22667,6 +22382,11 @@ function App({ onReady, bootVisible = true }: { onReady?: () => void; bootVisibl
           </div>
         )}
 
+        {coachAssignment && (
+          <CoachAssignmentModal athletes={clients} coaches={allCoaches} {...coachAssignment} zh={paceZh}
+            close={() => setCoachAssignment(null)} save={saveCoachAssignment} />
+        )}
+
         {showAddClientModal && (
           <AddClientModal
             t={t}
@@ -22689,6 +22409,7 @@ function App({ onReady, bootVisible = true }: { onReady?: () => void; bootVisibl
             savingCoach={savingCoach}
             setCoachForm={setCoachForm}
             clients={clients}
+            openCoachAssignment={openCoachAssignment}
             clientBelongsToCoach={clientBelongsToCoach}
             updateCoachStatus={updateCoachStatus}
             setCoachScope={setCoachScope}

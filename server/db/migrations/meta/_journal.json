@@ -225,6 +225,20 @@
       "when": 1790121600006,
       "tag": "0031_log_skip_reason",
       "breakpoints": true
+    },
+    {
+      "idx": 32,
+      "version": "7",
+      "when": 1792022400000,
+      "tag": "0032_order_paid_at",
+      "breakpoints": true
+    },
+    {
+      "idx": 33,
+      "version": "7",
+      "when": 1793026800000,
+      "tag": "0033_client_coach_identity",
+      "breakpoints": true
     }
   ]
 }

@@ -32,6 +32,7 @@ export default function CoachesAdminPage(props: { [key: string]: any }) {
     clientBelongsToCoach,
     clients,
     openEditCoachForm,
+    openCoachAssignment,
   } = props;
 
   const [filter, setFilter] = useState<"all" | "active" | "admins">("all");
@@ -226,6 +227,7 @@ export default function CoachesAdminPage(props: { [key: string]: any }) {
                 <div className="capClients">
                   {assignedCount(coach)}{" "}
                   <span>{assignedCount(coach) === 1 ? "client" : "clients"}</span>
+                  {active && <button type="button" className="capFootBtn capAssignAthlete" onClick={e => { e.stopPropagation(); openCoachAssignment(undefined, coach); }} onKeyDown={e => e.stopPropagation()} aria-label={`Assign athlete to ${coach.name}`}>Assign athlete</button>}
                 </div>
                 <div className="capContact">
                   {coach.email || coach.phoneWechat || "—"}

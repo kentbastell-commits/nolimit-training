@@ -17,6 +17,7 @@ export type CreateProductOrderInput = {
   paymentProvider?: string;
   assignedCoach?: string;
   purchasedAt?: string;
+  paidAt?: string;
   accessStartDate?: string;
   accessEndDate?: string;
   intakeStatus?: string;
@@ -35,6 +36,7 @@ export type CreateProductOrderInput = {
 };
 
 export type UpdateProductOrderInput = {
+  paidAt?: string;
   recordId: string; // Feishu record_id; on Postgres the ORD-… business code
   clientRecordId?: string;
   clientCode?: string;

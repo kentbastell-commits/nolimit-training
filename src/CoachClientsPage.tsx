@@ -2,23 +2,25 @@
 // (dark board, segmented filters, grouped rows, optional quick-view slide-over).
 // Row click opens the full client workspace; the eye action opens quick view.
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { useState } from "react";
+import { useCallback, useState } from "react";
+import { clientTags, tagStyle } from "./clientIdentity";
+import ClientActionMenu from "./ClientActionMenu";
+import type { Client } from "./appCore";
+import { primaryCoachValue } from "./coachAssignment";
 import { useTranslation } from "react-i18next";
 import { coachingToday } from "./coachingCalendar";
 import "./CoachClientsPage.css";
-import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import {
   CalendarDays,
   Check,
   ChevronRight,
-  Eye,
+  MoreHorizontal,
   Link2,
   Plus,
   RefreshCw,
   Search,
   UserCircle,
   Users,
-  X,
 } from "lucide-react";
 
 const AVATAR_PALETTE = [
@@ -39,7 +41,6 @@ const avatarColor = (name: string) => {
 const ringColorOf = (pct: number | null) =>
   pct == null ? "#a8a091" : pct >= 80 ? "#1f7a43" : pct >= 50 ? "#9a7b1f" : "#8b1e2d";
 const CIRC = 94.2;
-const EASE = [0.16, 1, 0.3, 1] as const;
 
 export default function CoachClientsPage(props: { [key: string]: any }) {
   const { t } = useTranslation();
@@ -74,10 +75,11 @@ export default function CoachClientsPage(props: { [key: string]: any }) {
     coachInviteLink,
     coachScope,
     copyToClipboard,
-    daysSinceLogin,
     loadClients,
     openAccountModal,
     openNewClientForm,
+    openCoachAssignment,
+    getCoachDisplayName,
     paceZh,
     programs,
 
@@ -99,20 +101,26 @@ export default function CoachClientsPage(props: { [key: string]: any }) {
     setRosterGroupBy,
     setRosterTriage,
     setSelectedClient,
+    setCoachDashTab,
     teams,
     toggleRosterSelect,
     triageCounts,
     triageDefs,
   } = props;
 
-  const reduce = useReducedMotion();
   const [groupView, setGroupView] = useState<
     "none" | "online" | "inperson" | "team"
   >(rosterGroupBy === "team" ? "team" : "none");
   const [inviteCopied, setInviteCopied] = useState(false);
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [selectMode, setSelectMode] = useState(false);
-  const [peekId, setPeekId] = useState<string | null>(null);
+  const [rowMenu, setRowMenu] = useState<{ client: Client; x: number; y: number } | null>(null);
+  const closeRowMenu = useCallback(() => setRowMenu(null), []);
+  const navigateClient = (client: Client, view: string) => {
+    setSelectedClient(client);
+    setClientTab(view === "Progress" ? "Home" : view);
+    setCoachDashTab(view === "Progress" ? "science" : "activity");
+  };
 
   // ---- board (from the full clients list, stable across filters) ----
   const all = (clients as any[]) || [];
@@ -175,10 +183,6 @@ export default function CoachClientsPage(props: { [key: string]: any }) {
       : [{ showTitle: false, label: "", clients: flatFor() }];
   const totalShown = renderGroups.reduce((a, g) => a + g.clients.length, 0);
 
-  const fade = reduce
-    ? {}
-    : { initial: { opacity: 0 }, animate: { opacity: 1 }, exit: { opacity: 0 } };
-
   const copyInvite = () => {
     void copyToClipboard(coachInviteLink, "Invite link");
     setInviteCopied(true);
@@ -235,9 +239,16 @@ export default function CoachClientsPage(props: { [key: string]: any }) {
       <div
         className="crpRow"
         key={c.id}
-        onClick={() => {
-          setSelectedClient(c);
-          setClientTab("Home");
+        data-client-id={c.id}
+        tabIndex={0}
+        role="group"
+        aria-label={c.name}
+        onClick={() => openAccountModal(c)}
+        onContextMenu={e => { e.preventDefault(); setRowMenu({ client: c, x: e.clientX, y: e.clientY }); }}
+        onKeyDown={e => {
+          if (e.target !== e.currentTarget) return;
+          if (e.key === "Enter" || e.key === " ") { e.preventDefault(); openAccountModal(c); }
+          if (e.key === "ContextMenu" || e.key === "F10" && e.shiftKey) { e.preventDefault(); const r = e.currentTarget.getBoundingClientRect(); setRowMenu({ client: c, x: r.left + 60, y: r.top + 40 }); }
         }}
       >
         <button
@@ -254,28 +265,16 @@ export default function CoachClientsPage(props: { [key: string]: any }) {
         <div className="crpAvatar" style={{ background: col.bg, color: col.fg }}>
           {c.initials}
         </div>
-        <div
-          className="crpRowMain"
-          role="button"
-          tabIndex={0}
-          aria-label={t("openClientWorkspace", { name: c.name })}
-          onKeyDown={(event) => {
-            if (event.key === "Enter" || event.key === " ") {
-              event.preventDefault();
-              setSelectedClient(c);
-              setClientTab("Home");
-            }
-          }}
-        >
+        <div className="crpRowMain">
           <div className="crpRowName">
-            <strong>{c.name}</strong>
+            <strong>{c.name}</strong>{c.coachAlias && <span className="crpAlias">{c.coachAlias}</span>}
             {teamsOf.map((t: any) => (
               <span className="crpTeamChip" key={t.id}>
                 {t.name}
               </span>
             ))}
-            {(c.tags || []).map((t: string) => (
-              <span className="crpTagChip" key={t}>
+            {clientTags(c).map((t: string) => (
+              <span className="crpTagChip" key={t} style={tagStyle(c.tagColors?.[t])}>
                 {t}
               </span>
             ))}
@@ -283,6 +282,14 @@ export default function CoachClientsPage(props: { [key: string]: any }) {
           <div className="crpRowSub">
             {c.clientType || "Client"} · {seenLabel(c)}
           </div>
+          <button type="button" className={`crpCoachAssignment${primaryCoachValue(c) ? "" : " unassigned"}`}
+            aria-label={`${paceZh ? "分配教练" : "Assign coaches"}: ${c.name}`}
+            onClick={e => { e.stopPropagation(); openCoachAssignment(c); }}>
+            <Users size={14} aria-hidden="true" />
+            {primaryCoachValue(c) ? getCoachDisplayName(primaryCoachValue(c)) : paceZh ? "待分配" : "Unassigned"}
+            {c.secondaryCoach ? ` + ${getCoachDisplayName(c.secondaryCoach)}` : ""}
+            <ChevronRight size={13} aria-hidden="true" />
+          </button>
         </div>
         <div className="crpEng">
           {activityState !== "ready" ? (
@@ -325,41 +332,15 @@ export default function CoachClientsPage(props: { [key: string]: any }) {
           ))}
         </div>
         <div className="crpRowActions" onClick={(e) => e.stopPropagation()}>
-          <button
-            type="button"
-            className="crpIconBtn"
-            title={t("quickView")}
-            onClick={() => setPeekId(c.id)}
-          >
-            <Eye size={16} />
-          </button>
-          <button
-            type="button"
-            className="crpIconBtn"
-            title={t("polishAthleteSCalendarc77c")}
-            onClick={() => {
-              setSelectedClient(c);
-              setClientTab("Training");
-            }}
-          >
-            <CalendarDays size={16} />
-          </button>
-          <button
-            type="button"
-            className="crpIconBtn"
-            title={t("polishCopyPortalLink8847")}
-            onClick={() =>
-              void copyToClipboard(buildClientPortalLink(c), "Portal link")
-            }
-          >
-            <Link2 size={16} />
-          </button>
+          <button type="button" className="crpIconBtn" aria-label={`${paceZh ? "\u65e5\u5386" : "Calendar"}: ${c.name}`}
+            onClick={() => navigateClient(c, "Training")}><CalendarDays size={17} /></button>
+          <button type="button" className="crpIconBtn" aria-label={`${paceZh ? "\u8fd0\u52a8\u5458\u64cd\u4f5c" : "Client actions"}: ${c.name}`} aria-haspopup="menu" aria-expanded={rowMenu?.client.id === c.id}
+            onClick={e => { const r = e.currentTarget.getBoundingClientRect(); setRowMenu({ client: c, x: r.right - 252, y: r.bottom + 6 }); }}><MoreHorizontal size={19} /></button>
         </div>
       </div>
     );
   };
 
-  const peek = peekId ? all.find((c: any) => c.id === peekId) : null;
 
   return (
     <div className={`coachClientsPage${selectMode || rosterSelectedIds.length ? " crpSelectMode" : ""}`}>
@@ -482,7 +463,8 @@ export default function CoachClientsPage(props: { [key: string]: any }) {
               value={coachScope}
               onChange={(e) => setCoachScope(e.target.value)}
             >
-              <option>{t("polishAllCoaches4f5b")}</option>
+              <option value="All Coaches">{t("polishAllCoaches4f5b")}</option>
+              <option value="Unassigned">{paceZh ? "待分配" : "Unassigned"}</option>
               {activeCoaches.map((coach: any) => (
                 <option key={coach.recordId || coach.coachId} value={coach.name}>
                   {coach.name}
@@ -645,143 +627,10 @@ export default function CoachClientsPage(props: { [key: string]: any }) {
         </>
       )}
 
-      {/* ===== peek slide-over ===== */}
-      <AnimatePresence>
-        {peek && (
-          <motion.div
-            className="crpSlideScrim"
-            onClick={() => setPeekId(null)}
-            {...fade}
-            transition={{ duration: 0.16 }}
-          >
-            {(() => {
-              const c = peek;
-              const col = avatarColor(c.name || "");
-              const eng = clientEngagement(c);
-              const pct = eng.compliance as number | null;
-              const lcDays = eng.lastCompleted
-                ? Math.round(
-                    (Date.parse(`${todayValue}T00:00:00`) -
-                      Date.parse(`${eng.lastCompleted}T00:00:00`)) /
-                      86400000
-                  )
-                : null;
-              const seenD = daysSinceLogin(c.lastLogin);
-              const flags = flagsFor(c);
-              return (
-                <motion.div
-                  className="crpSlide"
-                  role="dialog"
-                  aria-modal="true"
-                  aria-labelledby="crp-peek-title"
-                  onClick={(e) => e.stopPropagation()}
-                  onKeyDown={(event) => {
-                    if (event.key === "Escape") setPeekId(null);
-                  }}
-                  initial={reduce ? { opacity: 0 } : { x: "100%" }}
-                  animate={reduce ? { opacity: 1 } : { x: 0 }}
-                  exit={reduce ? { opacity: 0 } : { x: "100%" }}
-                  transition={{ duration: 0.26, ease: EASE }}
-                >
-                  <div className="crpSlideHead">
-                    <button
-                      type="button"
-                      className="crpSlideClose"
-                      aria-label={t("polishClosebbfa")}
-                      autoFocus
-                      onClick={() => setPeekId(null)}
-                    >
-                      <X size={17} />
-                    </button>
-                    <div className="crpSlideId">
-                      <div
-                        className="crpSlideAvatar"
-                        style={{ background: col.bg, color: col.fg }}
-                      >
-                        {c.initials}
-                      </div>
-                      <div>
-                        <h2 id="crp-peek-title">{c.name}</h2>
-                        <div className="crpSlideSub">
-                          {c.clientType || "Client"} · {seenLabel(c)}
-                        </div>
-                      </div>
-                    </div>
-                    {flags.length > 0 && (
-                      <div className="crpSlideFlags">
-                        {flags.map((f, i) => (
-                          <span className={`crpFlag ${f.cls}`} key={i}>
-                            {f.label}
-                          </span>
-                        ))}
-                      </div>
-                    )}
-                  </div>
+      {rowMenu && <ClientActionMenu {...rowMenu} zh={paceZh} close={closeRowMenu}
+        profile={() => openAccountModal(rowMenu.client)} navigate={view => navigateClient(rowMenu.client, view)}
+        assign={() => openCoachAssignment(rowMenu.client)} copy={() => void copyToClipboard(buildClientPortalLink(rowMenu.client), "Portal link")} />}
 
-                  <div className="crpSlideBody">
-                    <button
-                      type="button"
-                      className="crpOpenHome"
-                      onClick={() => {
-                        setSelectedClient(c);
-                        setClientTab("Home");
-                      }}
-                    >{t("polishOpenClientHome238c")} <ChevronRight size={16} />
-                    </button>
-
-                    <div className="crpSectionLabel">{t("polishThisWeek7b72")}</div>
-                    <div className="crpStatGrid">
-                      <div className="crpStat">
-                        <strong style={{ color: ringColorOf(pct) }}>
-                          {pct != null ? `${pct}%` : "—"}
-                        </strong>
-                        <span>{t("polishCompliance68f0")}</span>
-                      </div>
-                      <div className="crpStat">
-                        <strong>
-                          {lcDays == null
-                            ? "—"
-                            : lcDays <= 0
-                              ? "Today"
-                              : `${lcDays}d`}
-                        </strong>
-                        <span>{t("polishLastTrainedd266")}</span>
-                      </div>
-                      <div className="crpStat">
-                        <strong>
-                          {seenD == null ? "—" : seenD === 0 ? "Today" : `${seenD}d`}
-                        </strong>
-                        <span>{t("polishLastSeen5646")}</span>
-                      </div>
-                    </div>
-
-                    <div className="crpSectionLabel">{t("polishQuickActionse47e")}</div>
-                    <div className="crpQuick">
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setSelectedClient(c);
-                          setClientTab("Training");
-                        }}
-                      >
-                        <CalendarDays size={17} />{t("polishViewTrainingCalendarf779")} </button>
-                      <button type="button" onClick={() => openAccountModal(c)}>
-                        <UserCircle size={17} />{t("polishAccountProfile765a")} </button>
-                      <button
-                        type="button"
-                        onClick={() =>
-                          void copyToClipboard(buildClientPortalLink(c), "Portal link")
-                        }
-                      >
-                        <Link2 size={17} />{t("polishCopyPortalLink8847")} </button>
-                    </div>
-                  </div>
-                </motion.div>
-              );
-            })()}
-          </motion.div>
-        )}
-      </AnimatePresence>
     </div>
   );
 }

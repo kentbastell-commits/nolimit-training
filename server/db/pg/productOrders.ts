@@ -44,6 +44,7 @@ export async function listProductOrders(): Promise<OrderDTO[]> {
       marketingAttributionCode: str(r.marketingAttributionCode),
       paymentProvider: str(r.paymentProvider),
       purchasedAt: epochToDate(r.purchasedAt),
+      paidAt: r.paidAt ? new Date(Number(r.paidAt)).toISOString() : "",
       accessStartDate: epochToDate(r.accessStartDate),
       accessEndDate: "",
       intakeStatus: str(r.intakeStatus),
@@ -279,6 +280,11 @@ export async function createProductOrder(
     fulfillmentStatus: i.fulfillmentStatus || "Pending",
     purchasedAt: toEpochMs(i.purchasedAt) || Date.now(),
   };
+  if (i.paidAt) {
+    const paidAt = toEpochMs(i.paidAt);
+    if (paidAt === undefined) return { success: false, status: 400, body: { error: "Invalid payment date" } };
+    row.paidAt = paidAt;
+  }
   if (!skip(i.clientName)) row.clientName = String(i.clientName);
   if (!skip(i.productName)) row.productName = String(i.productName);
   if (!skip(i.programId)) row.programId = String(i.programId);
@@ -331,6 +337,11 @@ export async function updateProductOrder(
   i: UpdateProductOrderInput
 ): Promise<ProductOrderWriteResult> {
   const set: Partial<InsertRow> = {};
+  if (i.paidAt !== undefined) {
+    const paidAt = i.paidAt === "" ? null : toEpochMs(i.paidAt);
+    if (paidAt === undefined) return { success: false, status: 400, body: { error: "Invalid payment date" } };
+    set.paidAt = paidAt;
+  }
   const omittedFields: string[] = [];
 
   // Mirrors the update handler's applyField: only undefined/null are skipped

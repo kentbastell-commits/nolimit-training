@@ -346,6 +346,7 @@
   overflow: hidden;
   text-overflow: ellipsis;
 }
+.capClients .capAssignAthlete { display: block; margin-top: 6px; font-size: 12px; padding: 6px 9px; min-height: 44px; }
 .capChevron {
   display: flex;
   align-items: center;

@@ -78,6 +78,8 @@ export type Client = {
   id: string;
   clientCode: string;
   name: string;
+  coachAlias?: string;
+  tagColors?: Record<string, string>;
   initials: string;
   activity: string;
   training: string;
@@ -154,6 +156,7 @@ export type ProductOrder = {
   marketingAttributionCode?: string;
   paymentProvider: string;
   purchasedAt: string;
+  paidAt?: string;
   accessStartDate: string;
   accessEndDate: string;
   intakeStatus: string;

@@ -66,9 +66,11 @@ export async function upsertSubscription(
   if (i.paymentId !== undefined) set.paymentId = String(i.paymentId || "");
   if (i.notes !== undefined) set.notes = String(i.notes || "");
   const startTs = toTimestamp(i.startDate);
-  if (startTs !== undefined) set.startDate = startTs;
+  if (i.startDate === "") set.startDate = null;
+  else if (startTs !== undefined) set.startDate = startTs;
   const nextTs = toTimestamp(i.nextBillingDate);
-  if (nextTs !== undefined) set.nextBillingDate = nextTs;
+  if (i.nextBillingDate === "") set.nextBillingDate = null;
+  else if (nextTs !== undefined) set.nextBillingDate = nextTs;
 
   if (i.recordId) {
     // recordId carries the SUB-… business code on Postgres.

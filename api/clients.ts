@@ -18,7 +18,13 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       const match = clients.filter(
         (c) => c.clientCode.toLowerCase() === code || c.id.toLowerCase() === code
       );
-      return res.status(200).json({ clients: match });
+      // Coach-only aliases never travel in a portal response, including a
+      // coach preview that happens to carry the coach access header.
+      return res.status(200).json({ clients: match.map(client => {
+        const publicClient = { ...client };
+        delete publicClient.coachAlias;
+        return publicClient;
+      }) });
     }
 
     if (!coachKeyOk(req as never)) {

@@ -218,6 +218,8 @@ export const clients = pgTable(
     lastCheckinDate: ts("last_checkin_date"),
     tags: text("tags").array(),
     categories: text("categories").array(),
+    coachAlias: text("coach_alias"),
+    tagColors: jsonb("tag_colors").$type<Record<string, string>>(),
     notes: text("notes"),
     notesEn: text("notes_en"),
     // Denormalized performance fields (drive training-zone display).
@@ -579,6 +581,7 @@ export const productOrders = pgTable(
     clientPhone: text("client_phone"),
     orderNotes: text("order_notes"),
     purchasedAt: ts("purchased_at"),
+    paidAt: ts("paid_at"),
     accessStartDate: ts("access_start_date"),
     intakeStatus: text("intake_status"),
     assignCoach: text("assign_coach"),
