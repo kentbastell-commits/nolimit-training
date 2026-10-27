@@ -9659,7 +9659,7 @@ function App({ onReady, bootVisible = true }: { onReady?: () => void; bootVisibl
         : categoryDefaults && categoryDefaults.tempo === ""
           ? ""
           : parent?.tempo || categoryDefaults?.tempo || "",
-      rest: cardio ? "" : parent ? "45 sec" : categoryDefaults?.rest || "60 sec",
+      rest: "120 sec",
       coachingNotes: "",
       // Cardio exercises default to Distance tracking so the run/Zone layout
       // shows immediately (coach can still toggle to Time/Weight). Machines
