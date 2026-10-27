@@ -1,6 +1,6 @@
 // Extracted from App.tsx (monolith split) — JSX verbatim; props threaded.
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { Copy, Scissors, Trash2, X, Pencil, Eye, Send } from "lucide-react";
+import { BookmarkPlus, Copy, Scissors, Trash2, X, Pencil, Eye, Send } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import "./CalendarActionMenu.css";
 import { formatCalendarLabel } from "./appCore";
@@ -20,6 +20,7 @@ export default function CalendarActionMenu({
   openWorkout,
   editWorkout,
   reviewCalendarDraft,
+  saveSessionToLibrary,
 }: { [key: string]: any }) {
   const { i18n } = useTranslation(); const zh = i18n.language?.startsWith("zh");
   return (
@@ -43,6 +44,7 @@ export default function CalendarActionMenu({
                 {calendarActionMenu.item.type === "workout" && <>
                   <button type="button" role="menuitem" onClick={() => { openWorkout(calendarActionMenu.item.workout); closeCalendarActionMenu(); }}><Eye size={15} />{zh ? "查看 / 回顾" : "View / Review"}</button>
                   {calendarActionMenu.item.workout.completionStatus !== "Completed" && <button type="button" role="menuitem" onClick={() => { editWorkout(calendarActionMenu.item.workout); closeCalendarActionMenu(); }}><Pencil size={15} />{zh ? "编辑本次训练" : "Edit this session"}</button>}
+                  {saveSessionToLibrary && <button type="button" role="menuitem" onClick={() => { saveSessionToLibrary(calendarActionMenu.item.workout); closeCalendarActionMenu(); }}><BookmarkPlus size={15} />{zh ? "保存训练课" : "Save session"}</button>}
                   {calendarActionMenu.item.workout.isDraft && <button type="button" role="menuitem" onClick={() => { reviewCalendarDraft(calendarActionMenu.item.workout); closeCalendarActionMenu(); }}><Send size={15} />{zh ? "查看并发布" : "Review & publish"}</button>}
                 </>}
                 <button

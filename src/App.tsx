@@ -248,6 +248,7 @@ const CoachStorePage = withSuspense(() => import("./CoachStorePage"));
 
 // Modals/menus are only needed on interaction, never at first paint — split
 // them out with a null fallback so opening one loads its chunk silently.
+const SaveSessionToLibraryDialog = withSuspense(() => import("./SaveSessionToLibraryDialog"), null);
 const WorkoutPlayerModal = withSuspense(() => import("./WorkoutPlayerModal"), null);
 const ContentAssignmentModal = withSuspense(() => import("./ContentAssignmentModal"), null);
 const AddClientModal = withSuspense(() => import("./AddClientModal"), null);
@@ -1328,6 +1329,8 @@ function App({ onReady, bootVisible = true }: { onReady?: () => void; bootVisibl
   const [submittingContentAssignment, setSubmittingContentAssignment] =
     useState(false);
   const [selectedWorkout, setSelectedWorkout] = useState<Workout | null>(null);
+  const [saveSessionWorkout, setSaveSessionWorkout] = useState<Workout | null>(null);
+  const saveSessionCloseRef = useRef<(() => boolean) | null>(null);
   const [workoutDetails, setWorkoutDetails] = useState<ExerciseDetail[]>([]);
   // The programmed exercises as loaded, so an alternate swap can revert to the
   // original. Captured on load; never mutated (swaps replace workoutDetails).
@@ -19129,11 +19132,12 @@ function App({ onReady, bootVisible = true }: { onReady?: () => void; bootVisibl
   const connectionNotice = () => <CoachConnectionStatus onRefresh={refreshCoachWorkspace} busy={workoutsLoading || coachReviewLoading}
     failed={Boolean(selectedClient ? workoutsLoadFailed : coachReviewError)} updatedAt={selectedClient ? workoutsUpdatedAt : 0}
     draftsStatus={replyDraftState} showDrafts={activePage === "Review" && hasReplyDrafts} />;
-  const historyOverlay = Boolean(accountClientId) || showNotificationsPanel || coachPreviewOpen || Boolean(calendarBuilderContext || selectedWorkout) || workoutPageTab === "Program Builder";
+  const historyOverlay = Boolean(saveSessionWorkout) || Boolean(accountClientId) || showNotificationsPanel || coachPreviewOpen || Boolean(calendarBuilderContext || selectedWorkout) || workoutPageTab === "Program Builder";
   useCoachHistory(coachBackgroundReady && !isClientPortal, {
     page: activePage, client: selectedClient?.clientCode || "", tab: clientTab, libraryTab: workoutPageTab,
     calendarStyle: clientCalendarStyle, calendarView, week: clientWeekStartDate, month: clientMonthAnchorDate, date: calendarAnchorDate, scroll: 0,
   }, historyOverlay, () => {
+    if (saveSessionWorkout) return saveSessionCloseRef.current?.() ?? false;
     if (accountClientId) return profileCloseRef.current?.() ?? false;
     if (showNotificationsPanel) { setShowNotificationsPanel(false); return true; }
     if (coachPreviewOpen) { setCoachPreviewOpen(false); return true; }
@@ -22177,10 +22181,15 @@ function App({ onReady, bootVisible = true }: { onReady?: () => void; bootVisibl
           />
         )}
 
+        {!isClientPortal && saveSessionWorkout && <SaveSessionToLibraryDialog key={saveSessionWorkout.assignedWorkoutId || saveSessionWorkout.id}
+          workout={saveSessionWorkout} close={() => setSaveSessionWorkout(null)} registerClose={handler => { saveSessionCloseRef.current = handler; }}
+          saved={(name) => { setSaveSessionWorkout(null); void loadPrograms(true); notify(paceZh ? `“${name}”已保存到训练课库，可用于其他学员。` : `“${name}” saved to Sessions. Ready to reuse for other clients.`, "success"); }} />}
+
         {calendarActionMenu && (
           <CalendarActionMenu
             openWorkout={openWorkout}
             editWorkout={openWorkoutProgramInBuilder}
+            saveSessionToLibrary={setSaveSessionWorkout}
             reviewCalendarDraft={reviewCalendarDraft}
             calendarActionMenu={calendarActionMenu}
             closeCalendarActionMenu={closeCalendarActionMenu}
@@ -22695,6 +22704,7 @@ function App({ onReady, bootVisible = true }: { onReady?: () => void; bootVisibl
             openWorkoutActionMenuId={openWorkoutActionMenuId}
             openWorkoutExerciseFromGlance={openWorkoutExerciseFromGlance}
             openWorkoutProgramInBuilder={openWorkoutProgramInBuilder}
+            saveSessionToLibrary={setSaveSessionWorkout}
             openWorkoutFinish={openWorkoutFinish}
             reviewCalendarDraft={reviewCalendarDraft}
             closeWorkoutPlayer={closeWorkoutPlayer}

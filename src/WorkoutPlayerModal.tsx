@@ -6,7 +6,7 @@ import "./WorkoutIdentityPanel.css";
 import { localizePrescriptionValue } from "./prescriptionDisplay";
 import { stripLocalizedExerciseMeta, exercisePrescription, formatPaceSecPerKm, parsePaceToSecPerKm, reconcileCardioActuals } from "./appCore";
 import "./WorkoutPlayerModal.css";
-import { Check, ChevronLeft, ChevronRight, ClipboardList, Clock3, Dumbbell, Film, HeartPulse, MessageSquare, MoreVertical, Play, RefreshCw, Shuffle, SquarePen, Target, Timer, Trash2, Trophy, Waves, X } from "lucide-react";
+import { BookmarkPlus, Check, ChevronLeft, ChevronRight, ClipboardList, Clock3, Dumbbell, Film, HeartPulse, MessageSquare, MoreVertical, Play, RefreshCw, Shuffle, SquarePen, Target, Timer, Trash2, Trophy, Waves, X } from "lucide-react";
 import { getDisplayTaskStatus, isDirectMediaUrl, makeExerciseLabel, parseExerciseNotes, toMediaCdnUrl, uploadThumbUrl, videoThumbnail } from "./appCore";
 import ContentWatermark from "./ContentWatermark";
 import WorkoutNotes from "./WorkoutNotes";
@@ -62,6 +62,7 @@ export default function WorkoutPlayerModal({
   openWorkoutProgramInBuilder,
   openWorkoutFinish,
   reviewCalendarDraft,
+  saveSessionToLibrary,
   closeWorkoutPlayer,
   originalExercisesRef,
   paceZh,
@@ -269,6 +270,7 @@ export default function WorkoutPlayerModal({
                 </div>
 
                 <div className="modalHeaderActions">
+                  {!isClientPortal && selectedWorkout.programId && (selectedWorkout.assignedWorkoutId || selectedWorkout.id?.startsWith("AW-")) && saveSessionToLibrary && <button type="button" className="iconActionButton wpmBuilderBtn" onClick={() => saveSessionToLibrary(selectedWorkout)} title={paceZh ? "保存为可重复使用的训练课" : "Save a reusable session"} aria-label={paceZh ? "保存训练课" : "Save session"}><BookmarkPlus size={16} aria-hidden="true" /><span>{paceZh ? "保存训练课" : "Save session"}</span></button>}
                   {!isClientPortal && selectedWorkout.programId && (
                   <button
                     className="iconActionButton wpmBuilderBtn"

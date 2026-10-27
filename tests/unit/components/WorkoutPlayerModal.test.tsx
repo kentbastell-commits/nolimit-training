@@ -108,6 +108,14 @@ const baseProps: any = {
 };
 
 describe("WorkoutPlayerModal", () => {
+  it("offers saving completed prescriptions to coaches and hides the action in the athlete portal", () => {
+    const saveSessionToLibrary = vi.fn(), workout = { ...selectedWorkout, programId: "PR-1", completionStatus: "Completed" };
+    const view = render(<WorkoutPlayerModal {...baseProps} selectedWorkout={workout} saveSessionToLibrary={saveSessionToLibrary} />);
+    fireEvent.click(screen.getByRole("button", { name: "Save session", exact: true }));
+    expect(saveSessionToLibrary).toHaveBeenCalledWith(workout);
+    view.rerender(<WorkoutPlayerModal {...baseProps} selectedWorkout={workout} isClientPortal saveSessionToLibrary={saveSessionToLibrary} />);
+    expect(screen.queryByRole("button", { name: "Save session", exact: true })).not.toBeInTheDocument();
+  });
   it.each([false, true])("routes draft previews to publication, never workout submission (Chinese: %s)", (zh) => {
     const reviewCalendarDraft = vi.fn(), saveWorkout = vi.fn();
     const workout = { ...selectedWorkout, isDraft: true };

@@ -1,0 +1,26 @@
+.sessionLibraryScrim { position: fixed; z-index: 2350; inset: 0; display: grid; place-items: center; padding: 20px; background: #0007; }
+.sessionLibraryDialog { box-sizing: border-box; width: min(520px, 100%); max-height: calc(100dvh - 40px); overflow-y: auto; overscroll-behavior: contain; background: #fffefa; color: #24251e; border: 1px solid #ded9ca; border-radius: 18px; padding: 24px; box-shadow: 0 20px 70px #0004; }
+.sessionLibraryDialog header, .sessionLibraryDialog header > div, .sessionLibraryDialog footer { display: flex; align-items: center; gap: 10px; }
+.sessionLibraryDialog header { justify-content: space-between; }
+.sessionLibraryDialog header svg { color: #a17c30; flex-shrink: 0; }
+.sessionLibraryDialog h2 { margin: 0; font-size: 22px; }
+.sessionLibraryDialog p { font-size: 13px; line-height: 1.6; color: #6c6c60; }
+.sessionLibraryDialog button { display: inline-flex; align-items: center; justify-content: center; min-height: 44px; padding: 9px 13px; border: 1px solid #dcd7c9; border-radius: 9px; background: #fff; font: inherit; font-size: 13px; font-weight: 600; cursor: pointer; }
+.sessionLibraryDialog button:disabled { opacity: .5; cursor: default; }
+.sessionLibraryDialog input { box-sizing: border-box; font: inherit; }
+.sessionLibraryName { display: grid; gap: 8px; font-size: 13px; font-weight: 600; margin-top: 18px; }
+.sessionLibraryName input { width: 100%; min-height: 46px; border: 1px solid #c9c3b3; border-radius: 9px; background: #fff; color: #20241f; padding: 10px 12px; }
+.sessionLibraryDialog small { display: block; font-size: 11px; line-height: 1.6; color: #7c7a6a; margin-top: 7px; }
+.sessionLibraryDialog fieldset { border: 1px solid #ded9ca; border-radius: 9px; margin: 16px 0; padding: 10px 13px; }
+.sessionLibraryDialog legend { font-size: 12px; font-weight: 600; }
+.sessionLibraryDialog fieldset label { display: flex; gap: 9px; align-items: center; min-height: 44px; font-size: 13px; }
+.sessionLibraryDialog input[type="radio"] { width: 20px; height: 20px; }
+.sessionLibraryContents { background: #f5f2e8; border: 1px solid #e7e0cf; border-radius: 10px; padding: 13px 16px; margin-top: 18px; font-size: 12px; }
+.sessionLibraryContents ol { padding-left: 20px; line-height: 1.7; margin: 8px 0 0; }
+.sessionLibraryHint { font-size: 11px !important; }
+.sessionLibraryDialog footer { justify-content: flex-end; margin-top: 20px; }
+.sessionLibraryDialog .sessionLibraryPrimary { background: #20231d; border-color: #20231d; color: #f4da7e; }
+.sessionLibraryError { padding: 12px; background: #fff0e9; color: #95432c; border-radius: 8px; font-size: 12px; line-height: 1.6; }
+.sessionLibraryError button { display: flex; margin-top: 8px; }
+.sessionLibraryDialog :focus-visible { outline: 2px solid #a17c30; outline-offset: 3px; }
+@media(max-width: 600px) { .sessionLibraryScrim { padding: 12px; } .sessionLibraryDialog { padding: 20px 16px; max-height: calc(100dvh - 24px); } .sessionLibraryDialog h2 { font-size: 20px; } .sessionLibraryDialog footer button { flex: 1; } }
