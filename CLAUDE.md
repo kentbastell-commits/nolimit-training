@@ -483,6 +483,11 @@ data between them, never "borrow" a table ID across products.
     review. Rule: when a field stops being prefilled, trace the "user
     touched nothing but confirmed" path to the writer and resolve the
     default AT SUBMIT (see `resolvedLogs` in App.tsx), not in the input.
+    Data consequence, measured 2026-10-29 and INTENTIONAL (web and mini
+    agree: a ✓ records completion, only typed numbers record performance):
+    ~75% of completed sets in prod carry no reps/weight, so volume, PR and
+    1RM features see little — a UX nudge is the lever, never a server-side
+    fill from the prescription.
     Corollary (builder audit 2026-09-20): the WRITE-ONLY twin store —
     `set_prescriptions` had been written by every save for months while
     every reader used the "Set Prescriptions: [...]" JSON in coaching_notes,
@@ -1041,6 +1046,45 @@ data between them, never "borrow" a table ID across products.
     not the latest private editor snapshot. Compare prescription values across forked template IDs;
     freeze the reviewed edit, preserve stale-version checks, and do not invent identities for repeated exercises.
     Physical phone keyboard/background/WeChat acceptance remains pending until tested on real hardware.
+
+78. **The upload that never reached a phone** — six mini-program builds were
+    uploaded between 2026-09-18 and 2026-10-06 (clientCode on workoutDetails,
+    China-day alignment, pace/HR, skip reasons, add-a-set) and every athlete
+    was still running the FIRST release six weeks later: an upload is a
+    development version, trial/review/release are Kent's separate steps, and
+    nothing in the repo or the memory distinguishes "uploaded" from "in
+    athletes' hands". Rule: the ground truth for what athletes run is the
+    nginx access log — the WeChat referer is `servicewechat.com/<appid>/
+    <releaseVersion>/` (`0` = dev/trial, `1` = first public release, …) and
+    the request shape (e.g. `workoutDetails` with/without `clientCode`) tells
+    you which code is live. Check it before assuming a mini fix landed, and
+    keep every server change compatible with the release the log shows.
+79. **The wrapper that throws, and the branch that can never run** — the
+    mini program's request layer (`services/api.ts`) throws `ApiError` on
+    EVERY non-2xx, while the server signals a rejected workout save as
+    500 + `{success:false}` (409 for a coach draft). So the player's
+    `if (res.success) … else <show rejection>` else-branch was unreachable,
+    and every rejection ("workout no longer available", bad payload) fell
+    into the network `catch`, was queued as "saved offline" and retried on
+    every foreground forever. Rule: after `await` on a throwing wrapper,
+    failure handling lives in the `catch` and must split the cases
+    (`saveRefusal`: 4xx/success:false = rejected → show it, keep the draft,
+    never queue; 409 draft = queue, say why; else = network → queue); and
+    any retry queue needs an expiry that is actually CALLED (the policy
+    existed, unused, for a month).
+80. **The main that wasn't live** — Codex ships from `codex/<topic>-<date>`
+    branches via bundle, so the server's `main` (origin = /tmp/nolimit.bundle)
+    ran 15 commits GitHub `main` had never seen, and the primary worktree
+    held a half-copied codex state plus unrelated footage work (344 files,
+    uncommittable). Rule: start any "what is live" audit with
+    `ssh nolimit-cn 'git log -1'` and `git branch -a --contains <sha>` —
+    never assume `main`; audit and fix in a detached worktree of the live
+    sha (`git worktree add --detach <scratch> <sha>`, junction node_modules,
+    copy .env, re-run setupTestDb for new migrations), deploy that branch by
+    incremental bundle, and reconcile `main` afterwards as its own step.
+    Also: `pm2 reload` in fork mode is kill+start per app and moves on when
+    the next PROCESS exists, not when it listens — use
+    `scripts/rollingRestart.sh` (see the deploy skill), never a bare reload.
 
 ## Quality bar — checkable, per deliverable
 
