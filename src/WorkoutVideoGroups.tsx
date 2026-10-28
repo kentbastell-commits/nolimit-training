@@ -13,7 +13,7 @@ export default function WorkoutVideoGroups({ videos, coach = false, replies = {}
   return <div className="workoutVideoGroups">{groupWorkoutVideos(videos).map((group, index) => <details className="workoutVideoGroup" key={group.key} open={group.pending > 0 || index === 0}>
     <summary><div>{coach && <small>{group.clientName || group.clientId}</small>}<h3>{zh ? group.workoutNameCn || group.workoutName || "其他上传" : group.workoutName || "Other uploads"}</h3>
       <span>{group.dateBasis === "upload" ? (zh ? "上传日期" : "Uploaded") : (zh ? "训练日期" : "Session date")} · <time>{group.date || (zh ? "日期未知" : "Unknown date")}</time></span></div>
-      <div className="workoutVideoCounts"><span>{group.videos.length} {zh ? "项上传" : "uploads"}</span><strong>{group.pending ? `${group.pending} ${zh ? "待反馈" : "awaiting feedback"}` : zh ? "已反馈" : "Reviewed"}</strong></div>
+      <div className="workoutVideoCounts"><span>{group.videos.length} {zh ? "项上传" : group.videos.length === 1 ? "upload" : "uploads"}</span><strong>{group.pending ? `${group.pending} ${zh ? "待反馈" : "awaiting feedback"}` : zh ? "已反馈" : "Reviewed"}</strong></div>
     </summary>
     <div className="workoutVideoCards">{group.videos.map(video => <article className="workoutVideoCard" key={video.recordId}>
       <header><h4>{video.exerciseName || (zh ? "动作视频" : "Exercise video")}</h4><span>{video.status === "Reviewed" ? (zh ? "已反馈" : "Reviewed") : (zh ? "等待教练反馈" : "Awaiting coach feedback")}</span></header>
