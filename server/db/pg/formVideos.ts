@@ -1,9 +1,10 @@
 // Postgres impl for the formVideos domain. clientId is FK-enforced here
 // (Feishu stores plain text): the FK is nulled when the client row doesn't
 // exist so a submission always lands; clientName still carries the identity.
-import { eq } from "drizzle-orm";
+import { and, eq, inArray } from "drizzle-orm";
 import { db } from "../client.ts";
-import { formVideos, clients } from "../schema.ts";
+import { formVideos, clients, assignedWorkouts } from "../schema.ts";
+import { resolveVideoSession, videoDay } from "../../../src/videoSessionGrouping.ts";
 import { str } from "./_util.ts";
 import { queueTranslations } from "../contentTranslations.ts";
 import type {
@@ -15,6 +16,8 @@ import type { WriteResult } from "../dto.ts";
 
 export async function listFormVideos(): Promise<FormVideoDTO[]> {
   const rows = await db.select().from(formVideos);
+  const clientIds = [...new Set(rows.map(row => row.clientId).filter((id): id is string => !!id))];
+  const assignments = clientIds.length ? await db.select().from(assignedWorkouts).where(inArray(assignedWorkouts.clientId, clientIds)) : [];
   return rows
     .map((r): FormVideoDTO => ({
       recordId: r.videoId,
@@ -23,6 +26,10 @@ export async function listFormVideos(): Promise<FormVideoDTO[]> {
       clientName: str(r.clientName),
       exerciseName: str(r.exerciseName),
       workoutName: str(r.workoutName),
+      workoutNameCn: str(r.workoutNameCn),
+      assignedWorkoutId: str(r.assignedWorkoutId),
+      workoutDate: str(r.workoutDate),
+      reviewedAt: r.reviewedAt ?? 0,
       videoUrl: str(r.videoUrl),
       clientNote: str(r.clientNote),
       clientNoteEn: str(r.clientNoteEn),
@@ -31,6 +38,7 @@ export async function listFormVideos(): Promise<FormVideoDTO[]> {
       coachReply: str(r.coachReply),
       coachReplyCn: str(r.coachReplyCn),
     }))
+    .map(video => resolveVideoSession(video, assignments))
     .sort((a, b) => b.submittedAt - a.submittedAt);
 }
 
@@ -47,13 +55,21 @@ export async function createFormVideo(
         .where(eq(clients.clientId, clientCode))
     ).length > 0;
 
+  const assignmentId = String(input.assignedWorkoutId || "").trim();
+  const [assignment] = assignmentId ? await db.select().from(assignedWorkouts).where(and(
+    eq(assignedWorkouts.assignedWorkoutId, assignmentId), eq(assignedWorkouts.clientId, clientCode)
+  )) : [];
+  if (assignmentId && !assignment) return { success: false, error: "Invalid workout" };
   try {
     await db.insert(formVideos).values({
       videoId,
       clientId: clientExists ? clientCode : null,
       clientName: String(input.clientName || ""),
       exerciseName: String(input.exerciseName || ""),
-      workoutName: String(input.workoutName || ""),
+      workoutName: assignment?.sessionName || String(input.workoutName || ""),
+      assignedWorkoutId: assignment?.assignedWorkoutId || null,
+      workoutDate: assignment ? videoDay(assignment.scheduledDate) : null,
+      workoutNameCn: assignment?.sessionNameCn || null,
       videoUrl: input.absoluteVideoUrl || null,
       clientNote: String(input.note || ""),
       submittedAt: Date.now(),

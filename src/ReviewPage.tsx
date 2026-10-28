@@ -12,7 +12,7 @@ import { useTranslation } from "react-i18next";
 import { CheckSquare, ChevronDown, X } from "lucide-react";
 import "./ReviewPage.css";
 import { normalizeDate } from "./appCore";
-import ReviewVideo from "./ReviewVideo";
+import WorkoutVideoGroups from "./WorkoutVideoGroups";
 import CountUp from "./CountUp";
 import ReviewPager, { reviewPageNumber, REVIEW_PAGE_SIZE } from "./ReviewPager";
 
@@ -121,9 +121,7 @@ export default function ReviewPage({
     };
   }, [selectedCheckIn]);
 
-  const unreviewedFormVideos = reviewFormVideos.filter(
-    (v: any) => embeddedSection || v.status !== "Reviewed"
-  );
+
 
   const commentsCount =
     globalUnreviewedWorkoutComments.length + globalReviewOrders.length;
@@ -413,50 +411,16 @@ export default function ReviewPage({
 
         {/* Form Videos — collapsible like the rest; shown only when there are
             unreviewed clips (no summary card / KPI target points at it). */}
-        {unreviewedFormVideos.length > 0 && (
+        {reviewFormVideos.length > 0 && (
           <article className="rvSection" hidden={!!embeddedSection && embeddedSection !== "formVideos"}>
             {sectionHeader(
               "Needs review",
               "Form Videos",
-              unreviewedFormVideos.length,
+              reviewFormVideos.length,
               "formVideos"
             )}
             {openReviewSections.formVideos && (
-              <div className="rvGrid rvGridWide">
-                {unreviewedFormVideos.map((video: any) => (
-                <div key={video.recordId} className="rvVideoCard">
-                  <div className="rvVideoMeta">
-                    <strong>{video.clientName || video.clientId}</strong>
-                    <span>
-                      {video.exerciseName}
-                      {video.workoutName ? ` · ${video.workoutName}` : ""}
-                    </span>
-                  </div>
-                  {video.videoUrl && (
-                    <ReviewVideo url={video.videoUrl} title={video.exerciseName || "Workout video"} />
-                  )}
-                  {video.clientNote && (
-                    <p className="rvNote">{video.clientNoteEn || video.clientNote}</p>
-                  )}
-                  <textarea
-                    className="rvReply"
-                    placeholder={t("polishReplyToYourAthlete7e23")}
-                    value={formVideoReplies[video.recordId] || ""}
-                    onChange={(e) =>
-                      setFormVideoReplies((cur: any) => ({
-                        ...cur,
-                        [video.recordId]: e.target.value,
-                      }))
-                    }
-                  />
-                  <button
-                    type="button"
-                    className="rvGoldBtn"
-                    onClick={() => void reviewFormVideo(video.recordId)}
-                  >{t("polishSendReplyMarkReviewed51d8")} </button>
-                </div>
-                ))}
-              </div>
+              <WorkoutVideoGroups videos={reviewFormVideos} coach replies={formVideoReplies} setReplies={setFormVideoReplies} onReview={reviewFormVideo} />
             )}
           </article>
         )}

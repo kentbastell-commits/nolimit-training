@@ -5,6 +5,7 @@ import { ArrowLeft, ArrowRight, BookOpen, ChartNoAxesCombined, CheckCircle2, Che
 import { normalizeDate } from "./appCore";
 import { isAthletePreview } from "./athletePreviewPolicy";
 import "./AthleteHub.css";
+import { AthleteWorkoutVideos } from "./WorkoutVideoGroups";
 
 const JumpLabModal = lazy(() => import("./JumpLabModal"));
 export function athleteContactKey(type: string) {
@@ -109,7 +110,12 @@ export default function AthleteHub({ view, client, t, today, workouts = [], load
         {inbox.some(x => x.at > inboxSeenAt) && <button className="athLink" onClick={() => setCoachSection("feedback")}><span className="athUnread" />{t("athleteFeedback")}</button>}
       </>}
       {coachSection === "messages" && <AthleteMessages key={client.clientCode} client={client} t={t} preview={preview} />}
-      {coachSection === "feedback" && <section className="athCard"><h2>{t("athleteFeedback")}</h2>{!inbox.length ? <p>{t("athleteNoFeedback")}</p> : <>{!preview && <button className="athLink" onClick={() => markInboxSeen(Math.max(...inbox.map(x => x.at)))}>{t("athleteMarkRead")}</button>}{inbox.map(x => <article className="athMessage" key={x.id}><strong>{x.title}</strong><p>{x.body}</p></article>)}</>}</section>}
+      {coachSection === "feedback" && <section className="athCard"><h2>{t("athleteFeedback")}</h2>
+        {!preview && inbox.length > 0 && <button className="athLink" onClick={() => markInboxSeen(Math.max(...inbox.map(x => x.at)))}>{t("athleteMarkRead")}</button>}
+        <AthleteWorkoutVideos key={client.clientCode} clientId={client.clientCode} />
+        {inbox.filter(x => x.kind !== "video").map(x => <article className="athMessage" key={x.id}><strong>{x.title}</strong><p>{x.body}</p></article>)}
+      </section>}
+
       {coachSection === "contact" && <section className="athCard"><h2>{t(coached ? "athleteCoachContact" : "athleteSupportContact")}</h2>{client.coachQrUrl ? <><img className="athQr" src={client.coachQrUrl} alt={t("athleteScanQr")} /><p>{t("athleteScanQr")}</p></> : <p>{t("athleteNoContact")}</p>}</section>}
     </> : <>
       <header className="athCard athIdentity"><h1>{client.name}</h1><p>{t("athleteMyTraining")}</p></header>

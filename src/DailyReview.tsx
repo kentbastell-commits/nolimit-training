@@ -69,9 +69,10 @@ export default function DailyReview(props: any) {
     const map: Record<string, string> = { message: "clientMessages", comment: "globalUnreviewedWorkoutComments", checkin: "coachReviewCheckIns", video: "reviewFormVideos", submission: "globalReviewSubmissionItems", order: "globalReviewOrders", enquiry: "newEnquiries" };
     const sections: Record<string, string> = { message: "messages", comment: "comments", checkin: "checkins", video: "formVideos", submission: "submissions", order: "comments", enquiry: "enquiries" };
     const narrow: Record<string, any[]> = Object.fromEntries(Object.values(map).map(k => [k, []]));
-    if (map[item.kind] && item.source) narrow[map[item.kind]] = [item.source];
+    if (map[item.kind] && item.source) narrow[map[item.kind]] = item.kind === "video" && item.source.sessionVideoIds
+      ? props.reviewFormVideos.filter((v: any) => item.source.sessionVideoIds.includes(v.recordId)) : [item.source];
     return <div className="dailyDetail">
-      {(item.source?.coachReply || item.source?.coachResponse) && <p className="coachTimelineNote"><strong>{t("dailyCoachFeedback")}</strong><br />{item.source.coachReply || item.source.coachResponse}</p>}
+      {item.kind !== "video" && (item.source?.coachReply || item.source?.coachResponse) && <p className="coachTimelineNote"><strong>{t("dailyCoachFeedback")}</strong><br />{item.source.coachReply || item.source.coachResponse}</p>}
       {item.source && map[item.kind] && <ReviewPage {...props} {...narrow} embeddedSection={sections[item.kind]} openReviewSections={{ [sections[item.kind]]: true }} />}
       {item.source && ["workout", "missed"].includes(item.kind) && <button className="dailyPrimary" onClick={() => props.openReviewWorkout(item.source)}>{t("dailyOpen")} <ArrowRight size={16} /></button>}
       {item.source && item.kind === "coverage" && <p>{item.title ? t("dailyEnds", { date: item.title }) : t("dailyNoCoverage")}</p>}

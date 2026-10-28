@@ -1,3 +1,4 @@
+import { groupWorkoutVideos, type WorkoutVideo } from "./videoSessionGrouping";
 import { clientTags } from "./clientIdentity";
 import type { ProfilePayload } from "./clientProfile";
 import CoachAssignmentModal, { type CoachAssignmentPayload } from "./CoachAssignmentModal";
@@ -688,6 +689,7 @@ function App({ onReady, bootVisible = true }: { onReady?: () => void; bootVisibl
       clientName: string;
       exerciseName: string;
       workoutName: string;
+      assignedWorkoutId?: string; workoutDate?: string; workoutNameCn?: string; submittedAt?: number; reviewedAt?: number; coachReply?: string; coachReplyCn?: string;
       videoUrl: string;
       status: string;
     }>
@@ -723,7 +725,7 @@ function App({ onReady, bootVisible = true }: { onReady?: () => void; bootVisibl
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           recordId,
-          coachReply: formVideoReplies[recordId] || "",
+          coachReply: formVideoReplies[recordId] ?? reviewFormVideos.find(v => v.recordId === recordId)?.coachReply ?? "",
           status: "Reviewed",
         }),
       });
@@ -731,7 +733,7 @@ function App({ onReady, bootVisible = true }: { onReady?: () => void; bootVisibl
       if (!res.ok || !data.success) throw new Error(data.error || "failed");
       setReviewFormVideos((cur) =>
         cur.map((v) =>
-          v.recordId === recordId ? { ...v, status: "Reviewed" } : v
+          v.recordId === recordId ? { ...v, status: "Reviewed", coachReply: formVideoReplies[recordId] ?? v.coachReply ?? "", coachReplyCn: "", reviewedAt: Date.now() } : v
         )
       );
       setFormVideoReplies(current => { const next = { ...current }; delete next[recordId]; return next; });
@@ -778,6 +780,7 @@ function App({ onReady, bootVisible = true }: { onReady?: () => void; bootVisibl
           clientId: selectedClient.clientCode || selectedClient.id,
           clientName: selectedClient.name,
           exerciseName: formVideoExercise.exerciseName,
+          assignedWorkoutId: selectedWorkout?.assignedWorkoutId || selectedWorkout?.id || "",
           workoutName: selectedWorkout
             ? localizedWorkoutName(selectedWorkout)
             : "",
@@ -828,6 +831,7 @@ function App({ onReady, bootVisible = true }: { onReady?: () => void; bootVisibl
           clientId: selectedClient.clientCode || selectedClient.id,
           clientName: selectedClient.name,
           exerciseName,
+          assignedWorkoutId: selectedWorkout?.assignedWorkoutId || selectedWorkout?.id || "",
           workoutName: selectedWorkout
             ? localizedWorkoutName(selectedWorkout)
             : "",
@@ -1010,7 +1014,7 @@ function App({ onReady, bootVisible = true }: { onReady?: () => void; bootVisibl
   const [clientCheckIns, setClientCheckIns] = useState<PortalCheckIn[]>([]);
   // Athlete inbox: coach replies (check-ins + form videos) surfaced on Home.
   const [portalVideoReplies, setPortalVideoReplies] = useState<
-    Array<{ id: string; exerciseName: string; coachReply: string; at: number }>
+    Array<WorkoutVideo & { id: string; exerciseName: string; coachReply: string; at: number }>
   >([]);
   const [inboxSeenAt, setInboxSeenAt] = useState(() => {
     try {
@@ -1054,16 +1058,10 @@ function App({ onReady, bootVisible = true }: { onReady?: () => void; bootVisibl
         at,
       });
     }
-    for (const v of portalVideoReplies) {
-      items.push({
-        id: `fv-${v.id}`,
-        kind: "video",
-        title: paceZh
-          ? `动作视频反馈 · ${v.exerciseName}`
-          : `Form feedback · ${v.exerciseName}`,
-        body: v.coachReply,
-        at: v.at,
-      });
+    for (const group of groupWorkoutVideos(portalVideoReplies)) {
+      items.push({ id: `fv-${group.videos[0].id}`, kind: "video",
+        title: `${paceZh ? group.workoutNameCn || group.workoutName || "训练反馈" : group.workoutName || "Workout feedback"} · ${group.dateBasis === "upload" ? (paceZh ? "上传 " : "Uploaded ") : ""}${group.date}`,
+        body: group.videos.map(v => `${v.exerciseName}\n${v.coachReply}`).join("\n\n"), at: group.latest });
     }
     return items.sort((a, b) => b.at - a.at).slice(0, 12);
   };
@@ -1071,7 +1069,7 @@ function App({ onReady, bootVisible = true }: { onReady?: () => void; bootVisibl
     if (!isClientPortal || !selectedClient) return;
     void (async () => {
       try {
-        const res = await fetch("/api/formVideos");
+        const res = await fetch(`/api/formVideos?clientId=${encodeURIComponent(selectedClient.clientCode || selectedClient.id)}`);
         const data = await res.json();
         if (!Array.isArray(data.videos)) return;
         const mine = data.videos
@@ -1082,13 +1080,14 @@ function App({ onReady, bootVisible = true }: { onReady?: () => void; bootVisibl
                 v.clientId === selectedClient.id)
           )
           .map((v: any) => ({
+            ...v,
             id: v.recordId,
             exerciseName: v.exerciseName || "Exercise",
             coachReply:
               languagePreferenceToCode(selectedClient.languagePreference) === "zh"
                 ? v.coachReplyCn || v.coachReply
                 : v.coachReply,
-            at: Number(v.submittedAt) || 0,
+            at: Number(v.reviewedAt || v.submittedAt) || 0,
           }));
         setPortalVideoReplies(mine);
       } catch {

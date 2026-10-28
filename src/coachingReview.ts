@@ -1,3 +1,4 @@
+import { groupWorkoutVideos } from "./videoSessionGrouping";
 // Shared coaching facts and queue identity. No login-derived training signals.
 /* eslint-disable @typescript-eslint/no-explicit-any */
 export type ReviewKind = "message" | "comment" | "checkin" | "video" | "submission" | "workout" | "coverage" | "missed" | "order" | "enquiry";
@@ -47,7 +48,12 @@ export function buildCoachingItems(input: { clients: any[]; workouts?: any[]; ch
   comments.forEach(c => add("comment", c, c.key, c.date, c.noteEn || c.note, 0, [c.note, c.date]));
   checkIns.forEach(c => add("checkin", c, c.recordId, c.submittedDate, c.trainingNotesEn || c.trainingNotes || c.problemsPainEn || c.problemsPain, 1,
     [c.submittedDate, c.bodyWeight, c.sleepHours, c.sleepQuality, c.energy, c.mood, c.stress, c.soreness, c.readinessScore, c.trainingNotes, c.wins, c.problemsPain, c.clientNotes, c.nutritionNotes]));
-  videos.forEach(v => add("video", v, v.recordId, v.submittedAt || v.createdAt, v.exerciseName, 1, [v.videoUrl, v.clientNote]));
+  groupWorkoutVideos(videos).forEach(group => {
+    const first = group.videos[0];
+    const source = { ...first, sessionVideoIds: group.videos.map(v => v.recordId), status: group.pending ? "New" : "Reviewed" };
+    add("video", source, first.recordId, group.latest, `${group.workoutName || first.exerciseName} · ${group.date} · ${group.videos.length}`,
+      1, group.videos.map(v => [v.recordId, v.videoUrl, v.clientNote, v.status]), first.clientId);
+  });
   submissions.forEach(s => add("submission", s, s.key, s.submittedAt, s.title, 1, [s.submittedAt, s.answers?.map((a: any) => [a.responseId, a.answerText, a.answerNumber])], s.answers?.[0]?.clientId));
   workouts.forEach(w => {
     const date = coachingDate(w.scheduledDate), id = w.assignedWorkoutId || w.id;

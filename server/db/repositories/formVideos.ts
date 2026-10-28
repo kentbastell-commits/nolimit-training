@@ -11,6 +11,10 @@ export type FormVideoDTO = {
   clientName: string;
   exerciseName: string;
   workoutName: string;
+  workoutNameCn?: string;
+  assignedWorkoutId?: string;
+  workoutDate?: string;
+  reviewedAt?: number;
   videoUrl: string;
   clientNote: string;
   clientNoteEn?: string;
@@ -26,6 +30,7 @@ export type CreateFormVideoInput = {
   clientName?: string;
   exerciseName?: string;
   workoutName?: string;
+  assignedWorkoutId?: string;
   // Already made absolute by the handler (Feishu URL columns mangle relative
   // paths); empty string means a note-only submission.
   absoluteVideoUrl?: string;

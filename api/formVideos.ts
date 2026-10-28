@@ -30,7 +30,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     }
 
     if (req.method === "POST") {
-      const { clientId, clientName, exerciseName, workoutName, videoUrl, note } =
+      const { clientId, clientName, exerciseName, workoutName, assignedWorkoutId, videoUrl, note } =
         req.body || {};
       // A submission is a video, a written note, or both — clients reviewing a
       // past workout can send a note without re-filming anything.
@@ -56,10 +56,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         clientName,
         exerciseName,
         workoutName,
+        assignedWorkoutId,
         absoluteVideoUrl,
         note,
       });
-      if (!result.success) return res.status(500).json(result);
+      if (!result.success) return res.status(result.error === "Invalid workout" ? 400 : 500).json(result);
 
       void notifyCoach(
         videoUrl

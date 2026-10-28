@@ -2,6 +2,7 @@
 import { useTranslation } from "react-i18next";
 import { athleteFacts, belongsTo, coachingDate, coachingPaused, type CoachingItem, type ReviewDecision } from "./coachingReview";
 import "./DailyCoaching.css";
+import { groupWorkoutVideos } from "./videoSessionGrouping";
 
 export default function CoachAthleteSummary({ client, workouts, checkIns, checkInsReady, items, decisions, videos, loading, loadFailed, feedLoading, feedError, retry, openWorkout, adjustNext, openReview, openCalendar, openProgress, openNotes, workoutName }: any) {
   const { t } = useTranslation();
@@ -15,7 +16,7 @@ export default function CoachAthleteSummary({ client, workouts, checkIns, checkI
   const events = [
     ...facts.done.map(w => ({ key: `workout:${w.assignedWorkoutId || w.id}`, date: coachingDate(w.scheduledDate), label: t("dailyKind_workout"), title: workoutName(w), note: w.clientNotes, noteLabel: t("dailyAthleteNote"), open: () => openWorkout(w) })),
     ...facts.checks.map(c => ({ key: `checkin:${c.recordId}`, date: coachingDate(c.submittedDate), label: t("dailyCheckin"), title: [c.trainingNotesEn || c.trainingNotes, c.problemsPainEn || c.problemsPain].filter(Boolean).join(" · ") || t("dailyCheckin"), note: c.coachResponse, noteLabel: t("dailyCoachFeedback"), open: () => openReview(`checkin:${c.recordId}`) })),
-    ...(videos || []).filter((v: any) => belongsTo(v, client)).map((v: any) => ({ key: `video:${v.recordId}`, date: coachingDate(v.submittedAt || v.createdAt), label: t("dailyKind_video"), title: v.exerciseName, note: v.coachReply, noteLabel: t("dailyCoachFeedback"), open: () => openReview(`video:${v.recordId}`) })),
+    ...groupWorkoutVideos((videos || []).filter((v: any) => belongsTo(v, client))).map(group => ({ key: `video:${group.videos[0].recordId}`, date: group.date, label: t("dailyKind_video"), title: `${group.workoutName || t("dailyKind_video")} · ${group.videos.length}`, note: group.videos.map(v => v.coachReply ? `${v.exerciseName}: ${v.coachReply}` : "").filter(Boolean).join("\n\n"), noteLabel: t("dailyCoachFeedback"), open: () => openReview(`video:${group.videos[0].recordId}`) })),
     ...(decisions as ReviewDecision[]).map(d => ({ key: `decision:${d.key}`, date: coachingDate(d.updatedAt), label: t("dailyCoachDecision"), title: `${t(`dailyKind_${d.item.kind}`)} · ${t(d.status === "resolved" ? "dailyResolved" : d.status === "snoozed" ? "dailySnoozed" : "dailyReopen")}`, note: d.note, noteLabel: t("dailyPrivate"), open: () => openReview(d.key, d.status === "resolved" ? "dailyHistory" : d.status === "snoozed" ? "dailySnoozed" : "dailyAll") })),
   ].sort((a, b) => b.date.localeCompare(a.date)).slice(0, 12);
   return <section className="coachSummary">
