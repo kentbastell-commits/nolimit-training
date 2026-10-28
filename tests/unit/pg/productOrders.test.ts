@@ -182,11 +182,32 @@ describe("api/updateProductOrder (postgres)", () => {
 
     expect(res.statusCode).toBe(200);
     const [order] = await rows(
-      "select payment_status, client_id from product_orders where order_id = $1",
+      "select payment_status, client_id, paid_at from product_orders where order_id = $1",
       [orderId]
     );
     expect(order.payment_status).toBe("Paid");
     expect(order.client_id).toBe("CL-9001");
+    // A coach's "Mark paid" without a typed date stamps the confirmation now.
+    expect(Number(order.paid_at)).toBeGreaterThan(Date.now() - 60_000);
+  });
+
+  it("marking Paid never overwrites a payment date the coach already recorded", async () => {
+    const orderId = await seedOrder();
+    const first = makeRes();
+    await updateHandler(
+      makeReq({ method: "POST", body: { recordId: orderId, paidAt: "2026-09-01" } }) as any,
+      first as any
+    );
+    expect(first.statusCode).toBe(200);
+    const [before] = await rows("select paid_at from product_orders where order_id = $1", [orderId]);
+    const second = makeRes();
+    await updateHandler(
+      makeReq({ method: "POST", body: { recordId: orderId, paymentStatus: "Paid" } }) as any,
+      second as any
+    );
+    expect(second.statusCode).toBe(200);
+    const [after] = await rows("select paid_at from product_orders where order_id = $1", [orderId]);
+    expect(String(after.paid_at)).toBe(String(before.paid_at));
   });
 
   it("treats an explicit empty string as a clear, not an omit", async () => {

@@ -5,12 +5,20 @@ import {
   updateFormTemplate,
   deleteFormTemplate,
 } from "../server/db/repositories/formTemplates.ts";
+import { coachKeyOk } from "./_coachAuth.ts";
 
+// Dual-use handler: the athlete portal and the mini program GET the template
+// list (intake forms), so it can't live in COACH_ONLY_HANDLERS. The writes
+// are coach-only — until 2026-10-29 they were open to anyone, so an
+// unauthenticated DELETE could remove the intake questionnaire.
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   try {
     if (req.method === "GET") {
       const result = await listFormTemplates();
       return res.status(result.status).json(result.body);
+    }
+    if (!coachKeyOk(req as never)) {
+      return res.status(401).json({ error: "Coach access key required" });
     }
 
     if (req.method === "DELETE") {

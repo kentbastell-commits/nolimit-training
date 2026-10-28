@@ -1,5 +1,5 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
-import { listClients } from "../server/db/repositories/clients.ts";
+import { listClients, recordLogin } from "../server/db/repositories/clients.ts";
 import { listCoaches } from "../server/db/repositories/coaches.ts";
 import { getCoachingJourney } from "../server/db/pg/coachingJourney.ts";
 
@@ -22,6 +22,16 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const me = clients.find((c) => c.clientCode === clientId);
     if (!me) {
       return res.status(404).json({ error: "Client not found" });
+    }
+
+    // "Last login" on the roster was stamped only by the web portal's
+    // /api/recordLogin — the mini program (what athletes actually open) never
+    // called it, so 11 of 16 athletes showed no login while training daily.
+    // Every mini launch hits this read; stamp at most once an hour so the
+    // clients cache isn't dropped on every open. Fire-and-forget.
+    const lastLogin = Number(me.lastLogin) || 0;
+    if (Date.now() - lastLogin > 60 * 60 * 1000) {
+      void recordLogin(me.id, me.clientCode).catch(() => {});
     }
 
     const coachName = me.coach || "";

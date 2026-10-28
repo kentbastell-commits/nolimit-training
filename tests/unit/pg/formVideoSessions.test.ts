@@ -13,6 +13,12 @@ it("snapshots the owned session name/date, preserves late-upload association and
   await rows("update assigned_workouts set session_name='Renamed',scheduled_date=$1 where assigned_workout_id='AW-1'", [Date.now()]);
   expect((await listFormVideos())[0]).toMatchObject({ workoutDate: "2026-10-20", workoutName: "Home Workout 1" });
 });
+it("keeps a clip whose session was re-assigned or deleted mid-upload: the file is already on disk, so the dead link is dropped, not the video", async () => {
+  await seedClient();
+  const saved = await createFormVideo({ clientId: "CL-9001", assignedWorkoutId: "AW-GONE", workoutName: "Tuesday pull", exerciseName: "Row", note: "stale tab" });
+  expect(saved.success).toBe(true);
+  expect((await listFormVideos())[0]).toMatchObject({ assignedWorkoutId: "", workoutName: "Tuesday pull", exerciseName: "Row" });
+});
 it("continues accepting old-client submissions without an assignment and resolves only unambiguous historical matches", async () => {
   await seedClient(); const now = Date.now();
   await rows("insert into assigned_workouts (assigned_workout_id,client_id,session_name,scheduled_date) values ('AW-1','CL-9001','Home Workout 1',$1)", [now]);

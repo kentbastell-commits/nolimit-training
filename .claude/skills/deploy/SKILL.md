@@ -85,8 +85,17 @@ npx tsc -b --force && npm run build && npx vitest run --maxWorkers=1
 git push origin main
 git bundle create /tmp/nolimit-deploy.bundle main
 scp /tmp/nolimit-deploy.bundle nolimit-cn:/tmp/nolimit.bundle
-ssh nolimit-cn "cd /opt/nolimit-training && git pull origin main && npm install --no-audit --no-fund && npx drizzle-kit migrate && npx tsc -b --force && npx vite build && pm2 reload ecosystem.config.cjs"
+ssh nolimit-cn "cd /opt/nolimit-training && git pull origin main && npm install --no-audit --no-fund && npx drizzle-kit migrate && npx tsc -b --force && npx vite build && bash scripts/rollingRestart.sh"
 ```
+
+`scripts/rollingRestart.sh` (since 2026-10-29) restarts the two forks ONE AT
+A TIME and polls each port until the server answers before touching the
+other. Never go back to a bare `pm2 reload ecosystem.config.cjs` for a
+deploy: in fork mode it is kill+start per app and it moved on as soon as the
+first process EXISTED, not when it was listening — tsx boots in ~3 s, so
+both forks were down together and an athlete mid-workout got a page of 502s
+(2026-10-27 10:42). The script is also what applies changed ecosystem
+options (wait_ready/listen_timeout) — a reload keeps the old description.
 
 If the ssh step dies with "Connection closed" mid-build, re-run just that step
 — or run it detached via systemd-run and poll (see the ops note above).
@@ -227,7 +236,7 @@ Use the target's own ssh alias (`nolimit-cn` for nolimit, `nolimit` for kangfu).
 - Crash loop after restart: `pm2 logs <app> --lines 50 --nostream`, diagnose; if
   the fix isn't in hand within a few minutes, roll back:
   `ssh nolimit "cd <server dir> && git reset --hard HEAD~1 && npx vite build && pm2 restart <app>"`
-  (nolimit-training: `pm2 reload ecosystem.config.cjs` instead of `restart`,
+  (nolimit-training: `bash scripts/rollingRestart.sh` instead of `restart`,
   same reason as the deploy step) then tell Kent exactly what happened and
   what's rolled back.
 - Feishu API errors on first probe: `code 1254607` is transient throttling — wait

@@ -2,6 +2,7 @@ import type { VercelRequest, VercelResponse } from "@vercel/node";
 import fs from "node:fs";
 import path from "node:path";
 import { notifyCoach } from "./_notify.ts";
+import { coachKeyOk } from "./_coachAuth.ts";
 
 // Client-side observability sink. The SPA posts crashes, failed API calls, and
 // funnel events here; they land as JSONL on the server disk (pilot-scale — no
@@ -44,6 +45,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     if (req.method === "GET") {
       // Coach console view: tail the file (last ~200 events). Small file reads
       // are fine at pilot scale; the file is rotated manually if ever needed.
+      // The stream carries client codes, device strings and error text —
+      // coach eyes only (the POST side stays public so athletes can report).
+      if (!coachKeyOk(req as never)) {
+        return res.status(401).json({ error: "Coach access key required" });
+      }
       let events: unknown[] = [];
       try {
         const raw = fs.readFileSync(LOG_FILE, "utf8");

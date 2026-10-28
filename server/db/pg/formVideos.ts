@@ -1,7 +1,7 @@
 // Postgres impl for the formVideos domain. clientId is FK-enforced here
 // (Feishu stores plain text): the FK is nulled when the client row doesn't
 // exist so a submission always lands; clientName still carries the identity.
-import { and, eq, inArray } from "drizzle-orm";
+import { eq, inArray } from "drizzle-orm";
 import { db } from "../client.ts";
 import { formVideos, clients, assignedWorkouts } from "../schema.ts";
 import { resolveVideoSession, videoDay } from "../../../src/videoSessionGrouping.ts";
@@ -56,10 +56,18 @@ export async function createFormVideo(
     ).length > 0;
 
   const assignmentId = String(input.assignedWorkoutId || "").trim();
-  const [assignment] = assignmentId ? await db.select().from(assignedWorkouts).where(and(
-    eq(assignedWorkouts.assignedWorkoutId, assignmentId), eq(assignedWorkouts.clientId, clientCode)
-  )) : [];
-  if (assignmentId && !assignment) return { success: false, error: "Invalid workout" };
+  const [found] = assignmentId
+    ? await db.select().from(assignedWorkouts).where(eq(assignedWorkouts.assignedWorkoutId, assignmentId))
+    : [];
+  // Another athlete's session id is a forged request — refuse it. A session
+  // that no longer EXISTS is a stale tab (coach re-assigned or deleted it
+  // while the athlete was filming) and must not lose the clip: the FILE is
+  // already uploaded by the time this metadata POST arrives. Keep the video,
+  // drop the dead link — the review queue still groups it by the free-text
+  // workout name and day. (Rejecting cost the athlete a generic error and an
+  // orphaned file.)
+  if (found && found.clientId !== clientCode) return { success: false, error: "Invalid workout" };
+  const assignment = found;
   try {
     await db.insert(formVideos).values({
       videoId,

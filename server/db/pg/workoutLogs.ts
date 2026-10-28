@@ -227,6 +227,9 @@ export async function saveWorkoutLog(
           completed: log.completed === false ? false : true,
           athleteNotes: submissionNote ? toText(submissionNote) : null,
           exerciseOrder: intOrNull(log.exerciseOrder),
+          // Submission time, distinct from `date` (the China training day).
+          // Was never written: every row in prod had created_at NULL.
+          createdAt: Date.now(),
         };
       });
 

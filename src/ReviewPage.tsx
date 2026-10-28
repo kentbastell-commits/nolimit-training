@@ -13,6 +13,7 @@ import { CheckSquare, ChevronDown, X } from "lucide-react";
 import "./ReviewPage.css";
 import { normalizeDate } from "./appCore";
 import WorkoutVideoGroups from "./WorkoutVideoGroups";
+import { groupWorkoutVideos } from "./videoSessionGrouping";
 import CountUp from "./CountUp";
 import ReviewPager, { reviewPageNumber, REVIEW_PAGE_SIZE } from "./ReviewPager";
 
@@ -59,6 +60,13 @@ export default function ReviewPage({
   toggleReviewSection,
 }: { [key: string]: any }) {
   const { t } = useTranslation();
+  // "Needs review" means pending: count unreviewed clips, and show only the
+  // sessions that still have one (with their already-reviewed clips for
+  // context). The unfiltered list made the pill grow forever (0063c073).
+  const pendingVideoCount = (reviewFormVideos as any[]).filter((video) => video.status !== "Reviewed").length;
+  const videosInPendingSessions = groupWorkoutVideos(reviewFormVideos as any[])
+    .filter((group) => group.pending > 0)
+    .flatMap((group) => group.videos);
   // Presentational only: which check-in is expanded in the slide-over.
   const [selectedCheckIn, setSelectedCheckIn] = useState<any>(null);
   const checkInPanel = useRef<HTMLElement>(null);
@@ -411,16 +419,16 @@ export default function ReviewPage({
 
         {/* Form Videos — collapsible like the rest; shown only when there are
             unreviewed clips (no summary card / KPI target points at it). */}
-        {reviewFormVideos.length > 0 && (
+        {pendingVideoCount > 0 && (
           <article className="rvSection" hidden={!!embeddedSection && embeddedSection !== "formVideos"}>
             {sectionHeader(
               "Needs review",
               "Form Videos",
-              reviewFormVideos.length,
+              pendingVideoCount,
               "formVideos"
             )}
             {openReviewSections.formVideos && (
-              <WorkoutVideoGroups videos={reviewFormVideos} coach replies={formVideoReplies} setReplies={setFormVideoReplies} onReview={reviewFormVideo} />
+              <WorkoutVideoGroups videos={videosInPendingSessions} coach replies={formVideoReplies} setReplies={setFormVideoReplies} onReview={reviewFormVideo} />
             )}
           </article>
         )}

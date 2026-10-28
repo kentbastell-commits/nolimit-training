@@ -23,6 +23,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       return res.status(200).json({ clients: match.map(client => {
         const publicClient = { ...client };
         delete publicClient.coachAlias;
+        // Coach-private colour tags are the alias's sibling — same rule.
+        delete (publicClient as { tagColors?: unknown }).tagColors;
         return publicClient;
       }) });
     }

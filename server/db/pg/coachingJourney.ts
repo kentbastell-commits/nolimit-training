@@ -2,6 +2,7 @@ import { randomUUID } from "node:crypto";
 import { and, desc, eq, or, sql } from "drizzle-orm";
 import { db, type DbExecutor } from "../client.ts";
 import { assignedForms, assignedTests, assignedWorkouts, clients, formQuestions, formTemplates, productOrders } from "../schema.ts";
+import { invalidateCache } from "../../../api/_cache.ts";
 
 const INTAKE_ID = "FORM-COACHING-INTAKE";
 const isCoaching = (type: string | null) => type === "Online Coaching" || type === "In-Person Training";
@@ -59,6 +60,11 @@ export async function ensureIntakeOnSignup(clientId: string): Promise<{ assigned
     clientId, clientCode: clientId, assignedDate: Date.now(), status: "Assigned", isIntake: true,
     productType: client.clientType?.trim() || "Online Coaching" });
   await db.update(clients).set({ intakeStatus: "Sent" }).where(eq(clients.clientId, clientId));
+  // Both reads are cached (5 min) and kept warm by the coach console; without
+  // this a new athlete opened the portal and saw no intake questionnaire
+  // until the TTL expired (named mistake #5).
+  invalidateCache("contentAssignments");
+  invalidateCache("clients");
   return { assigned: true, assignmentId };
 }
 

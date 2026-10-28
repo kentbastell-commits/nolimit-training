@@ -29,6 +29,12 @@ const shared = {
   interpreter: "node",
   interpreter_args: "--import tsx",
   exec_mode: "fork",
+  // Rolling reload only works if PM2 waits for the restarted fork to actually
+  // LISTEN before touching the next one. server/index.ts sends "ready" from
+  // the listen callback; tsx startup is a few seconds, so give it 30.
+  wait_ready: true,
+  listen_timeout: 30000,
+  kill_timeout: 5000,
 };
 
 module.exports = {

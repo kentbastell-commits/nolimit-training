@@ -1,8 +1,17 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 import ReviewVideo from "./ReviewVideo";
 import { groupWorkoutVideos, type WorkoutVideo } from "./videoSessionGrouping";
 import "./WorkoutVideoGroups.css";
+
+// `open` on <details> is a controlled attribute in React: passing
+// `pending > 0` folded a session the instant the coach reviewed its last
+// clip, hiding the reply they had just sent. Initial state only; the user owns
+// the toggle after that.
+function VideoGroup({ initiallyOpen, className, children }: { initiallyOpen: boolean; className: string; children: ReactNode }) {
+  const [open, setOpen] = useState(initiallyOpen);
+  return <details className={className} open={open} onToggle={event => setOpen((event.currentTarget as HTMLDetailsElement).open)}>{children}</details>;
+}
 
 export default function WorkoutVideoGroups({ videos, coach = false, replies = {}, setReplies, onReview }: {
   videos: WorkoutVideo[]; coach?: boolean; replies?: Record<string, string>;
@@ -10,7 +19,7 @@ export default function WorkoutVideoGroups({ videos, coach = false, replies = {}
   onReview?: (id: string) => void;
 }) {
   const { i18n } = useTranslation(); const zh = i18n.language.startsWith("zh");
-  return <div className="workoutVideoGroups">{groupWorkoutVideos(videos).map((group, index) => <details className="workoutVideoGroup" key={group.key} open={group.pending > 0 || index === 0}>
+  return <div className="workoutVideoGroups">{groupWorkoutVideos(videos).map((group, index) => <VideoGroup className="workoutVideoGroup" key={group.key} initiallyOpen={group.pending > 0 || index === 0}>
     <summary><div>{coach && <small>{group.clientName || group.clientId}</small>}<h3>{zh ? group.workoutNameCn || group.workoutName || "其他上传" : group.workoutName || "Other uploads"}</h3>
       <span>{group.dateBasis === "upload" ? (zh ? "上传日期" : "Uploaded") : (zh ? "训练日期" : "Session date")} · <time>{group.date || (zh ? "日期未知" : "Unknown date")}</time></span></div>
       <div className="workoutVideoCounts"><span>{group.videos.length} {zh ? "项上传" : group.videos.length === 1 ? "upload" : "uploads"}</span><strong>{group.pending ? `${group.pending} ${zh ? "待反馈" : "awaiting feedback"}` : zh ? "已反馈" : "Reviewed"}</strong></div>
@@ -24,7 +33,7 @@ export default function WorkoutVideoGroups({ videos, coach = false, replies = {}
         onChange={event => { const value = event.target.value; setReplies?.(previous => ({ ...previous, [video.recordId]: value })); }} />
         <button type="button" className="rvGoldBtn" onClick={() => onReview?.(video.recordId)}>{video.status === "Reviewed" ? (zh ? "更新反馈" : "Update feedback") : (zh ? "发送反馈并标记已审核" : "Send reply & mark reviewed")}</button></>}
     </article>)}</div>
-  </details>)}</div>;
+  </VideoGroup>)}</div>;
 }
 
 export function AthleteWorkoutVideos({ clientId }: { clientId: string }) {

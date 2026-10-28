@@ -429,6 +429,11 @@ app.get(/.*/, (req, res) => {
 
 app.listen(port, "127.0.0.1", () => {
   console.log(`NX LIMIT Training server listening on http://127.0.0.1:${port}`);
+  // PM2 `wait_ready` (ecosystem.config.cjs): a deploy restarts the two forks
+  // one after the other, and without this signal the second restart began
+  // before the first fork was listening — ~3 s with both down and a full
+  // page of 502s for whoever was mid-workout (seen 2026-10-27 10:42).
+  if (typeof process.send === "function") process.send("ready");
 
   // Cross-process cache invalidation: the 2 PM2 forks each cache in-process,
   // so without the bus a write on one fork left the other stale for the

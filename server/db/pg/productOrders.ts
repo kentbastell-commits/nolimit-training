@@ -341,6 +341,10 @@ export async function updateProductOrder(
     const paidAt = i.paidAt === "" ? null : toEpochMs(i.paidAt);
     if (paidAt === undefined) return { success: false, status: 400, body: { error: "Invalid payment date" } };
     set.paidAt = paidAt;
+  } else if (String(i.paymentStatus || "").trim().toLowerCase() === "paid") {
+    // A coach's "Mark paid" / "Verify payment" without an explicit date: the
+    // confirmation is now. Never overwrite a date already recorded.
+    set.paidAt = sql`coalesce(${productOrders.paidAt}, ${Date.now()})` as unknown as number;
   }
   const omittedFields: string[] = [];
 
@@ -549,8 +553,12 @@ export async function markOrdersPaidByWxpay(
   transactionId: string
 ): Promise<string[]> {
   return db.transaction(async tx => {
+    // paid_at is the confirmation moment the profile's "Last payment" reads.
+    // Historical orders stay null (never fabricate a date), but a payment
+    // WeChat just confirmed has one, and nothing else records it.
     const updated = await tx.update(productOrders).set({
       paymentStatus: "Paid", paymentProvider: "WeChat Pay", wxpayTransactionId: transactionId,
+      paidAt: sql`coalesce(${productOrders.paidAt}, ${Date.now()})`,
     }).where(and(eq(productOrders.wxpayTradeNo, tradeNo), ne(productOrders.paymentStatus, "Paid"))).returning();
     for (const order of updated.sort((a, b) => (a.clientId || "").localeCompare(b.clientId || ""))) {
       await activateCoachingOrder(tx, order);

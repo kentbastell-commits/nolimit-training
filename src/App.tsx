@@ -9658,7 +9658,9 @@ function App({ onReady, bootVisible = true }: { onReady?: () => void; bootVisibl
         : categoryDefaults && categoryDefaults.tempo === ""
           ? ""
           : parent?.tempo || categoryDefaults?.tempo || "",
-      rest: "120 sec",
+      // 120 s is a strength default; a run or erg interval carries its own
+      // work:rest in the prescription, so it starts blank like tempo does.
+      rest: cardio ? "" : "120 sec",
       coachingNotes: "",
       // Cardio exercises default to Distance tracking so the run/Zone layout
       // shows immediately (coach can still toggle to Time/Weight). Machines

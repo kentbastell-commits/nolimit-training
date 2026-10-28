@@ -3,6 +3,7 @@ import {
   listTestLibrary,
   createLibraryTest,
 } from "../server/db/repositories/testLibrary.ts";
+import { coachKeyOk } from "./_coachAuth.ts";
 
 // Canonical Test Library (physical tests): 1RM tests bound to exercises,
 // energy-system tests, jump/speed/mobility tests. Athlete metrics bind to
@@ -11,6 +12,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   try {
     // POST: create a canonical test (the coach's "Create Test" builder).
     if (req.method === "POST") {
+      // The library read is public (athlete metrics key off these tests);
+      // creating canonical tests is a coach action.
+      if (!coachKeyOk(req as never)) {
+        return res.status(401).json({ error: "Coach access key required" });
+      }
       const body = req.body || {};
       const testName = String(body.testName || "").trim();
       const category = String(body.category || "").trim();
