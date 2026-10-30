@@ -166,7 +166,9 @@ const OPS_PROMPTS: Record<"zh" | "en", string> = {
 };
 
 // The chat model answering "please provide the text" instead of translating.
-const LLM_REFUSAL = /^\s*(?:请(?:您)?提供|请给出|请输入|Please (?:provide|share|give)|I (?:need|would need|can(?:'|no)t)|Sorry)/i;
+// 2026-10-30: "请发送需要翻译的教练内容（英文原文）…" slipped through as a
+// session title on 20 template rows and an athlete's video list (CL-6794).
+const LLM_REFUSAL = /^\s*(?:请(?:您)?(?:提供|发送|给出|输入|告诉)|Please (?:provide|share|give|send)|I (?:need|would need|can(?:'|no)t)|Sorry)/i;
 
 async function llmTranslate(
   text: string,

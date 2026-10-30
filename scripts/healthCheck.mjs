@@ -23,6 +23,12 @@ const WEBHOOK = process.env.FEISHU_BOT_WEBHOOK_URL || "";
 const STATE_FILE = "/tmp/nolimit-health-state.json";
 const LOG_FILE = path.resolve(process.cwd(), "logs/client-events.jsonl");
 const BACKUP_DIR = "/opt/backups/pg";
+// The coach console lock (COACH_ACCESS_KEY, on since 2026-09-20) also gates
+// /api/clients and the full /api/formVideos list. Without this header the
+// athlete digest below failed quietly and the morning report lost its
+// "Your athletes yesterday" section for five weeks before anyone noticed.
+const COACH_KEY = process.env.COACH_ACCESS_KEY || "";
+const coachHeaders = () => (COACH_KEY ? { "x-coach-key": COACH_KEY } : {});
 
 const mode = process.argv.includes("--report") ? "report" : "watch";
 
@@ -135,7 +141,7 @@ function telemetrySince(sinceMs) {
  */
 async function athleteDigest() {
   const get = async (p) => {
-    const res = await fetch(`${SITE}${p}`, { signal: AbortSignal.timeout(20000) });
+    const res = await fetch(`${SITE}${p}`, { headers: coachHeaders(), signal: AbortSignal.timeout(20000) });
     if (!res.ok) throw new Error(`${p} -> ${res.status}`);
     return res.json();
   };
@@ -202,6 +208,44 @@ async function athleteDigest() {
     return lines;
   } catch {
     return [];
+  }
+}
+
+/**
+ * Athlete form videos still waiting for a coach reply. In October 2026 this
+ * queue grew to 74 clips (one athlete alone 71) with nothing telling Kent —
+ * the Review page only shows it when he opens it.
+ */
+async function pendingVideos() {
+  try {
+    const res = await fetch(`${SITE}/api/formVideos`, {
+      headers: coachHeaders(),
+      signal: AbortSignal.timeout(20000),
+    });
+    if (!res.ok) throw new Error(`formVideos -> ${res.status}`);
+    const { videos = [] } = await res.json();
+    const pending = videos.filter((v) => String(v.status || "") !== "Reviewed");
+    if (!pending.length) return ["Athlete videos: none waiting for your feedback. 👍"];
+    const byClient = new Map();
+    let oldest = Date.now();
+    for (const v of pending) {
+      const k = v.clientName || v.clientId || "?";
+      byClient.set(k, (byClient.get(k) || 0) + 1);
+      const ts = Number(v.submittedAt) || Date.now();
+      if (ts < oldest) oldest = ts;
+    }
+    const oldestDays = Math.floor((Date.now() - oldest) / 86400000);
+    const lines = [
+      `🎬 ${pending.length} athlete video${pending.length === 1 ? "" : "s"} waiting for your feedback` +
+        ` (oldest ${oldestDays} day${oldestDays === 1 ? "" : "s"}):`,
+    ];
+    for (const [name, n] of [...byClient.entries()].sort((a, b) => b[1] - a[1]).slice(0, 6)) {
+      lines.push(`  • ${name}: ${n} clip${n === 1 ? "" : "s"}`);
+    }
+    lines.push("  Review page → Form Videos (grouped by session; reply once per session).");
+    return lines;
+  } catch (e) {
+    return [`Athlete videos: could not load (${e.message})`];
   }
 }
 
@@ -323,6 +367,8 @@ async function report() {
     lines.push(...athletes);
     lines.push("");
   }
+  lines.push(...(await pendingVideos()));
+  lines.push("");
 
   const certDays = mediaCertDaysLeft();
   if (certDays !== null && certDays <= 14) {
