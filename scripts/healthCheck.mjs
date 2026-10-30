@@ -158,14 +158,16 @@ async function athleteDigest() {
     const coached = clients
       .filter((c) =>
         /online coaching|in[-\s]?person/i.test(String(c.clientType || ""))
-      )
-      .slice(0, 8);
+      );
     const lines = [];
     for (const c of coached) {
       const code = c.clientCode || c.id;
       try {
         const [{ workouts = [] }, { checkIns = [] }] = await Promise.all([
-          get(`/api/workouts?clientId=${encodeURIComponent(code)}`),
+          // The endpoint filters on clientCode, not clientId: with the wrong
+          // name it returned EVERY athlete's schedule, so each line showed the
+          // same "2/5 sessions" (live since the digest was written).
+          get(`/api/workouts?clientCode=${encodeURIComponent(code)}&audience=athlete`),
           get(`/api/checkIns?clientId=${encodeURIComponent(code)}`),
         ]);
         const toKey = (ms) => {
