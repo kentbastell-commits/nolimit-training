@@ -1105,6 +1105,23 @@ data between them, never "borrow" a table ID across products.
     at the top of this file; gate the COMMIT in a detached scratch worktree
     of `main` (junction node_modules), never the dirty tree.
 
+81. **The recovery timer that fires on a video nobody played** — the coach
+    review player (Oct-20 "recover from connection failures on mobile") set
+    `preload="none"` and armed a 12 s connection timer on every `stalled`/
+    `waiting` event. iPhone WebKit fires `stalled` on an UNPLAYED preload-none
+    video (it simply declines to download), so on the coach's phone every clip
+    switched source after 12 s and read "The video couldn't load" after 24 s —
+    with no request ever sent. Desktop Chrome never fires it, so it only broke
+    on phones, for ten days. The diagnosis that worked: nginx showed the same
+    phone browser fetching `/api/formVideos` daily but ZERO `/uploads/fv-*`
+    requests since the change — a failure the server never saw is a client
+    that never asked. Rules: a media-recovery timer arms only after a USER
+    play/retry (`resume` ref), never from browser-emitted stall events; a
+    player shipped for "mobile" is verified on a real iOS WebKit (Safari or
+    Chrome-iOS, same engine), not jsdom; and when a "can't load" report names
+    one device class, compare that device's API hits against its media hits
+    in the access log before reading any player code.
+
 ## Quality bar — checkable, per deliverable
 
 **Any shipped code change**
