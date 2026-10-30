@@ -1105,22 +1105,30 @@ data between them, never "borrow" a table ID across products.
     at the top of this file; gate the COMMIT in a detached scratch worktree
     of `main` (junction node_modules), never the dirty tree.
 
-81. **The recovery timer that fires on a video nobody played** — the coach
-    review player (Oct-20 "recover from connection failures on mobile") set
-    `preload="none"` and armed a 12 s connection timer on every `stalled`/
-    `waiting` event. iPhone WebKit fires `stalled` on an UNPLAYED preload-none
-    video (it simply declines to download), so on the coach's phone every clip
-    switched source after 12 s and read "The video couldn't load" after 24 s —
-    with no request ever sent. Desktop Chrome never fires it, so it only broke
-    on phones, for ten days. The diagnosis that worked: nginx showed the same
-    phone browser fetching `/api/formVideos` daily but ZERO `/uploads/fv-*`
-    requests since the change — a failure the server never saw is a client
-    that never asked. Rules: a media-recovery timer arms only after a USER
-    play/retry (`resume` ref), never from browser-emitted stall events; a
-    player shipped for "mobile" is verified on a real iOS WebKit (Safari or
-    Chrome-iOS, same engine), not jsdom; and when a "can't load" report names
-    one device class, compare that device's API hits against its media hits
-    in the access log before reading any player code.
+81. **The video the iPhone "cannot support" (a three-layer onion, 2026-10-31)** —
+    the coach's phone showed every athlete clip as "couldn't load" for ten
+    days. Three real bugs stacked, and the first two fixes were each
+    "verified" by reasoning that fit the evidence so far: (1) the Oct-20
+    recovery timer armed on WebKit's `stalled` event, which fires on an
+    UNPLAYED `preload="none"` video, so clips failed after 24 s with no
+    request sent (nginx: API hits daily, zero media hits); (2) 13 `<video>`
+    elements per session — iPhone WebKit has a small native-player pool, so
+    clips are posters until tapped and only ONE player is live; (3) the ROOT
+    cause: WeChat's Android transcoder writes H.264 **Level 6.0** (level_idc
+    60) into every clip, Apple decoders accept <= 5.2 and refuse the stream
+    (`MEDIA_ERR_SRC_NOT_SUPPORTED`, code 4, after reading the 1.4 KB header)
+    while desktop Chrome plays the same file. Fix is lossless: `ffmpeg -c
+    copy -bsf:v h264_metadata=level=4.1` in optimizeVideos.sh's fv-* pass, plus
+    `?v=l41` on the player's URLs because the old bytes sit under a 1-year
+    immutable cache on phones and the CDN. Rules: a "can't play" that names
+    one device class gets the MEDIA ELEMENT's own error (`error.code`,
+    `networkState`, `canPlayType` for the exact profile/level) shipped to
+    telemetry FIRST — reasoning from server logs found two true bugs and
+    still missed the cause; `ffprobe` any user-uploaded video for
+    profile+LEVEL (not just codec) before calling it "plain H.264"; media
+    recovery timers arm only after a user play; and never mount more than
+    one live `<video>` per page on phones. The 4 `.webm` (VP8) clips remain
+    unplayable on iOS by nature — the mini uploads .mp4, those came from web.
 
 ## Quality bar — checkable, per deliverable
 
