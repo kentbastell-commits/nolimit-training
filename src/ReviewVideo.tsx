@@ -11,7 +11,11 @@ export function reviewVideoSources(url: string): string[] {
     const parsed = new URL(url, window.location.origin);
     const hosted = /^(?:www\.)?(?:media\.)?trainnolimit\.(?:cn|com)$/i.test(parsed.hostname);
     if ((hosted || url.startsWith("/uploads/")) && parsed.pathname.startsWith("/uploads/")) {
-      const resource = parsed.pathname + parsed.search;
+      // v=l41: athlete clips were rewritten in place (H.264 level 6.0 -> 4.1,
+      // 2026-10-31) under a 1-year immutable cache; a new query string makes
+      // phones and the CDN fetch the rewritten bytes instead of the cached
+      // ones Apple refuses to decode.
+      const resource = parsed.pathname + (parsed.search ? parsed.search + "&" : "?") + "v=l41";
       return [resource, "https://media.trainnolimit.cn" + resource];
     }
   } catch { /* Keep external or unrecognised sources unchanged. */ }
@@ -74,7 +78,7 @@ function ReviewVideoPlayer({ url, title, poster }: { url: string; title: string;
   // instead of guessed at (the Oct-30 iPhone failure had no other evidence).
   const report = (reason: string) => {
     const v = video.current;
-    const can = typeof v?.canPlayType === "function" ? v.canPlayType('video/mp4; codecs="avc1.64001F, mp4a.40.2"') : "?";
+    const can = typeof v?.canPlayType === "function" ? `${v.canPlayType('video/mp4; codecs="avc1.640029"') || "no"}/L6.0=${v.canPlayType('video/mp4; codecs="avc1.64003C"') || "no"}` : "?";
     reportClientEvent("api_fail", "video_load_failed", { message:
       `${reason} src=${index + 1}/${sources.length} ${sources[index]} code=${v?.error?.code ?? "-"} msg=${v?.error?.message || "-"} net=${v?.networkState ?? "-"} ready=${v?.readyState ?? "-"} userPlay=${resume.current} canPlay=${can || "no"}` });
   };

@@ -16,11 +16,11 @@ describe("review video connections", () => {
     const poster = screen.getByRole("button", { name: "Play Row" });
     expect(poster).toHaveStyle({ backgroundImage: "url(https://media.trainnolimit.cn/uploads/thumbs/fv-example.jpg)" });
     open();
-    expect(getVideo()).toHaveAttribute("src", "/uploads/fv-example.mp4");
+    expect(getVideo()).toHaveAttribute("src", "/uploads/fv-example.mp4?v=l41");
     expect(getVideo()).toHaveAttribute("playsinline");
     expect(getVideo()).toHaveAttribute("autoplay");
     expect(getVideo()).toHaveAttribute("poster", "https://media.trainnolimit.cn/uploads/thumbs/fv-example.jpg");
-    expect(screen.getByRole("link", { name: "Open video" })).toHaveAttribute("href", "/uploads/fv-example.mp4");
+    expect(screen.getByRole("link", { name: "Open video" })).toHaveAttribute("href", "/uploads/fv-example.mp4?v=l41");
   });
   it("keeps one live player: opening a second clip returns the first to its poster (iPhone media pool)", () => {
     render(<>
@@ -31,18 +31,18 @@ describe("review video connections", () => {
     expect(document.querySelectorAll("video")).toHaveLength(1);
     open("Hang");
     expect(document.querySelectorAll("video")).toHaveLength(1);
-    expect(screen.getByLabelText("Hang")).toHaveAttribute("src", "/uploads/fv-other.mp4");
+    expect(screen.getByLabelText("Hang")).toHaveAttribute("src", "/uploads/fv-other.mp4?v=l41");
     expect(screen.getByRole("button", { name: "Play Row" })).toBeInTheDocument();
   });
   it("switches connections after a network/media error, then allows a fresh retry", () => {
     render(<ReviewVideo url={url} title="Row" />);
     open();
     fireEvent.error(getVideo());
-    expect(getVideo()).toHaveAttribute("src", "https://media.trainnolimit.cn/uploads/fv-example.mp4");
+    expect(getVideo()).toHaveAttribute("src", "https://media.trainnolimit.cn/uploads/fv-example.mp4?v=l41");
     fireEvent.error(getVideo());
     expect(screen.getByRole("alert")).toHaveTextContent("couldn’t load");
     fireEvent.click(screen.getByRole("button", { name: "Reload video" }));
-    expect(getVideo()).toHaveAttribute("src", "/uploads/fv-example.mp4");
+    expect(getVideo()).toHaveAttribute("src", "/uploads/fv-example.mp4?v=l41");
     expect(screen.queryByRole("alert")).not.toBeInTheDocument();
   });
   it("recovers when metadata never arrives without switching a paused, loaded player", () => {
@@ -52,7 +52,7 @@ describe("review video connections", () => {
     fireEvent.play(getVideo());
     fireEvent.loadStart(getVideo());
     act(() => vi.advanceTimersByTime(12000));
-    expect(getVideo()).toHaveAttribute("src", "https://media.trainnolimit.cn/uploads/fv-example.mp4");
+    expect(getVideo()).toHaveAttribute("src", "https://media.trainnolimit.cn/uploads/fv-example.mp4?v=l41");
     Object.defineProperty(getVideo(), "readyState", { configurable: true, value: 1 });
     fireEvent.loadedMetadata(getVideo());
     fireEvent.pause(getVideo());
@@ -72,10 +72,10 @@ describe("review video connections", () => {
     fireEvent.loadStart(v);
     end = 1.5;
     act(() => vi.advanceTimersByTime(12000));
-    expect(getVideo()).toHaveAttribute("src", "/uploads/fv-example.mp4");
+    expect(getVideo()).toHaveAttribute("src", "/uploads/fv-example.mp4?v=l41");
     end = 3;
     act(() => vi.advanceTimersByTime(12000));
-    expect(getVideo()).toHaveAttribute("src", "/uploads/fv-example.mp4");
+    expect(getVideo()).toHaveAttribute("src", "/uploads/fv-example.mp4?v=l41");
   });
   it("cleans up timeouts when a submission changes and leaves external sources alone", () => {
     vi.useFakeTimers();
