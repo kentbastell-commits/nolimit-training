@@ -99,7 +99,8 @@ describe("api/cosUploadTicket + api/cosUploadFinish", () => {
     ));
     const res = await post(finish, { key: "web-inbox/1-a.mp4", kind: "exercise", size: 999 });
     expect(res.statusCode).toBe(502);
-    expect(fs.readdirSync(tmpDir).filter((f) => f.endsWith(".part"))).toEqual([]);
+    // The handler schedules unlink asynchronously before returning the 502.
+    await expect.poll(() => fs.readdirSync(tmpDir).filter((f) => f.endsWith(".part"))).toEqual([]);
   });
 
   it("404s when the browser never finished its PUT", async () => {
