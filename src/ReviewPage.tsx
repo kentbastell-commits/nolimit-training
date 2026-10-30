@@ -51,6 +51,7 @@ export default function ReviewPage({
   openReviewWorkout,
   respondToCheckIn,
   reviewFormVideo,
+  reviewFormVideosInSession,
   reviewFormVideos,
   reviewingWorkoutCommentKey,
   setActivePage,
@@ -428,7 +429,7 @@ export default function ReviewPage({
               "formVideos"
             )}
             {openReviewSections.formVideos && (
-              <WorkoutVideoGroups videos={videosInPendingSessions} coach replies={formVideoReplies} setReplies={setFormVideoReplies} onReview={reviewFormVideo} />
+              <WorkoutVideoGroups videos={videosInPendingSessions} coach replies={formVideoReplies} setReplies={setFormVideoReplies} onReview={reviewFormVideo} onReviewMany={reviewFormVideosInSession} />
             )}
           </article>
         )}

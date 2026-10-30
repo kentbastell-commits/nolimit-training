@@ -13,10 +13,28 @@ function VideoGroup({ initiallyOpen, className, children }: { initiallyOpen: boo
   return <details className={className} open={open} onToggle={event => setOpen((event.currentTarget as HTMLDetailsElement).open)}>{children}</details>;
 }
 
-export default function WorkoutVideoGroups({ videos, coach = false, replies = {}, setReplies, onReview }: {
+// One reply for every pending clip in a session. Athletes who film each set
+// send 10-20 clips per workout; replying clip by clip is why 71 sat unanswered.
+function SessionReply({ zh, pending, onReviewMany }: { zh: boolean; pending: WorkoutVideo[]; onReviewMany: (ids: string[], reply: string) => void | Promise<void> }) {
+  const [text, setText] = useState(""); const [busy, setBusy] = useState(false);
+  const n = pending.length;
+  const send = async () => {
+    if (!text.trim() || busy) return;
+    setBusy(true);
+    try { await onReviewMany(pending.map(v => v.recordId), text.trim()); setText(""); } finally { setBusy(false); }
+  };
+  return <div className="workoutVideoSessionReply">
+    <strong>{zh ? `一条反馈，发给这次训练的 ${n} 个待反馈视频` : `One reply for all ${n} pending clip${n === 1 ? "" : "s"} in this session`}</strong>
+    <textarea aria-label={zh ? "整节训练反馈" : "Session feedback"} placeholder={zh ? "写一条反馈，会发送到这次训练的每个待反馈视频…" : "Write one reply — it goes to every pending clip in this session…"} value={text} onChange={event => setText(event.target.value)} />
+    <button type="button" className="rvGoldBtn" disabled={busy || !text.trim()} onClick={send}>{busy ? (zh ? "发送中…" : "Sending…") : (zh ? `发送并标记 ${n} 个已审核` : `Send to ${n} clip${n === 1 ? "" : "s"} & mark reviewed`)}</button>
+  </div>;
+}
+
+export default function WorkoutVideoGroups({ videos, coach = false, replies = {}, setReplies, onReview, onReviewMany }: {
   videos: WorkoutVideo[]; coach?: boolean; replies?: Record<string, string>;
   setReplies?: (update: (previous: Record<string, string>) => Record<string, string>) => void;
   onReview?: (id: string) => void;
+  onReviewMany?: (ids: string[], reply: string) => void | Promise<void>;
 }) {
   const { i18n } = useTranslation(); const zh = i18n.language.startsWith("zh");
   return <div className="workoutVideoGroups">{groupWorkoutVideos(videos).map((group, index) => <VideoGroup className="workoutVideoGroup" key={group.key} initiallyOpen={group.pending > 0 || index === 0}>
@@ -24,6 +42,7 @@ export default function WorkoutVideoGroups({ videos, coach = false, replies = {}
       <span>{group.dateBasis === "upload" ? (zh ? "上传日期" : "Uploaded") : (zh ? "训练日期" : "Session date")} · <time>{group.date || (zh ? "日期未知" : "Unknown date")}</time></span></div>
       <div className="workoutVideoCounts"><span>{group.videos.length} {zh ? "项上传" : group.videos.length === 1 ? "upload" : "uploads"}</span><strong>{group.pending ? `${group.pending} ${zh ? "待反馈" : "awaiting feedback"}` : zh ? "已反馈" : "Reviewed"}</strong></div>
     </summary>
+    {coach && onReviewMany && group.pending > 1 && <SessionReply zh={zh} pending={group.videos.filter(v => v.status !== "Reviewed")} onReviewMany={onReviewMany} />}
     <div className="workoutVideoCards">{group.videos.map(video => <article className="workoutVideoCard" key={video.recordId}>
       <header><h4>{video.exerciseName || (zh ? "动作视频" : "Exercise video")}</h4><span>{video.status === "Reviewed" ? (zh ? "已反馈" : "Reviewed") : (zh ? "等待教练反馈" : "Awaiting coach feedback")}</span></header>
       {video.videoUrl && <ReviewVideo url={video.videoUrl} title={video.exerciseName || "Workout video"} />}

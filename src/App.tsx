@@ -744,6 +744,40 @@ function App({ onReady, bootVisible = true }: { onReady?: () => void; bootVisibl
       coachWriteInFlightRef.current.delete(key);
     }
   };
+  // One reply for a whole session's clips. An athlete who films every set
+  // sends 10-20 clips per workout (CL-6794 had 71 waiting, 2026-10-30) and a
+  // per-clip reply flow never clears that queue. Serial PUTs behind one
+  // guard; a single toast at the end names how many landed.
+  const reviewFormVideosInSession = async (recordIds: string[], reply: string) => {
+    const key = `video-session:${recordIds.join(",")}`;
+    if (!recordIds.length || coachWriteInFlightRef.current.has(key)) return;
+    coachWriteInFlightRef.current.add(key);
+    let failed = 0;
+    try {
+      for (const recordId of recordIds) {
+        try {
+          const res = await fetch("/api/formVideos", {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ recordId, coachReply: reply, status: "Reviewed" }),
+          });
+          const data = await res.json();
+          if (!res.ok || !data.success) throw new Error(data.error || "failed");
+          setReviewFormVideos((cur) =>
+            cur.map((v) => (v.recordId === recordId ? { ...v, status: "Reviewed", coachReply: reply, coachReplyCn: "", reviewedAt: Date.now() } : v))
+          );
+          setFormVideoReplies((current) => { const next = { ...current }; delete next[recordId]; return next; });
+        } catch {
+          failed += 1;
+        }
+      }
+      if (failed) notify(t("coachReplyFailed"), "error");
+      else notify(t("coachVideoReviewed"), "success");
+    } finally {
+      coachWriteInFlightRef.current.delete(key);
+    }
+  };
+
 
   // Form-video review (premium: online / in-person clients only).
   const formVideoInputRef = useRef<HTMLInputElement | null>(null);
@@ -20997,6 +21031,7 @@ function App({ onReady, bootVisible = true }: { onReady?: () => void; bootVisibl
                 openReviewWorkout={openReviewWorkout}
                 respondToCheckIn={respondToCheckIn}
                 reviewFormVideo={reviewFormVideo}
+                reviewFormVideosInSession={reviewFormVideosInSession}
                 reviewFormVideos={scopedReviewFormVideos}
                 reviewingWorkoutCommentKey={reviewingWorkoutCommentKey}
                 setActivePage={setActivePage}
