@@ -60,7 +60,9 @@ export function initTelemetry() {
     window.addEventListener("unhandledrejection", (e) => {
       const reason: any = e.reason;
       reportClientEvent("crash", "unhandled_rejection", {
-        message: String(reason?.message || reason || ""),
+        // DOMExceptions carry the useful part in .name ("NotSupportedError");
+        // .message alone ("The operation is not supported.") says nothing.
+        message: `${reason?.name ? reason.name + ": " : ""}${String(reason?.message || reason || "")}`,
         stack: String(reason?.stack || "").slice(0, 2000),
       });
     });
