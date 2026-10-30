@@ -18,12 +18,44 @@ export function reviewVideoSources(url: string): string[] {
   return [url];
 }
 
-export default function ReviewVideo({ url, title }: { url: string; title: string }) {
-  // A new submission must start with fresh connection/error state.
-  return <ReviewVideoPlayer key={url} url={url} title={title} />;
+// iPhone WebKit owns a small pool of native media players. A session group
+// with 13 clips mounted 13 <video> elements at once (26 with the fallback
+// source), and every element past the pool limit failed instantly with
+// MEDIA_ERR_SRC_NOT_SUPPORTED — for perfectly good H.264 files the server had
+// just answered with 206s (2026-10-30, logs/client-events video_load_failed).
+// So a clip is a poster until the coach taps it, and only ONE <video> is
+// live on the page at a time: tapping another clip returns the previous one
+// to its poster. Desktop had to click play anyway, so nothing is lost there.
+const livePlayers = new Set<() => void>();
+function claimLivePlayer(release: () => void) {
+  livePlayers.forEach(fn => { if (fn !== release) fn(); });
+  livePlayers.clear();
+  livePlayers.add(release);
 }
 
-function ReviewVideoPlayer({ url, title }: { url: string; title: string }) {
+export default function ReviewVideo({ url, title }: { url: string; title: string }) {
+  const { i18n } = useTranslation();
+  const zh = i18n.language.startsWith("zh");
+  const [active, setActive] = useState(false);
+  const release = useRef(() => setActive(false));
+  useEffect(() => {
+    const fn = release.current;
+    return () => { livePlayers.delete(fn); };
+  }, []);
+  // A new submission must start with fresh connection/error state.
+  useEffect(() => { setActive(false); }, [url]);
+  const poster = uploadThumbUrl(url);
+  if (!active) {
+    return <button type="button" className="reviewVideoPoster" aria-label={`${zh ? "播放" : "Play"} ${title}`}
+      style={poster ? { backgroundImage: `url(${poster})` } : undefined}
+      onClick={() => { claimLivePlayer(release.current); setActive(true); }}>
+      <span className="reviewVideoPlayGlyph" aria-hidden="true">▶</span>
+    </button>;
+  }
+  return <ReviewVideoPlayer key={url} url={url} title={title} poster={poster} />;
+}
+
+function ReviewVideoPlayer({ url, title, poster }: { url: string; title: string; poster: string }) {
   const { i18n } = useTranslation();
   const zh = i18n.language.startsWith("zh");
   const sources = reviewVideoSources(url);
@@ -33,7 +65,9 @@ function ReviewVideoPlayer({ url, title }: { url: string; title: string }) {
   const video = useRef<HTMLVideoElement>(null);
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const position = useRef(0);
-  const resume = useRef(false);
+  // The player only exists because the coach tapped the poster, so playback
+  // is wanted from the first frame.
+  const resume = useRef(true);
   const clearTimer = () => { if (timer.current !== null) clearTimeout(timer.current); timer.current = null; };
   // Every give-up is reported with the media element's own diagnosis, so a
   // "couldn't load" on one coach's phone can be read from logs/client-events
@@ -77,7 +111,7 @@ function ReviewVideoPlayer({ url, title }: { url: string; title: string }) {
   const retry = () => { clearTimer(); resume.current = true; setFailed(false); setIndex(0); setAttempt(n => n + 1); };
   return <div className="reviewVideoPlayer">
     <video key={`${index}:${attempt}`} ref={video} className="rvVideo" src={sources[index]}
-      aria-label={title} controls playsInline preload="metadata" poster={uploadThumbUrl(url) || undefined}
+      aria-label={title} controls playsInline autoPlay preload="auto" poster={poster || undefined}
       onLoadStart={() => { if (resume.current) waitForConnection(); }} onError={() => fail("error")}
       onLoadedMetadata={event => {
         clearTimer();
@@ -86,10 +120,8 @@ function ReviewVideoPlayer({ url, title }: { url: string; title: string }) {
       }}
       onPlay={() => { resume.current = true; waitForConnection(); }}
       onPause={event => { if (!event.currentTarget.error) resume.current = false; clearTimer(); }}
-      // iPhone WebKit fires "stalled" on a video nobody has played yet (it
-      // simply chose not to download more). Only a play/retry the coach asked
-      // for arms the connection timer — otherwise a paused, untouched clip
-      // declared itself "unable to load" after 24s with no request ever sent.
+      // WebKit fires "stalled" when it simply chose not to download more; only
+      // a play the coach asked for arms the connection timer.
       onWaiting={() => { if (resume.current) waitForConnection(); }}
       onStalled={() => { if (resume.current) waitForConnection(); }}
       onCanPlay={() => { clearTimer(); if (resume.current && video.current?.paused) void video.current.play().catch(() => {}); }}
