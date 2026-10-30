@@ -638,6 +638,15 @@ data between them, never "borrow" a table ID across products.
     `/api/*` names every public URL actually fires (Playwright `request`
     listener) and intersect with `COACH_ONLY_HANDLERS`, not to reason from
     guards.
+    Corollary (morning report, found 2026-10-30): the SAME shape hides on
+    the READER side — `healthCheck.mjs` asked `/api/workouts?clientId=…`
+    while the endpoint filters on `clientCode`, so the unfiltered call
+    returned every athlete's schedule and every digest line read the same
+    "2/5 sessions logged" for months (the permissive gate, then the coach
+    key, both let it through). Rule: a per-athlete read that comes back
+    identical for two athletes is unfiltered, not a coincidence — and any
+    script calling the API by hand copies the parameter name from the
+    handler (`req.query.clientCode`), never from memory.
 50. **The two-field kind** — a digital product's real "kind" (program / bundle
     / add-on) lives in `storeListingType`; `productType` stays `"Digital
     Program"` for bundles and add-ons too (confirmed live: all 3 real add-ons
@@ -1085,6 +1094,16 @@ data between them, never "borrow" a table ID across products.
     Also: `pm2 reload` in fork mode is kill+start per app and moves on when
     the next PROCESS exists, not when it listens — use
     `scripts/rollingRestart.sh` (see the deploy skill), never a bare reload.
+    Reconciled 2026-10-30 WITHOUT touching another agent's files: `git reset
+    --mixed <live-sha>` on the checked-out `main` moves the branch and index
+    only, so the worktree keeps Codex's WIP and `git status` shrinks to the
+    genuine edits; then refresh ONLY files whose on-disk copy equals the old
+    live sha (`git show <old>:<f> | cmp - <f>`; a mismatch that `git diff
+    --stat` shows as empty is CRLF, also safe) with `git checkout HEAD -- <f>`,
+    and `git apply` (not `--3way`, which needs the index) your own hunks onto
+    files that carry WIP. Commit from a dirty tree with the base/mine recipe
+    at the top of this file; gate the COMMIT in a detached scratch worktree
+    of `main` (junction node_modules), never the dirty tree.
 
 ## Quality bar — checkable, per deliverable
 
