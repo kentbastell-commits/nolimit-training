@@ -1426,6 +1426,22 @@
   flex-wrap: wrap;
 }
 
+.copBankTransferBtn {
+  border: 1px solid #d8cfb6;
+  border-radius: 9px;
+  background: #fffdf8;
+  color: #795c26;
+  min-height: 44px;
+  padding: 9px 13px;
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.3;
+  cursor: pointer;
+}
+.copBankTransferBtn:hover { background: #f4ecd8; }
+.copRowEnd { flex-wrap: wrap; }
+
 .copCollectBtn {
   margin-left: 8px;
   padding: 8px 14px;

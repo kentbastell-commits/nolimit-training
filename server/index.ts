@@ -29,6 +29,7 @@ import { COACH_ONLY_HANDLERS, coachKeyOk } from "../api/_coachAuth.ts";
 import activateDigitalOrder from "../api/activateDigitalOrder.ts";
 import analytics from "../api/analytics.ts";
 import autoLoadProgram from "../api/autoLoadProgram.ts";
+import bankTransferDetails from "../api/bankTransferDetails.ts";
 import assignContent from "../api/assignContent.ts";
 import assignProgram from "../api/assignProgram.ts";
 import athleteMetrics from "../api/athleteMetrics.ts";
@@ -286,6 +287,7 @@ const handlers = {
   activateDigitalOrder,
   analytics,
   autoLoadProgram,
+  bankTransferDetails,
   assignContent,
   assignProgram,
   athleteMetrics,

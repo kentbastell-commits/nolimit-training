@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import { render, screen, fireEvent } from "@testing-library/react";
+import { render, screen, fireEvent, within } from "@testing-library/react";
 import CoachOrdersPage from "../../../src/CoachOrdersPage";
 
 const baseProps = {
@@ -54,6 +54,40 @@ const baseProps = {
 };
 
 describe("CoachOrdersPage", () => {
+  it("keeps bank-transfer remarks separate per order and does not mark payments paid", async () => {
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue({ ok: true, json: async () => ({ accountName: "Company", accountNumber: "3602011009200555212", bankName: "Bank" }) }));
+    const writeText = vi.fn().mockResolvedValue(undefined);
+    Object.defineProperty(navigator, "clipboard", { configurable: true, value: { writeText } });
+    const updateProductOrder = vi.fn();
+    const orders = [
+      { recordId: "A", orderId: "ORD-A", clientName: "Alice", productName: "Coaching A", productType: "Online Coaching", paymentStatus: "Pending" },
+      { recordId: "B", orderId: "ORD-B", clientName: "Bob", productName: "Coaching B", productType: "Online Coaching", paymentStatus: "Pending" },
+      { recordId: "C", orderId: "ORD-C", clientName: "Claire", productType: "Online Coaching", paymentStatus: "Paid" },
+    ];
+    render(<CoachOrdersPage {...baseProps} visibleProductOrders={orders} updateProductOrder={updateProductOrder} />);
+    expect(screen.getAllByRole("button", { name: "Bank transfer", exact: true })).toHaveLength(3);
+    const alice = screen.getByRole("heading", { name: "Alice" }).closest(".copCard") as HTMLElement;
+    fireEvent.click(within(alice).getByRole("button", { name: "Bank transfer" }));
+    await screen.findByLabelText("Message preview");
+    fireEvent.change(screen.getByLabelText("Remark (optional)"), { target: { value: "Alice only" } });
+    fireEvent.change(screen.getByLabelText("Order (optional)"), { target: { value: "B" } });
+    expect(screen.getByLabelText("Remark (optional)")).toHaveValue("");
+    expect(screen.getByLabelText("Transfer reference")).toHaveValue("Bob ORD-B");
+    fireEvent.change(screen.getByLabelText("Remark (optional)"), { target: { value: "Bob only" } });
+    fireEvent.change(screen.getByLabelText("Order (optional)"), { target: { value: "A" } });
+    expect(screen.getByLabelText("Remark (optional)")).toHaveValue("Alice only");
+    fireEvent.click(screen.getByRole("button", { name: "Copy message" }));
+    await screen.findByText("Copied. Ready to paste into WeChat or email.");
+    expect(writeText.mock.calls[0][0]).toContain("Alice only");
+    expect(writeText.mock.calls[0][0]).not.toContain("Bob only");
+    fireEvent.click(screen.getByRole("button", { name: "Close bank transfer instructions" }));
+    fireEvent.click(screen.getAllByRole("button", { name: "Bank transfer", exact: true })[0]);
+    await screen.findByLabelText("Message preview");
+    expect(screen.getByLabelText("Remark (optional)")).toHaveValue("");
+    fireEvent.change(screen.getByLabelText("Order (optional)"), { target: { value: "A" } });
+    expect(screen.getByLabelText("Remark (optional)")).toHaveValue("Alice only");
+    expect(updateProductOrder).not.toHaveBeenCalled();
+  });
   it("renders the onboarding board and empty coaching queue", () => {
     render(<CoachOrdersPage {...baseProps} />);
     // the "Total Orders" summary + "Intake Review Queue" were replaced by a

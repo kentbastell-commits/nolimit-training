@@ -5,6 +5,9 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { useEffect, useState } from "react";
 import CollectPaymentModal from "./CollectPaymentModal";
+import BankTransferModal from "./BankTransferModal";
+import { bankTransferDraftKey, newBankTransferDraft } from "./bankTransfer";
+import type { BankTransferDraft, BankTransferOrder } from "./bankTransfer";
 import { groupUnpaidCheckouts, isOrderCancelled, isOrderPaid, isTestOrder, orderIntakeState } from "./orderPresentation";
 import "./CoachOrdersPage.css";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
@@ -40,6 +43,8 @@ const initialsOf = (name: string) =>
 
 export default function CoachOrdersPage(props: { [key: string]: any }) {
   const [collectOpen, setCollectOpen] = useState(false);
+  const [bankTransferTarget, setBankTransferTarget] = useState<BankTransferOrder | null | undefined>(undefined);
+  const [bankTransferDrafts, setBankTransferDrafts] = useState<Record<string, BankTransferDraft>>({});
   const {
     activeCoaches,
     buildClientPortalLink,
@@ -215,6 +220,9 @@ export default function CoachOrdersPage(props: { [key: string]: any }) {
           >
             {tr("Collect payment", "收款码")}
           </button>
+          <button type="button" className="copBankTransferBtn" onClick={() => setBankTransferTarget(null)}>
+            {tr("Bank transfer", "银行转账")}
+          </button>
         </div>
         <p>
           Coaching relationships and in-person sales. Self-serve digital sales live
@@ -269,6 +277,7 @@ export default function CoachOrdersPage(props: { [key: string]: any }) {
                   <span className={`copStatusPill ${isPaid(order) ? "is-paid" : ""}`}>
                     {order.paymentStatus || tr("No status", "无状态")}
                   </span>
+                  {isPending(order) && <button type="button" className="copBankTransferBtn" onClick={() => setBankTransferTarget(order)}>{tr("Bank transfer", "银行转账")}</button>}
                 </div>
               </div>
             ))}
@@ -311,6 +320,7 @@ export default function CoachOrdersPage(props: { [key: string]: any }) {
                 </div>
                 <div className="copRowAmt">{Number(order.amount) > 0 ? money(order.amount, order.currency) : tr("Amount not set", "金额未设置")}</div>
                 <div className="copRowEnd">
+                  <button type="button" className="copBankTransferBtn" onClick={() => setBankTransferTarget(order)}>{tr("Bank transfer", "银行转账")}</button>
                   <button
                     type="button"
                     className="copMarkPaid"
@@ -495,6 +505,7 @@ export default function CoachOrdersPage(props: { [key: string]: any }) {
                       {isPaid(o) ? tr("Purchased", "购买日期") : tr("Created", "创建日期")} <strong>{o.purchasedAt || "—"}</strong>
                     </div>
                     <div className="copFootActions">
+                      {isPending(o) && <button type="button" className="copGhostBtn" onClick={() => setBankTransferTarget(o)}>{tr("Bank transfer", "银行转账")}</button>}
                       {isPaid(o) && intakeState(o) !== "not-required" && <button
                         type="button"
                         className="copGhostBtn"
@@ -633,6 +644,7 @@ export default function CoachOrdersPage(props: { [key: string]: any }) {
                         Mark paid
                       </button>
                     )}
+                    {isPending(o) && <button type="button" className="copBankTransferBtn" onClick={() => setBankTransferTarget(o)}>{tr("Bank transfer", "银行转账")}</button>}
                     <button
                       type="button"
                     className="copTrash"
@@ -1064,6 +1076,12 @@ export default function CoachOrdersPage(props: { [key: string]: any }) {
           onCollected={loadProductOrders}
         />
       ) : null}
+      {bankTransferTarget !== undefined && <BankTransferModal
+        isChinese={Boolean(isChinese)} order={bankTransferTarget} orders={orders.filter(isPending)}
+        draft={bankTransferDrafts[bankTransferDraftKey(bankTransferTarget)] || newBankTransferDraft(bankTransferTarget, Boolean(isChinese))}
+        onDraftChange={draft => setBankTransferDrafts(current => ({ ...current, [bankTransferDraftKey(bankTransferTarget)]: draft }))}
+        onOrderChange={setBankTransferTarget} onClose={() => setBankTransferTarget(undefined)}
+      />}
     </div>
   );
 }
