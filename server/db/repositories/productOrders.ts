@@ -134,9 +134,10 @@ export async function ordersByWxpayTradeNo(tradeNo: string) {
 
 export async function markOrdersPaidByWxpay(
   tradeNo: string,
-  transactionId: string
+  transactionId: string,
+  paidAt?: string
 ) {
-  const updated = await pg.markOrdersPaidByWxpay(tradeNo, transactionId);
+  const updated = await pg.markOrdersPaidByWxpay(tradeNo, transactionId, paidAt);
   if (updated.length) invalidateCoachingCaches();
   return updated;
 }

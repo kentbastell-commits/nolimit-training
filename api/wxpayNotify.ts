@@ -112,7 +112,7 @@ export default async function wxpayNotify(req: IncomingMessage, res: ServerRespo
       return respond(res, 200, "SUCCESS", "amount mismatch flagged");
     }
 
-    const updated = await markOrdersPaidByWxpay(tradeNo, transactionId);
+    const updated = await markOrdersPaidByWxpay(tradeNo, transactionId, resource?.success_time ? String(resource.success_time) : undefined);
     if (updated.length) {
       const buyer = orders[0]?.clientName || orders[0]?.clientId || "";
       void notifyCoach(

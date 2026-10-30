@@ -53,7 +53,7 @@ export async function prepareWxpayCharge(orderId: string): Promise<WxpayCharge> 
     try {
       const state = await queryTransaction(existing);
       if (state.tradeState === "SUCCESS") {
-        const updated = await markOrdersPaidByWxpay(existing, state.transactionId || "");
+        const updated = await markOrdersPaidByWxpay(existing, state.transactionId || "", state.paidAt);
         if (updated.length) {
           void notifyCoach(
             `💰 WeChat payment confirmed for order(s) ${updated.join(", ")}`

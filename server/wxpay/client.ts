@@ -201,6 +201,7 @@ export function signJsapiInvoke(config: WxpayConfig, prepayId: string, appId?: s
 }
 
 export type WxpayTransactionState = {
+  paidAt?: string;
   tradeState: string;
   transactionId?: string;
   totalFen?: number;
@@ -220,6 +221,7 @@ export async function queryTransaction(outTradeNo: string): Promise<WxpayTransac
   }
   return {
     tradeState: String(body.trade_state),
+    paidAt: body.success_time ? String(body.success_time) : undefined,
     transactionId: body.transaction_id ? String(body.transaction_id) : undefined,
     totalFen: Number(body.amount?.total) || undefined,
     payerTotalFen: Number(body.amount?.payer_total) || undefined,

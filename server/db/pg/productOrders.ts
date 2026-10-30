@@ -550,15 +550,15 @@ export async function ordersByWxpayTradeNo(
 /** Marks the whole trade-no group Paid; idempotent. Returns updated ids. */
 export async function markOrdersPaidByWxpay(
   tradeNo: string,
-  transactionId: string
+  transactionId: string,
+  paidAt?: string
 ): Promise<string[]> {
   return db.transaction(async tx => {
-    // paid_at is the confirmation moment the profile's "Last payment" reads.
-    // Historical orders stay null (never fabricate a date), but a payment
-    // WeChat just confirmed has one, and nothing else records it.
     const updated = await tx.update(productOrders).set({
       paymentStatus: "Paid", paymentProvider: "WeChat Pay", wxpayTransactionId: transactionId,
-      paidAt: sql`coalesce(${productOrders.paidAt}, ${Date.now()})`,
+      // Provider completion time, not the time a delayed callback arrived.
+      // https://pay.wechatpay.cn/doc/v3/merchant/4012791861
+      paidAt: toEpochMs(paidAt) || null,
     }).where(and(eq(productOrders.wxpayTradeNo, tradeNo), ne(productOrders.paymentStatus, "Paid"))).returning();
     for (const order of updated.sort((a, b) => (a.clientId || "").localeCompare(b.clientId || ""))) {
       await activateCoachingOrder(tx, order);

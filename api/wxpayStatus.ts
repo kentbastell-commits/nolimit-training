@@ -60,7 +60,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
             }
             const updated = await markOrdersPaidByWxpay(
               tradeNo,
-              state.transactionId || ""
+              state.transactionId || "",
+              state.paidAt
             );
             if (updated.length) {
               const buyer = orders[0]?.clientName || orders[0]?.clientId || "";

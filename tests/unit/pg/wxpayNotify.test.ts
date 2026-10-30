@@ -126,6 +126,7 @@ const successResource = (totalFen: number) => ({
   out_trade_no: "NLWGROUP1",
   transaction_id: "wx-txn-88",
   trade_state: "SUCCESS",
+  success_time: "2026-10-12T09:30:00+08:00",
   amount: { total: totalFen },
 });
 
@@ -144,9 +145,7 @@ describe("api/wxpayNotify (postgres)", () => {
       expect(order.payment_status).toBe("Paid");
       expect(order.payment_provider).toBe("WeChat Pay");
       expect(order.wxpay_transaction_id).toBe("wx-txn-88");
-      // The confirmation moment: the profile's "Last payment" reads it, and
-      // before 2026-10-29 no automatic payment path ever wrote it.
-      expect(Number(order.paid_at)).toBeGreaterThan(Date.now() - 60_000);
+      expect(Number(order.paid_at)).toBe(Date.parse("2026-10-12T09:30:00+08:00"));
     }
   });
 

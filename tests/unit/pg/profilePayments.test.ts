@@ -1,7 +1,7 @@
 import { afterAll, beforeEach, describe, expect, it, vi } from "vitest";
 import updateOrderHandler from "../../../api/updateProductOrder.ts";
 import { upsertSubscription } from "../../../server/db/repositories/subscriptions.ts";
-import { createProductOrder, listProductOrders, updateProductOrder } from "../../../server/db/repositories/productOrders.ts";
+import { createProductOrder, listProductOrders, markOrdersPaidByWxpay, updateProductOrder } from "../../../server/db/repositories/productOrders.ts";
 import { closeDb, resetDb, rows, seedClient, makeReq, makeRes } from "./helpers.ts";
 beforeEach(resetDb);
 afterAll(closeDb);
@@ -34,5 +34,12 @@ describe("profile payment dates", () => {
     expect((await listProductOrders())[0].paidAt).toBe("2026-10-12T04:00:00.000Z");
     await updateProductOrder({ recordId: id, paidAt: "" });
     expect((await listProductOrders())[0].paidAt).toBe("");
+  });
+  it("stores WeChat completion time and keeps it stable on repeated callbacks", async () => {
+    await seedClient();
+    await rows("insert into product_orders (order_id, client_id, product_type, payment_status, wxpay_trade_no) values ('ORD-P1','CL-9001','Digital Program','Pending','NLPROFILE1')");
+    await markOrdersPaidByWxpay("NLPROFILE1", "WX-1", "2026-10-12T09:30:00+08:00");
+    await markOrdersPaidByWxpay("NLPROFILE1", "WX-1", "2026-10-15T09:30:00+08:00");
+    expect((await listProductOrders())[0]).toMatchObject({ paidAt: "2026-10-12T01:30:00.000Z", paymentStatus: "Paid" });
   });
 });
