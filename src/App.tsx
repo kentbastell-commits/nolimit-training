@@ -778,7 +778,6 @@ function App({ onReady, bootVisible = true }: { onReady?: () => void; bootVisibl
     }
   };
 
-
   // Form-video review (premium: online / in-person clients only).
   const formVideoInputRef = useRef<HTMLInputElement | null>(null);
   const [formVideoExercise, setFormVideoExercise] = useState<{
@@ -1497,6 +1496,7 @@ function App({ onReady, bootVisible = true }: { onReady?: () => void; bootVisibl
   const movingAssignmentId = "";
   const [copiedCalendarItem, setCopiedCalendarItem] =
     useState<CopiedCalendarItem | null>(null);
+  const pastingCalendarWorkoutRef = useRef(false);
   const [calendarActionMenu, setCalendarActionMenu] =
     useState<CalendarActionMenuState | null>(null);
   const clientCalendarTouchDrag = useRef<{
@@ -8343,39 +8343,45 @@ function App({ onReady, bootVisible = true }: { onReady?: () => void; bootVisibl
     if (!copiedCalendarItem) return;
 
     if (copiedCalendarItem.type === "workout") {
-      const workout = workouts.find((item) => item.id === copiedCalendarItem.id);
-
-      if (!workout) {
-        notify("Copied workout is no longer available.", "error");
-        setCopiedCalendarItem(null);
-        return;
-      }
-
       if (copiedCalendarItem.action === "cut") {
-        await moveWorkoutToDate(workout, scheduledDate);
-      } else {
-        const response = await fetch("/api/duplicateAssignedWorkout", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            assignedWorkoutRecordId: workout.id,
-            scheduledDate,
-          }),
-        });
-        const data = await response.json();
-
-        if (!response.ok || !data.success) {
-          console.error(data);
-          notify("Could not copy workout.", "error");
+        const workout = workouts.find((item) => item.id === copiedCalendarItem.id);
+        if (!workout) {
+          notify(t("calendarCrossClientCutHint"), "error");
           return;
         }
-
-        if (selectedClient) {
-          await loadClientWorkouts(selectedClient, true);
+        await moveWorkoutToDate(workout, scheduledDate);
+      } else {
+        if (!selectedClient || pastingCalendarWorkoutRef.current) return;
+        const clipboard = copiedCalendarItem;
+        const destination = selectedClient;
+        pastingCalendarWorkoutRef.current = true;
+        try {
+          // The source belongs to the clipboard, not the destination's loaded
+          // calendar. Switching clients must not make a copied workout expire.
+          const response = await fetch("/api/duplicateAssignedWorkout", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              assignedWorkoutRecordId: clipboard.id,
+              targetClientId: destination.clientCode,
+              scheduledDate,
+            }),
+          });
+          const data = await response.json();
+          if (!response.ok || !data.success) {
+            notify(t("calendarCopyFailed"), "error");
+            return;
+          }
+          await loadClientWorkouts(destination, true);
+          notify(t(data.isDraft ? "calendarCopiedAsDraft" : "calendarCopied"), "success");
+          setCopiedCalendarItem(current => current === clipboard ? null : current);
+        } catch (error) {
+          console.error(error);
+          notify(t("calendarCopyFailed"), "error");
+        } finally {
+          pastingCalendarWorkoutRef.current = false;
         }
-        notify("Workout copied.", "success");
+        return;
       }
       setCopiedCalendarItem(null);
       return;

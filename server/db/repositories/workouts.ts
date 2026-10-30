@@ -50,6 +50,7 @@ export type UpdateWorkoutDateInput = {
 export type DuplicateWorkoutInput = {
   assignedWorkoutRecordId: string;
   scheduledDate?: string;
+  targetClientId?: string;
 };
 
 export type ShiftWorkoutDatesInput = {

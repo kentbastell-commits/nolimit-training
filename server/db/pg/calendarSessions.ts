@@ -21,12 +21,12 @@ export async function reviewCalendarSessions(clientId: string) {
     date: w.scheduledDate, draft: w.isDraft, hasRevision: revisions.some(r => r.id === w.assignedWorkoutId),
     locked: w.completionStatus === "Completed" || logs.some(l => l.id === w.assignedWorkoutId), version: token(w) })) };
 }
-async function cloneSession(tx: SessionTx, source: Assigned) {
+export async function cloneCalendarSession(tx: SessionTx, source: Assigned, clientId = source.clientId) {
   const [program] = await tx.select().from(programs).where(eq(programs.programId, source.programId!));
   if (!program) throw new SessionEditError(409, "sessionUnavailable");
   const programId = `PR-CP-${randomUUID()}`;
   await tx.insert(programs).values({ ...program, programId, name: source.sessionName || program.name,
-    builtForClient: source.clientId, builtForTeam: null, assignmentOnly: true, libraryVisible: false, publicStoreVisible: false,
+    builtForClient: clientId, builtForTeam: null, assignmentOnly: true, libraryVisible: false, publicStoreVisible: false,
     durationWeeks: 1, sessionsPerWeek: 1, productType: "Single Workout", productStatus: "Draft" });
   const templates = await tx.select().from(workoutTemplates).where(and(eq(workoutTemplates.programId, source.programId!), eq(workoutTemplates.week, source.week!), eq(workoutTemplates.day, source.day!)));
   if (!templates.length) throw new SessionEditError(409, "sessionUnavailable");
@@ -66,7 +66,7 @@ export async function applyCalendarSessions(input: { clientId: string; requestId
         await tx.update(assignedWorkouts).set({ scheduledDate: dayStartMs(item.date) }).where(eq(assignedWorkouts.assignedWorkoutId, row.assignedWorkoutId));
         changed.push(row.assignedWorkoutId);
       } else {
-        const programId = await cloneSession(tx, row), id = `AW-${randomUUID()}`;
+        const programId = await cloneCalendarSession(tx, row), id = `AW-${randomUUID()}`;
         await tx.insert(assignedWorkouts).values({ assignedWorkoutId: id, clientId: row.clientId, programId, week: 1, day: 1,
           sessionName: row.sessionName, sessionNameCn: row.sessionNameCn, sessionType: row.sessionType,
           sessionGoal: row.sessionGoal, sessionGoalCn: row.sessionGoalCn, coachNotes: row.coachNotes, coachNotesCn: row.coachNotesCn,

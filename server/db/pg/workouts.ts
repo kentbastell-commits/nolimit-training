@@ -1,6 +1,10 @@
+import { randomUUID } from "node:crypto";
 import { and, eq, gte, inArray, isNull, not, ilike, or, sql } from "drizzle-orm";
 import { db } from "../client.ts";
-import { assignedTests, assignedWorkouts, workoutLogs } from "../schema.ts";
+import { assignedTests, assignedWorkouts, clients, sessionRevisions, workoutLogs } from "../schema.ts";
+import { cloneCalendarSession } from "./calendarSessions.ts";
+import { SessionEditError } from "./assignedSession.ts";
+import { invalidateCalendar } from "./calendarDrafts.ts";
 import { queueTranslations } from "../contentTranslations.ts";
 import { dayStartMs, pgErrorMessage, str } from "./_util.ts";
 import type { WorkoutDTO } from "../dto.ts";
@@ -307,7 +311,7 @@ export async function shiftAssignedWorkoutDates(
 export async function duplicateAssignedWorkout(
   input: DuplicateWorkoutInput
 ): Promise<WorkoutWriteResult> {
-  const { assignedWorkoutRecordId, scheduledDate } = input;
+  const { assignedWorkoutRecordId, scheduledDate, targetClientId } = input;
 
   const sources = await db
     .select()
@@ -316,7 +320,35 @@ export async function duplicateAssignedWorkout(
   const source = sources[0];
 
   if (!source) {
-    return { success: false, error: "Could not read assigned workout" };
+    throw new SessionEditError(404, "Copied workout is no longer available.");
+  }
+
+  if (targetClientId && targetClientId !== source.clientId) {
+    const result = await db.transaction(async tx => {
+      const [destination] = await tx.select({ id: clients.clientId }).from(clients)
+        .where(eq(clients.clientId, targetClientId));
+      if (!destination) throw new SessionEditError(404, "Destination client is no longer available.");
+      const [current] = await tx.select().from(assignedWorkouts)
+        .where(eq(assignedWorkouts.assignedWorkoutId, assignedWorkoutRecordId)).for("update");
+      if (!current) throw new SessionEditError(404, "Copied workout is no longer available.");
+      const [revision] = await tx.select({ id: sessionRevisions.revisionId }).from(sessionRevisions)
+        .where(eq(sessionRevisions.assignedWorkoutId, assignedWorkoutRecordId));
+      if (revision) throw new SessionEditError(409, "Review the source workout's private changes before copying it.");
+      const programId = await cloneCalendarSession(tx, current, targetClientId);
+      const id = `AW-${randomUUID()}`;
+      // Copy programming into an independent private plan, never athlete activity.
+      await tx.insert(assignedWorkouts).values({
+        assignedWorkoutId: id, clientId: targetClientId, programId, week: 1, day: 1,
+        sessionName: current.sessionName, sessionNameCn: current.sessionNameCn,
+        sessionType: current.sessionType, sessionGoal: current.sessionGoal, sessionGoalCn: current.sessionGoalCn,
+        coachNotes: current.coachNotes, coachNotesCn: current.coachNotesCn,
+        intensity: current.intensity, estimatedDuration: current.estimatedDuration,
+        scheduledDate: epochOrNull(toLarkDate(scheduledDate)), completionStatus: "Scheduled", isDraft: true,
+      });
+      return { success: true, recordId: id, isDraft: true };
+    });
+    invalidateCalendar();
+    return result;
   }
 
   // Same semantics as the Feishu clone: copy every field, override id/date/
