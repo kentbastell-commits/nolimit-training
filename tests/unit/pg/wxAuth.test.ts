@@ -155,6 +155,8 @@ describe("wxAuth sign-up with a WeChat-verified phone", () => {
       [withName.body.clientCode],
     );
     expect(client[0]).toMatchObject({ full_name: "Li Meini", phone: "13700002222", source: "Mini program", wechat_openid: "openid-B" });
+    const [assignment] = await rows("select coach_assigned, primary_coach_id, secondary_coach_id from clients where client_id = $1", [withName.body.clientCode]);
+    expect(assignment).toMatchObject({ coach_assigned: "", primary_coach_id: null, secondary_coach_id: null });
 
     const expired = makeRes();
     await handler(makeReq({ method: "POST", body: { code: "jscode", phoneToken: "bad.token.here", name: "X Y" } }) as any, expired as any);

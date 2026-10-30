@@ -19,6 +19,14 @@ Browser engines and reduced viewport height are simulations. Switching browser t
 
 Local release checks passed: forced TypeScript, production build and **1,056 tests across 123 files**. Complete review/recovery journeys passed in WebKit at 360/390 px and Chromium at 390/1440 px, with no runtime errors. English/Chinese review layouts were inspected. Bike add/edit/delete/reopen and portrait/landscape video-close journeys passed in 390 px WebKit; the HR input measured approximately 117 × 44 px with no horizontal overflow.
 
+## Live verification and unresolved finding
+
+The comparison release is live at commit `44600617043c79cd86acc70eaa0eaa2499386687`. Both public domains return the new assets; both Shanghai workers return the published comparison baseline, enforce coach access and serve athlete/mini-program workout reads. Read-only verification found Accessory still has four exercises with two sets each.
+
+**Mobile acceptance is not complete.** The deployed WebKit fixture journey completed the edit/recovery/publication actions, but its strict error check failed: a background `/api/coachDrafts` request reported an access-control error around reload, accompanied by a window `Script error.` event. Repeating with native browser timers reproduced it, so the simulated-clock explanation was not confirmed. Draft recovery succeeded in these fixture runs; that does not establish real-device reliability. The cause remains unresolved. Tests intercepted application API writes and did not change live athlete data.
+
+Connections from this workstation to `.cn` also timed out intermittently. The deployed journey was retried through `.com`; this observation does not establish network performance on Kent's phone. Preserve the live diagnostic artifacts when investigating, including request failures and window errors. Do not mark the live browser run or physical-phone acceptance as passed.
+
 ## Physical-device acceptance — pending device access
 
 No iPhone/Android test device or device-control connection was available in this workspace. Physical keyboard, app switching, OS termination and native WeChat checks remain **unverified** until performed on a phone. Do not mark this acceptance complete based on the automated results.
