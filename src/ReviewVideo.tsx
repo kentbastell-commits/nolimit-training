@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import "./ReviewVideo.css";
+import { uploadThumbUrl } from "./appCore";
 
 // Review uploads are small and belong to the website the coach already has
 // open. Prefer that connection; a VPN may route the media hostname differently.
@@ -53,7 +54,7 @@ function ReviewVideoPlayer({ url, title }: { url: string; title: string }) {
   const retry = () => { clearTimer(); resume.current = true; setFailed(false); setIndex(0); setAttempt(n => n + 1); };
   return <div className="reviewVideoPlayer">
     <video key={`${index}:${attempt}`} ref={video} className="rvVideo" src={sources[index]}
-      aria-label={title} controls playsInline preload="none"
+      aria-label={title} controls playsInline preload="metadata" poster={uploadThumbUrl(url) || undefined}
       onLoadStart={() => { if (resume.current) waitForConnection(); }} onError={fail}
       onLoadedMetadata={event => {
         clearTimer();
@@ -62,8 +63,12 @@ function ReviewVideoPlayer({ url, title }: { url: string; title: string }) {
       }}
       onPlay={() => { resume.current = true; waitForConnection(); }}
       onPause={event => { if (!event.currentTarget.error) resume.current = false; clearTimer(); }}
-      onWaiting={waitForConnection}
-      onStalled={() => { if (video.current?.readyState === 0 || !video.current?.paused) waitForConnection(); }}
+      // iPhone WebKit fires "stalled" on a video nobody has played yet (it
+      // simply chose not to download more). Only a play/retry the coach asked
+      // for arms the connection timer — otherwise a paused, untouched clip
+      // declared itself "unable to load" after 24s with no request ever sent.
+      onWaiting={() => { if (resume.current) waitForConnection(); }}
+      onStalled={() => { if (resume.current) waitForConnection(); }}
       onCanPlay={() => { clearTimer(); if (resume.current && video.current?.paused) void video.current.play().catch(() => {}); }}
       onPlaying={() => { clearTimer(); setFailed(false); }}
       onEnded={() => { resume.current = false; clearTimer(); }} />

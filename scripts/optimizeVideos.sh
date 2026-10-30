@@ -13,7 +13,11 @@ cd "$UP" || exit 1
 mkdir -p "$UP/thumbs"
 
 done_n=0; skip_n=0; fail_n=0; purged_urls=""
-for f in ex-*; do
+# ex-* = exercise library (poster + re-encode). fv-* = athlete form clips:
+# poster ONLY — they arrive WeChat-compressed (~3MB, 540p) and the review
+# player needs a frame to show on phones; no in-place rewrite, so no CDN
+# staleness risk (mistake #62).
+for f in ex-* fv-*; do
   [ -f "$f" ] || continue
   case "$f" in *.mov|*.mp4|*.m4v) ;; *) continue;; esac
 
@@ -23,6 +27,8 @@ for f in ex-*; do
   if [ ! -f "$thumb" ]; then
     nice -n 15 ffmpeg -y -v error -ss 0.5 -i "$f" -frames:v 1 -vf "scale=480:-2" "$thumb" 2>>"$LOG"
   fi
+
+  case "$f" in fv-*) continue;; esac
 
   # Already optimized?
   tag=$(ffprobe -v error -show_entries format_tags=comment -of default=nw=1:nk=1 "$f" 2>/dev/null | head -1)

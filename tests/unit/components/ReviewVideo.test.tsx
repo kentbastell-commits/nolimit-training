@@ -13,7 +13,8 @@ describe("review video connections", () => {
     render(<ReviewVideo url={url} title="Row" />);
     expect(getVideo()).toHaveAttribute("src", "/uploads/fv-example.mp4");
     expect(getVideo()).toHaveAttribute("playsinline");
-    expect(getVideo()).toHaveAttribute("preload", "none");
+    expect(getVideo()).toHaveAttribute("preload", "metadata");
+    expect(getVideo()).toHaveAttribute("poster", "https://media.trainnolimit.cn/uploads/thumbs/fv-example.jpg");
     expect(screen.getByRole("link", { name: "Open video" })).toHaveAttribute("href", "/uploads/fv-example.mp4");
   });
   it("switches connections after a network/media error, then allows a fresh retry", () => {
@@ -37,6 +38,16 @@ describe("review video connections", () => {
     fireEvent.loadedMetadata(getVideo());
     fireEvent.stalled(getVideo());
     act(() => vi.advanceTimersByTime(24000));
+    expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+  });
+  it("ignores a browser stall on a clip the coach has not played (iPhone WebKit fires it at once)", () => {
+    vi.useFakeTimers();
+    render(<ReviewVideo url={url} title="Row" />);
+    fireEvent.loadStart(getVideo());
+    fireEvent.stalled(getVideo());
+    fireEvent.waiting(getVideo());
+    act(() => vi.advanceTimersByTime(30000));
+    expect(getVideo()).toHaveAttribute("src", "/uploads/fv-example.mp4");
     expect(screen.queryByRole("alert")).not.toBeInTheDocument();
   });
   it("cleans up timeouts when a submission changes and leaves external sources alone", () => {
