@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import "./ReviewVideo.css";
 import { uploadThumbUrl } from "./appCore";
+import { reportClientEvent } from "./telemetry";
 
 // Review uploads are small and belong to the website the coach already has
 // open. Prefer that connection; a VPN may route the media hostname differently.
@@ -34,17 +35,39 @@ function ReviewVideoPlayer({ url, title }: { url: string; title: string }) {
   const position = useRef(0);
   const resume = useRef(false);
   const clearTimer = () => { if (timer.current !== null) clearTimeout(timer.current); timer.current = null; };
-  const fail = () => {
+  // Every give-up is reported with the media element's own diagnosis, so a
+  // "couldn't load" on one coach's phone can be read from logs/client-events
+  // instead of guessed at (the Oct-30 iPhone failure had no other evidence).
+  const report = (reason: string) => {
+    const v = video.current;
+    const can = typeof v?.canPlayType === "function" ? v.canPlayType('video/mp4; codecs="avc1.64001F, mp4a.40.2"') : "?";
+    reportClientEvent("api_fail", "video_load_failed", { message:
+      `${reason} src=${index + 1}/${sources.length} ${sources[index]} code=${v?.error?.code ?? "-"} msg=${v?.error?.message || "-"} net=${v?.networkState ?? "-"} ready=${v?.readyState ?? "-"} userPlay=${resume.current} canPlay=${can || "no"}` });
+  };
+  const fail = (reason = "error") => {
     clearTimer();
+    report(reason);
     position.current = video.current?.currentTime || position.current;
     if (index < sources.length - 1) setIndex(index + 1);
     else setFailed(true);
   };
+  // Bytes still arriving = a slow link, not a dead one: wait up to 3 more
+  // rounds (48 s total) before switching sources, so a cross-border coach
+  // phone on a 1 MB/s link isn't failed mid-download.
+  const patience = useRef(0);
+  const buffered = () => { const b = video.current?.buffered; return b && b.length ? b.end(b.length - 1) : 0; };
   const waitForConnection = () => {
     clearTimer();
+    const before = buffered();
     timer.current = setTimeout(() => {
       const current = video.current;
-      if (current && (current.readyState === 0 || (!current.paused && current.readyState < 3))) fail();
+      if (!current) return;
+      const starving = current.readyState === 0 || (!current.paused && current.readyState < 3);
+      if (!starving) { patience.current = 0; return; }
+      const stillLoading = current.networkState === 2 && buffered() > before;
+      if (stillLoading && patience.current < 3) { patience.current += 1; waitForConnection(); return; }
+      patience.current = 0;
+      fail("timeout");
     }, 12000);
   };
   useEffect(() => {
@@ -55,7 +78,7 @@ function ReviewVideoPlayer({ url, title }: { url: string; title: string }) {
   return <div className="reviewVideoPlayer">
     <video key={`${index}:${attempt}`} ref={video} className="rvVideo" src={sources[index]}
       aria-label={title} controls playsInline preload="metadata" poster={uploadThumbUrl(url) || undefined}
-      onLoadStart={() => { if (resume.current) waitForConnection(); }} onError={fail}
+      onLoadStart={() => { if (resume.current) waitForConnection(); }} onError={() => fail("error")}
       onLoadedMetadata={event => {
         clearTimer();
         const current = event.currentTarget;
