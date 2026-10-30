@@ -5,3 +5,6 @@
 .reviewVideoActions button { border: 1px solid #d9d7cd; border-radius: 8px; background: #fff; color: #29271f; padding: 6px 12px; cursor: pointer; }
 .reviewVideoActions a { color: #765b29; text-decoration: underline; }
 .reviewVideoError { color: #9a332a; margin: 8px 0 0; font-size: 14px; }
+.reviewVideoPoster { display: grid; place-items: center; width: 100%; height: clamp(180px, 56vw, 420px); border: 0; border-radius: 10px; padding: 0; cursor: pointer; background: #000 center / contain no-repeat; color: #fff; }
+.reviewVideoPoster:focus-visible { outline: 3px solid #b88a3d; outline-offset: 2px; }
+.reviewVideoPlayGlyph { display: grid; place-items: center; width: 56px; height: 56px; border-radius: 50%; background: rgba(0, 0, 0, .55); border: 2px solid rgba(255, 255, 255, .85); font-size: 22px; padding-left: 4px; }
