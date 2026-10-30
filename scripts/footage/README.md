@@ -69,20 +69,32 @@ powershell -ExecutionPolicy Bypass -File scripts/footage/icloud-contact-sheet.ps
 powershell -ExecutionPolicy Bypass -File scripts/footage/icloud-compose-sheets.ps1 -Dir "C:\Users\kentb\Videos\icloud-review\2026-05-01_2026-09-09" -MinSeconds 6 -CameraOnly
 # 3. review: a person (or model) writes sheet-NNN.keep.txt per sheet (kept file names);
 #    or open review.html from step 1 and tick clips by hand
-# 4. merge every keep list newest-first, then download only those into ONE flat folder,
-#    stopping at a 15 GB free-disk floor (re-run to resume; MIN_FREE_GB=n to change)
+# 4. merge every keep list newest-first, then download only those into ONE flat folder.
+#    It stops at a 15 GB free-disk floor and resumes .icloud-partial files on re-run.
 node scripts/footage/icloud-merge-selection.mjs
-node scripts/footage/icloud-fetch-selected.mjs "C:\Users\kentb\Videos\icloud-review\selected-all.txt" --dest C:\Users\kentb\Videos\workout-videos
+node scripts/footage/icloud-fetch-selected.mjs "C:\Users\kentb\Videos\icloud-review\selected-all.txt" --dest E:\workout-videos
 ```
 
-Facts that shaped this: copying a placeholder is the download (the cloud
+Facts that shaped this: reading a placeholder is the download (the cloud
 filter hydrates it; `attrib +U -P` releases the original again so disk is
-paid once); iCloud download speed depends entirely on the network route —
-0.23 MB/s at home through the Clash tunnel vs. fast at the office — so run
-step 4 where iCloud is quick; the full 2021-2026 review kept 1,898 of 6,935
-camera clips (510 GB), far more than the laptop's free disk, so the fetch
-is newest-first and the rest waits for an external drive or a COS archive
-pass (`proxy-phone-videos.mjs` on the folder in batches).
+paid once). Placeholder byte sizes can change when iCloud materializes a
+file, so byte equality is not a completion test; the fetcher checks duration
+and decodes the complete video/audio before promotion, including existing
+destinations that an older run may have left. Interrupted downloads keep a
+growing `.icloud-partial` for resume. A partial that fails media verification
+is renamed `.invalid` (with a numbered suffix if needed), so the next run
+downloads fresh bytes instead of retrying a corrupt prefix forever.
+By default it stops after the first file/network
+error; re-run the same command to resume. `--continue-on-error` is available
+only when skipping ahead is genuinely preferable.
+
+iCloud speed depends heavily on the network route. On 2026-09-08 the Clash
+`DIRECT` rule delivered about 1.3 MB/s, while the selected Hong Kong proxy
+managed only 0.02–0.05 MB/s and consumed plan quota, so keep iCloud on
+`DIRECT`. The full review kept 1,898 of 6,935 camera clips (roughly 510 GB),
+more than the currently available destination space; fetch newest-first and
+archive/process in batches with `proxy-phone-videos.mjs` before expecting the
+entire selection to fit locally.
 
 ## Checking a clip without downloading it
 
