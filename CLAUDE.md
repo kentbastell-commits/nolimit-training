@@ -66,6 +66,9 @@ data between them, never "borrow" a table ID across products.
   described as secure. Remove it only after the session-enabled mini build is
   publicly released; see `docs/athlete-session-rollout.md`. A checkout key
   authorizes its order only and cannot become an account invite/session.
+  Kent clarified 2026-11-01: administrator/trial, manually added and non-paying
+  accounts must retain login access. Authentication is independent of payment;
+  keep compatibility until their existing login paths have proven continuity.
 - **Database: nolimit is Postgres ONLY** (live 2026-07-21; the Feishu backend was
   deleted 2026-07-26). DB `nolimit_prod` on the HK box. There is no
   `DATA_BACKEND` switch and no `server/db/feishu/` tree any more — the

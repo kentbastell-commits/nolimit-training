@@ -1,5 +1,13 @@
 # Athlete sessions: rollout and verification
 
+Kent's access requirement (2026-11-01): administrator/trial users, manually added
+accounts, non-paying users and paying users must all retain sign-in access.
+Payment/subscription status and how the account was created are not login
+eligibility checks. Keep existing logins working while credentials are introduced;
+publishing a new mini version alone is not sufficient reason to enable enforcement.
+Coach-assigned training remains available under its existing permissions. Paid
+product entitlements and coach-console privileges remain separate checks.
+
 Client codes are public identifiers. Sessions are issued only after a coach PIN,
 verified WeChat phone/openid, or a coach-signed personal invite. Public checkout
 keys authorize one order and use a separate signing purpose from personal pay
@@ -23,11 +31,19 @@ Deploying enforcement before replacing that client would interrupt training.
    through the established DevTools CLI route. An upload is a development version,
    not a public release. Trial promotion, WeChat review and public release each
    need their own verification.
+   Superseding build 1.0.1101.1 preserves stored legacy identities and existing
+   phone/name recovery only while the server explicitly reports compatibility.
+   It never turns that lookup into a trusted token or a permanent WeChat binding.
+   Use it in place of 1.0.1031.1, which could force unbound legacy accounts back
+   to login even with the backend in compatibility mode.
 4. Confirm existing athletes have a PIN, a bound WeChat account or a fresh
    coach-issued personal invite. The read-only 2026-10-31 readiness check found
    one athlete with assigned training and neither PIN nor WeChat binding; arrange
    verified enrollment before enforcement, without sending unsolicited messages.
-   After enrollment and the session-enabled mini version is publicly available, remove `compat`
+   Confirm continued login for existing administrator/trial, manually added,
+   non-paying and paying accounts, including those whose stored identity has no
+   WeChat binding. Preserve their saved drafts and queues. After that continuity
+   is established and the session-enabled mini is in use, remove `compat`
    and restart workers one at a time. Older installed clients may need to update;
    unbound legacy accounts must sign in with their coach PIN or verified WeChat.
    Offline drafts and queued writes must survive a failed session restoration.
