@@ -90,13 +90,14 @@
 
 /* Reflow desktop structures while keeping the same actions and hierarchy. */
 @media (max-width:720px) {
-  .app.app:not(.clientPortalApp) .coachClientContext { grid-template-columns: 36px minmax(0,1fr) auto; gap: 8px; padding: 10px; }
+  .app.app:not(.clientPortalApp) .coachClientContext { grid-template-columns: 44px minmax(0,1fr); gap: 8px; padding: 10px; }
   .app.app:not(.clientPortalApp) .coachClientAvatar { display: none; }
-  .app.app:not(.clientPortalApp) .coachClientContextActions { grid-column: auto; padding: 0; border: 0; gap: 4px; }
+  .app.app:not(.clientPortalApp) .coachClientContextActions { grid-column: 1 / -1; display: grid; grid-template-columns: minmax(0,1fr) minmax(0,1fr) 44px; padding: 8px 0 0; border-top: 1px solid #eee9dd; gap: 6px; }
+  .app.app:not(.clientPortalApp) .coachClientContextActions > .coachClientPortalButton { min-width: 0; justify-content: center; }
   .app.app:not(.clientPortalApp) .coachClientIdentity h1 { font-size: 17px; }
   .app.app:not(.clientPortalApp) .coachClientIdentity > span { font-size: 9px; }
   .app.app:not(.clientPortalApp) .coachClientPortalButton { font-size: 11px; padding: 0 8px; gap: 4px; }
-  .app.app:not(.clientPortalApp) .coachClientBack { min-width: 36px; padding: 0; }
+  .app.app:not(.clientPortalApp) .coachClientBack { min-width: 44px; padding: 0; }
   .app.app:not(.clientPortalApp) .coachClientTabs { margin-bottom: 10px; }
   .app.app:not(.clientPortalApp) .calendarNavigator { display: flex; flex-wrap: wrap; gap: 6px; }
   .app.app:not(.clientPortalApp) .calendarRangeControls { flex: 1; width: auto; min-width: 200px; grid-template-columns: 36px minmax(0,1fr) 36px; gap: 2px; }

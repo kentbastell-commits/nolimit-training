@@ -180,7 +180,7 @@ export default function CoachTestsPage(props: { [key: string]: any }) {
 
   useEffect(() => {
     void loadTestTemplates();
-    void loadTestLibrary();
+    void loadTestLibrary(true);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 

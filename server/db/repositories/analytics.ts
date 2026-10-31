@@ -73,9 +73,9 @@ export async function getAnalytics(): Promise<AnalyticsResult> {
 
   const attentionClients = clients
     .map((client) => {
-      const cw = withStatus.filter((w) => client.clientId && w.clientId.includes(client.clientId));
+      const cw = withStatus.filter((w) => client.clientId && w.clientId === client.clientId);
       const overdue = missed.filter(
-        (w) => client.clientId && w.clientId.includes(client.clientId)
+        (w) => client.clientId && w.clientId === client.clientId
       ).length;
       return {
         clientId: client.clientId,
@@ -94,7 +94,7 @@ export async function getAnalytics(): Promise<AnalyticsResult> {
 
   const inWeek = (date: string) => Boolean(date) && date >= weekAgoString && date <= todayString;
   const clientActivity = clients.map((client) => {
-    const cw = withStatus.filter((w) => client.clientId && w.clientId.includes(client.clientId));
+    const cw = withStatus.filter((w) => client.clientId && w.clientId === client.clientId);
     return {
       recordId: client.recordId,
       clientId: client.clientId,
@@ -107,7 +107,7 @@ export async function getAnalytics(): Promise<AnalyticsResult> {
     clientActivity,
     summary: {
       totalClients: clients.length,
-      activeClients: clients.filter((c) => c.status.toLowerCase().includes("active")).length,
+      activeClients: clients.filter((c) => c.status.trim().toLowerCase() === "active").length,
       premiumClients: clients.filter((c) => c.status.toLowerCase().includes("premium")).length,
       needsProgramming: needsProgramming.length,
       needsContact: needsContact.length,

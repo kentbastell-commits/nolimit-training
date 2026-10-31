@@ -359,6 +359,10 @@ export async function duplicateAssignedWorkout(
     assignedWorkoutId: newId,
     scheduledDate: epochOrNull(toLarkDate(scheduledDate)),
     completionStatus: "Scheduled",
+    // Copy the prescription, not the source session's performed results.
+    clientNotes: null, clientNotesCn: null, coachReviewed: false,
+    sessionRpe: null, sessionDuration: null, sessionLoad: null,
+    sessionAvgHr: null, sessionMaxHr: null,
   };
 
   await db.insert(assignedWorkouts).values(clone);

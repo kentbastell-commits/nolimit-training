@@ -1196,7 +1196,10 @@ function App({ onReady, bootVisible = true }: { onReady?: () => void; bootVisibl
   const [startHereForcedPid, setStartHereForcedPid] = useState("");
   const homeTouchRef = useRef<{ x: number; y: number } | null>(null);
   // Athlete weekly workload self-report (technical + extra cardio sessions).
-  const [workloadLogs, setWorkloadLogs] = useState<WorkloadLog[]>([]);
+  const [workloadRead, setWorkloadRead] = useState<{ clientCode: string; logs: WorkloadLog[] }>({ clientCode: "", logs: [] });
+  const workloadReadRequestRef = useRef(0);
+  // The first render after switching athletes must not show the old owner.
+  const workloadLogs = useMemo(() => workloadRead.clientCode === selectedClient?.clientCode ? workloadRead.logs : [], [workloadRead, selectedClient?.clientCode]);
   const [workloadDay, setWorkloadDay] = useState("");
   const [workloadSaving, setWorkloadSaving] = useState(false);
   const [workloadDraft, setWorkloadDraft] = useState<{
@@ -3867,8 +3870,8 @@ function App({ onReady, bootVisible = true }: { onReady?: () => void; bootVisibl
     }
   };
 
-  // Canonical Test Library — fetched once per session (force reloads after
-  // creating a test).
+  // Canonical Test Library — refresh on page visits and after creating a test
+  // so records added on another device can appear in the same open app.
   const loadTestLibrary = async (force?: boolean) => {
     if ((testLibraryTests.length > 0 && !force) || testLibraryLoading) return;
     setTestLibraryLoading(true);
@@ -12999,21 +13002,26 @@ function App({ onReady, bootVisible = true }: { onReady?: () => void; bootVisibl
   // Load the athlete's workload self-report logs (portal + coach viewing a client).
   const loadWorkloadLogs = async (clientCode: string) => {
     if (!clientCode) return;
+    const request = ++workloadReadRequestRef.current;
     try {
       const res = await fetch(
         `/api/workloadLogs?clientId=${encodeURIComponent(clientCode)}`
       );
       const data = await res.json();
-      setWorkloadLogs((data.logs || []) as WorkloadLog[]);
+      if (!res.ok || !Array.isArray(data.logs)) throw new Error("Workload unavailable");
+      if (selectedClientCodeRef.current === clientCode && workloadReadRequestRef.current === request) {
+        setWorkloadRead({ clientCode, logs: data.logs });
+      }
     } catch {
-      setWorkloadLogs([]);
+      // Retain this athlete's last successful read on refresh failure.
     }
   };
 
   useEffect(() => {
     const code = selectedClient?.clientCode;
     if (!code) {
-      setWorkloadLogs([]);
+      workloadReadRequestRef.current += 1;
+      setWorkloadRead({ clientCode: "", logs: [] });
       return;
     }
     void loadWorkloadLogs(code);
@@ -18775,7 +18783,7 @@ function App({ onReady, bootVisible = true }: { onReady?: () => void; bootVisibl
     const code = client.clientCode;
     if (!code) return null;
     const list = rosterLoadWorkouts.filter((w) =>
-      (w.clientId || "").includes(code)
+      w.clientId === code
     );
     const { weeklyLoad, monotony } = computeMonotonyStrain(
       loadByDateForWorkouts(list),
