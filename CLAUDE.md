@@ -248,6 +248,9 @@ data between them, never "borrow" a table ID across products.
     `status.includes("paid")` check as authorization to fulfil (the latter also
     matches `Unpaid`). Rule: create `Pending`; unlock server-side only when the
     normalized payment status is exactly `Paid` after coach/provider verification.
+    2026-10-31 audit: derive coaching prices server-side; require exact integer-fen
+    totals in checkout reconciliation, polling AND callbacks, including the full
+    trade after partial coach verification. SQL unpaid checks must include NULL.
 23. **The save-label collision** — showing several nearby “Save” actions that
     persist different scopes. Rule: keep one primary action per surface and name
     it by scope (`Done`, `Save Day`, `Save Program`) so the outcome is predictable.
@@ -627,6 +630,9 @@ data between them, never "borrow" a table ID across products.
     repository under `server/db/repositories/` for `!clientId`-style "empty
     filter returns all" branches and gate every one in the same pass, not just
     the reported one.
+    2026-10-31 audit: trim identifiers BEFORE deciding a read is scoped, then
+    match whole IDs. Whitespace gates followed by normalized repository reads
+    exposed all rows; substring matching exposed CL-90010 to CL-9001 requests.
     RECURRED client-side 2026-09-18: the public `/coaching`, `/in-person` and
     legal pages share App.tsx's boot effect, whose guard listed only
     `isStorePage || isPublicLandingPage`, so every visitor to those pages
