@@ -9,7 +9,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   }
 
   try {
-    const { clientId = "", clientCode = "", clientName = "" } = req.query;
+    const clientId = String(req.query.clientId || "").trim();
+    const clientCode = String(req.query.clientCode || "").trim();
+    const clientName = String(req.query.clientName || "").trim();
     // No client filter = every client's assigned forms/tests. Coach-only,
     // same rule as clients.ts (named mistake #49).
     if (!clientId && !clientCode && !clientName && !coachKeyOk(req as never)) {

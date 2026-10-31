@@ -108,10 +108,10 @@ export async function listWorkoutComments(
     const logClientName = row.clientName.toLowerCase();
     const clientIdMatches =
       Boolean(requestedClientId) &&
-      (logClientId.includes(requestedClientId) ||
-        logClientName.includes(requestedClientId));
+      (logClientId === requestedClientId ||
+        logClientName === requestedClientId);
     const clientNameMatches =
-      Boolean(requestedClientName) && logClientName.includes(requestedClientName);
+      Boolean(requestedClientName) && logClientName === requestedClientName;
     if (
       (requestedClientId || requestedClientName) &&
       !clientIdMatches &&

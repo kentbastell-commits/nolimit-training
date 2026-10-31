@@ -82,7 +82,7 @@ export async function listCheckIns(clientId = ""): Promise<CheckInDTO[]> {
     .filter((checkIn) => {
       if (!clientId) return true;
       return (
-        checkIn.clientId.includes(clientId) ||
+        checkIn.clientId === clientId ||
         checkIn.clientRecordIds.includes(clientId)
       );
     })

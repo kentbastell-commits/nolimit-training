@@ -19,6 +19,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     }
 
     if (req.method === "POST") {
+      if (!coachKeyOk(req as never)) return res.status(401).json({ error: "Coach access key required" });
       const { clientId, title, body, type } = req.body || {};
       if (!clientId || !title) {
         return res.status(400).json({ error: "clientId and title are required" });

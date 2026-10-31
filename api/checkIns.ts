@@ -9,7 +9,7 @@ import { coachKeyOk } from "./_coachAuth.ts";
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   try {
     if (req.method === "GET") {
-      const clientId = String(req.query.clientId || "");
+      const clientId = String(req.query.clientId || "").trim();
       // No clientId = every client's check-ins (health data). Coach-only,
       // same rule as clients.ts (named mistake #49).
       if (!clientId && !coachKeyOk(req as never)) {
@@ -27,6 +27,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     // Coach responding to / reviewing an existing check-in (update, not create).
     if (recordId) {
+      if (!coachKeyOk(req as never)) return res.status(401).json({ error: "Coach access key required" });
       const result = await reviewCheckIn(req.body);
       return res.status(result.success ? 200 : 500).json(result);
     }
@@ -34,6 +35,13 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     if (!clientId && !clientRecordId) {
       return res.status(400).json({ error: "Missing clientId or clientRecordId" });
     }
+
+    // The released web portal sends Daily; the mini program omits status.
+    // Neither may create a coach reply or make its own submission reviewed.
+    if (!coachKeyOk(req as never) && (
+      req.body.coachResponse !== undefined || req.body.reviewedDate !== undefined || req.body.coachReviewed !== undefined ||
+      (req.body.status !== undefined && !["Daily", "Submitted"].includes(req.body.status))
+    )) return res.status(401).json({ error: "Coach access key required" });
 
     const result = await createCheckIn(req.body);
     return res.status(result.success ? 200 : 500).json(result);

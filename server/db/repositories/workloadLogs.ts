@@ -47,7 +47,7 @@ export async function listWorkloadLogs(clientId = ""): Promise<WorkloadLogDTO[]>
       await pg.listAllWorkloadLogs();
     setCached("workloadLogs", all, 5 * 60 * 1000);
   }
-  return all.filter((log) => !clientId || log.clientId.includes(clientId));
+  return all.filter((log) => !clientId || log.clientId === clientId);
 }
 
 export async function saveWorkloadLog(

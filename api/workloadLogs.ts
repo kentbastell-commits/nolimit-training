@@ -4,7 +4,7 @@ import { coachKeyOk } from "./_coachAuth.ts";
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   try {
-    const clientId = String(req.query.clientId || req.query.clientCode || "");
+    const clientId = String(req.query.clientId || req.query.clientCode || "").trim();
     // No clientId = every client's training diary (daily RPE). Coach-only,
     // same rule as clients.ts (named mistake #49).
     if (!clientId && !coachKeyOk(req as never)) {

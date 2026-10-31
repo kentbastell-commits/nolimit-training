@@ -4,7 +4,7 @@ import compression from "compression";
 // The DATA_BACKEND tripwire that lived here is gone with the Feishu backend
 // itself (retired 2026-07-26): there is no longer a second backend to fall
 // back to, so no env var can silently serve the frozen mirror.
-import crypto from "node:crypto";
+import { createMediaUploadHandler } from "./mediaUpload.ts";
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -165,63 +165,7 @@ fs.mkdirSync(uploadsDir, { recursive: true });
 // memory — this box has ~1.7GB RAM, so a buffered 300MB+ phone video would risk
 // OOM. Constant memory here regardless of file size; the cap is enforced by
 // counting bytes. Registered BEFORE express.json so req is the raw body stream.
-const MAX_UPLOAD_BYTES = 500 * 1024 * 1024; // keep in step with the client cap
-app.post("/api/uploadFormVideoFile", (req, res) => {
-  const extMatch = String(req.query.name || "").match(
-    /\.(mp4|mov|webm|m4v|jpg|jpeg|png|webp)$/i
-  );
-  const isImageKind = req.query.kind === "coach";
-  const ext = extMatch ? extMatch[0].toLowerCase() : isImageKind ? ".jpg" : ".mp4";
-  const prefix =
-    req.query.kind === "exercise" ? "ex" : isImageKind ? "coach" : "fv";
-  const name = `${prefix}-${crypto.randomBytes(12).toString("hex")}${ext}`;
-  const dest = path.join(uploadsDir, name);
-  const ws = fs.createWriteStream(dest);
-  let received = 0;
-  let settled = false;
-  const settle = (fn: () => void) => {
-    if (settled) return;
-    settled = true;
-    fn();
-  };
-  const abort = (code: number, payload: Record<string, unknown>) =>
-    settle(() => {
-      ws.destroy();
-      fs.unlink(dest, () => {});
-      if (!res.headersSent) res.status(code).json(payload);
-    });
-  req.on("data", (chunk: Buffer) => {
-    if (settled) return;
-    received += chunk.length;
-    if (received > MAX_UPLOAD_BYTES) {
-      req.destroy();
-      abort(413, { error: "File too large" });
-      return;
-    }
-    if (!ws.write(chunk)) {
-      req.pause();
-      ws.once("drain", () => {
-        if (!settled) req.resume();
-      });
-    }
-  });
-  req.on("end", () => {
-    if (!settled) ws.end();
-  });
-  req.on("error", () => abort(500, { error: "Upload failed" }));
-  req.on("aborted", () => abort(400, { error: "Upload aborted" }));
-  ws.on("error", () => abort(500, { error: "Upload failed" }));
-  ws.on("finish", () =>
-    settle(() => {
-      if (!received) {
-        fs.unlink(dest, () => {});
-        res.status(400).json({ error: "Empty upload" });
-        return;
-      }
-      res.status(200).json({ success: true, url: `/uploads/${name}` });
-    })
-  );
-});
+app.post("/api/uploadFormVideoFile", createMediaUploadHandler(uploadsDir));
 
 // Authenticated Company Operations assets go directly to the dedicated
 // Feishu Drive folder. This is intentionally registered before express.json:

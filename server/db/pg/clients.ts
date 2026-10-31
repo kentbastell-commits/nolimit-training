@@ -1,5 +1,5 @@
 import { and, eq, sql, type SQL } from "drizzle-orm";
-import { db } from "../client.ts";
+import { db, type DbExecutor } from "../client.ts";
 import { clients, coaches, assignedWorkouts, programs } from "../schema.ts";
 
 // Phone matching that survives formatting. WeChat hands us pure digits
@@ -17,8 +17,18 @@ export function phoneDigits(value: unknown): string {
   return String(value ?? "").replace(/\D/g, "");
 }
 export function phoneMatches(phone: unknown): SQL {
+  const contact = String(phone ?? "").trim();
+  if (!contact) return sql`false`;
+  // The public coaching form accepts a WeChat ID as well as a number.
+  // Stripping letters merged alice123/bob123, and alphabetic IDs matched
+  // every client whose phone was empty. Contacts must match as whole text.
+  if (/[^\d+\s().-]/.test(contact)) {
+    return sql`lower(btrim(coalesce(${clients.phone}, ''))) = ${contact.toLowerCase()}`;
+  }
   const digits = phoneDigits(phone);
-  const stored = sql`regexp_replace(coalesce(${clients.phone}, ''), '\\D', '', 'g')`;
+  if (!digits) return sql`false`;
+  const stored = sql`case when coalesce(${clients.phone}, '') ~ '^[0-9+[:space:]().-]+$'
+    then regexp_replace(${clients.phone}, '\\D', '', 'g') else null end`;
   if (digits.length >= 10) {
     return sql`right(${stored}, 10) = ${digits.slice(-10)}`;
   }
@@ -102,8 +112,8 @@ function numOrNull(value: unknown) {
 // Mint the next sequential CL-XXXX code from what's already in the table.
 // (Feishu used a random 4-digit code; on Postgres client_id is the PRIMARY KEY,
 // so a random pick could collide — sequential max+1 is collision-free.)
-async function mintClientId(): Promise<string> {
-  const rows = await db.select({ clientId: clients.clientId }).from(clients);
+async function mintClientId(executor: DbExecutor): Promise<string> {
+  const rows = await executor.select({ clientId: clients.clientId }).from(clients);
   let max = 0;
   for (const r of rows) {
     const m = /^CL-(\d+)$/.exec(r.clientId || "");
@@ -114,7 +124,7 @@ async function mintClientId(): Promise<string> {
 }
 
 export async function createClient(i: CreateClientInput): Promise<WriteResult> {
-  const clientId = i.clientId || (await mintClientId());
+  let clientId = i.clientId || "";
 
   const values: typeof clients.$inferInsert = {
     clientId,
@@ -147,7 +157,16 @@ export async function createClient(i: CreateClientInput): Promise<WriteResult> {
   if (aed) values.accessEndDate = aed;
 
   try {
-    await db.insert(clients).values(values);
+    await db.transaction(async tx => {
+      if (!clientId) {
+        // max+1 is only collision-free when allocation and insertion share
+        // a lock; simultaneous public signups used to lose one with a 500.
+        await tx.execute(sql`select pg_advisory_xact_lock(hashtextextended('client-code-allocation', 0))`);
+        clientId = await mintClientId(tx);
+        values.clientId = clientId;
+      }
+      await tx.insert(clients).values(values);
+    });
   } catch (e: any) {
     // Same failure shape as the Feishu impl (duplicate code, bad FK, ...).
     return {

@@ -8,7 +8,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   }
 
   try {
-    const { clientId = "", clientName = "" } = req.query;
+    const clientId = String(req.query.clientId || "").trim();
+    const clientName = String(req.query.clientName || "").trim();
     // No client filter = every client's workout comments. Coach-only, same
     // rule as clients.ts (named mistake #49).
     if (!clientId && !clientName && !coachKeyOk(req as never)) {

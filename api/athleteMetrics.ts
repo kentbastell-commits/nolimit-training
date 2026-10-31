@@ -8,10 +8,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return res.status(405).json({ error: "Method not allowed" });
   }
   try {
-    const clientId = String(req.query.clientId || "");
-    const clientRecordId = String(req.query.clientRecordId || "");
-    const clientCode = String(req.query.clientCode || "");
-    const clientName = String(req.query.clientName || "");
+    const clientId = String(req.query.clientId || "").trim();
+    const clientRecordId = String(req.query.clientRecordId || "").trim();
+    const clientCode = String(req.query.clientCode || "").trim();
+    const clientName = String(req.query.clientName || "").trim();
     // No client identifier = every client's metrics (metricType alone still
     // spans every client). Coach-only, same rule as clients.ts (#49).
     if (!clientId && !clientRecordId && !clientCode && !clientName && !coachKeyOk(req as never)) {

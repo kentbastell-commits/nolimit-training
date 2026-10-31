@@ -106,7 +106,7 @@ export async function getContentAssignments(
     const assignmentClientName = assignment.clientName.toLowerCase();
 
     return (
-      (Boolean(requestedClientId) && assignmentClientId.includes(requestedClientId)) ||
+      (Boolean(requestedClientId) && assignmentClientId === requestedClientId) ||
       (Boolean(requestedClientCode) && assignmentClientCode === requestedClientCode) ||
       (Boolean(requestedClientName) && assignmentClientName === requestedClientName)
     );

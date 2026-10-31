@@ -3,7 +3,7 @@
 // assignments and referral credit all hang off it — so the invariants worth
 // pinning are identity (one row per athlete) and that edits reach columns
 // rather than being silently dropped.
-import { afterAll, beforeEach, describe, expect, it } from "vitest";
+import { afterAll, afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import listHandler from "../../../api/clients.ts";
 import createHandler from "../../../api/createClient.ts";
 import updateHandler from "../../../api/updateClient.ts";
@@ -18,10 +18,11 @@ beforeEach(async () => {
 afterAll(async () => {
   await closeDb();
 });
+afterEach(() => vi.unstubAllEnvs());
 
-async function post(handler: any, body: Record<string, any>) {
+async function post(handler: any, body: Record<string, any>, headers: Record<string, string> = {}) {
   const res = makeRes();
-  await handler(makeReq({ method: "POST", body }) as any, res as any);
+  await handler(makeReq({ method: "POST", body, headers }) as any, res as any);
   return res;
 }
 
@@ -66,6 +67,7 @@ describe("api/createClient (postgres)", () => {
   });
 
   it("persists the optional fields the coach console sends", async () => {
+    vi.stubEnv("COACH_ACCESS_KEY", "test-coach-key");
     await seedProgram({ program_id: "PR-1001", name: "Test Program" });
     const res = await post(createHandler, {
       name: "Bob Tan",
@@ -76,7 +78,7 @@ describe("api/createClient (postgres)", () => {
       paymentStatus: "Paid",
       program: "PR-1001",
       languagePreference: "Chinese",
-    });
+    }, { "x-coach-key": "test-coach-key" });
     expect(res.statusCode).toBe(200);
 
     const [client] = await rows(
