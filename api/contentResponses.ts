@@ -8,8 +8,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return res.status(405).json({ error: "Method not allowed" });
   }
   try {
-    const clientId = String(req.query.clientId || "");
-    const clientName = String(req.query.clientName || "");
+    const clientId = String(req.query.clientId || "").trim();
+    const clientName = String(req.query.clientName || "").trim();
     // No client filter = every client's questionnaire/test answers.
     // Coach-only, same rule as clients.ts (named mistake #49).
     if (!clientId && !clientName && !coachKeyOk(req as never)) {

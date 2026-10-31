@@ -1,0 +1,17 @@
+.athleteSessionPage { min-height: 100dvh; display: grid; place-items: center; padding: 28px 18px; background: #f6f4ee; color: #191914; box-sizing: border-box; }
+.athleteSessionCard { position: relative; width: min(100%, 460px); box-sizing: border-box; border: 1px solid #e1dbcc; border-radius: 18px; background: #fff; padding: 34px 28px; box-shadow: 0 16px 50px #29210d0a; }
+.athleteSessionCard > img { display: block; margin-bottom: 32px; max-width: 55%; height: auto; }
+.athleteSessionCard h1 { color: #191914 !important; font: 800 28px/1.2 Inter, sans-serif; letter-spacing: -.6px; margin: 0 0 16px; }
+.athleteSessionCard p { color: #625d51 !important; line-height: 1.65; font-size: 14px; }
+.athleteSessionCard form { display: grid; gap: 12px; margin-top: 24px; }
+.athleteSessionCard label { color: #28251d; font-weight: 700; font-size: 14px; }
+.athleteSessionCard input { box-sizing: border-box; min-width: 0; width: 100%; min-height: 48px; border: 1px solid #c9c2b3; border-radius: 8px; background: white; color: #191914; padding: 10px 12px; font-size: 18px; }
+.athleteSessionCard button { min-height: 44px; border: 1px solid #c9a44e; border-radius: 8px; padding: 10px 16px; background: #1d1c17; color: #f8edcb; font: 700 14px/1.4 Inter, sans-serif; cursor: pointer; margin: 4px 4px 4px 0; }
+.athleteSessionCard button:disabled { opacity: .55; cursor: default; }
+.athleteSessionCard a { color: #735716; font-weight: 700; }
+.athleteSessionCard button:focus-visible, .athleteSessionCard input:focus-visible, .athleteSessionAccount button:focus-visible { outline: 3px solid #af8825; outline-offset: 3px; }
+.athleteSessionCard [role="alert"] { color: #9c2929 !important; }
+.athleteSessionCard .athleteSessionLanguage { position: absolute; right: 16px; top: 20px; background: transparent; color: #655522; border-color: transparent; font-size: 12px; padding: 8px; }
+.athleteSessionAccount { min-height: 44px; display: flex; align-items: center; justify-content: flex-end; gap: 12px; padding: 0 16px; background: #fff; color: #665521; border-bottom: 1px solid #eee9dd; font: 600 12px/1.4 Inter, sans-serif; flex-wrap: wrap; }
+.athleteSessionAccount button, .athleteSessionAccount a { min-height: 44px; display: inline-flex; align-items: center; background: transparent; color: #655522; border: 0; padding: 0 8px; font: inherit; cursor: pointer; }
+@media (max-width: 480px) { .athleteSessionCard { padding: 28px 20px; }.athleteSessionCard h1 { font-size: 24px; } }

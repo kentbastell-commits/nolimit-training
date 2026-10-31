@@ -10,6 +10,7 @@ import SplashScreen from './SplashScreen.tsx'
 import ErrorBoundary from './ErrorBoundary.tsx'
 import { applyPageMetadata } from './seo.ts'
 import { initTelemetry } from './telemetry.ts'
+import AthleteSessionGate from './AthleteSessionGate.tsx'
 
 const CompanyOpsApp = lazy(() => import('./companyOps/CompanyOpsApp.tsx'))
 const PayLinkPage = lazy(() => import('./PayLinkPage.tsx'))
@@ -81,7 +82,7 @@ function Root() {
   }, [wantsSplash])
 
   return (
-    <>
+    <AthleteSessionGate>
       {/* Outermost net: the coach console had no boundary at all, so any
           render throw white-screened the whole app. */}
       <ErrorBoundary label="app">
@@ -95,7 +96,7 @@ function Root() {
       {!splashDone && (
         <SplashScreen done={booted} onFinish={() => setSplashDone(true)} />
       )}
-    </>
+    </AthleteSessionGate>
   )
 }
 

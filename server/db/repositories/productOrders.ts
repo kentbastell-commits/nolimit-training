@@ -1,6 +1,7 @@
 import * as pg from "../pg/productOrders.ts";
 import type { OrderDTO } from "../dto.ts";
 import { getCached, setCached, invalidateCache } from "../../../api/_cache.ts";
+import { notifyCoach } from "../../../api/_notify.ts";
 
 // Inputs mirror the old handlers' req.body destructuring exactly.
 export type CreateProductOrderInput = {
@@ -123,8 +124,8 @@ export async function wxpayOrderGroup(orderId: string) {
   return pg.wxpayOrderGroup(orderId);
 }
 
-export async function attachWxpayTradeNo(orderIds: string[], tradeNo: string) {
-  const count = await pg.attachWxpayTradeNo(orderIds, tradeNo);
+export async function attachWxpayTradeNo(orderIds: string[], tradeNo: string, expectedFen?: number, expectedOrders?: Pick<pg.WxpayOrderRow, "orderId" | "wxpayTradeNo">[]) {
+  const count = await pg.attachWxpayTradeNo(orderIds, tradeNo, expectedFen, expectedOrders);
   if (count) invalidateCache("productOrders");
   return count;
 }
@@ -138,8 +139,11 @@ export async function markOrdersPaidByWxpay(
   transactionId: string,
   paidAt?: string
 ) {
-  const updated = await pg.markOrdersPaidByWxpay(tradeNo, transactionId, paidAt);
+  const { updated, reviewDuplicatePayment } = await pg.confirmWxpayPayment(tradeNo, transactionId, paidAt);
   if (updated.length) invalidateCoachingCaches();
+  if (reviewDuplicatePayment) void notifyCoach(
+    `WeChat payment ${transactionId} (${tradeNo}) reached an already-paid order. Access was not extended again; review the payment attempts for a possible duplicate payment.`
+  );
   return updated;
 }
 

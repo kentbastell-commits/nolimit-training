@@ -10,6 +10,7 @@ import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { closeDb, resetDb, rows, seedClient } from "./helpers.ts";
 import { __resetWxpayConfigCache } from "../../../server/wxpay/client.ts";
 import wxpayNotify from "../../../api/wxpayNotify.ts";
+import { attachWxpayTradeNo } from "../../../server/db/repositories/productOrders.ts";
 
 const API_V3_KEY = "0123456789abcdef0123456789abcdef";
 const { publicKey, privateKey } = crypto.generateKeyPairSync("rsa", {
@@ -131,6 +132,17 @@ const successResource = (totalFen: number) => ({
 });
 
 describe("api/wxpayNotify (postgres)", () => {
+  it("settles a signed old-QR callback after replacement and checks its original price", async () => {
+    await seedOrderGroup();
+    await attachWxpayTradeNo(["ORD-1", "ORD-2"], "NLREPLACEDQR");
+    await rows("update product_orders set amount=999 where order_id='ORD-1'");
+    const res = makeRawRes();
+    await wxpayNotify(buildCallback(successResource(39900)), res);
+    expect(res.statusCode).toBe(200);
+    expect(JSON.parse(res.body).message).toBe("ok");
+    expect((await rows("select payment_status from product_orders")).map(o => o.payment_status)).toEqual(["Paid", "Paid"]);
+    expect(await rows("select * from wxpay_order_attempts where trade_no='NLWGROUP1' and transaction_id is not null")).toHaveLength(2);
+  });
   it("marks the whole order group Paid on a valid callback", async () => {
     await seedOrderGroup();
     const res = makeRawRes();

@@ -26,6 +26,8 @@ const realFetch = globalThis.fetch.bind(globalThis);
 globalThis.fetch = createTenantTokenCachingFetch(realFetch);
 
 import { COACH_ONLY_HANDLERS, coachKeyOk } from "../api/_coachAuth.ts";
+import { authorizeAthleteRequest } from "./athleteAccess.ts";
+import athleteSession from "../api/athleteSession.ts";
 import activateDigitalOrder from "../api/activateDigitalOrder.ts";
 import analytics from "../api/analytics.ts";
 import autoLoadProgram from "../api/autoLoadProgram.ts";
@@ -165,7 +167,16 @@ fs.mkdirSync(uploadsDir, { recursive: true });
 // memory — this box has ~1.7GB RAM, so a buffered 300MB+ phone video would risk
 // OOM. Constant memory here regardless of file size; the cap is enforced by
 // counting bytes. Registered BEFORE express.json so req is the raw body stream.
-app.post("/api/uploadFormVideoFile", createMediaUploadHandler(uploadsDir));
+const uploadMedia = createMediaUploadHandler(uploadsDir);
+app.post("/api/uploadFormVideoFile", (req, res) => {
+  void authorizeAthleteRequest("uploadFormVideoFile", req as never, res as never).then(allowed => {
+    if (allowed) uploadMedia(req, res, () => {});
+    else req.resume();
+  }).catch(() => {
+    req.resume();
+    if (!res.headersSent) res.status(503).json({ error: "Session verification unavailable" });
+  });
+});
 
 // Authenticated Company Operations assets go directly to the dedicated
 // Feishu Drive folder. This is intentionally registered before express.json:
@@ -235,6 +246,7 @@ const handlers = {
   assignContent,
   assignProgram,
   athleteMetrics,
+  athleteSession,
   checkIns,
   clientLog,
   programExport,
@@ -328,12 +340,13 @@ const handlers = {
 Object.entries(handlers).forEach(([name, handler]) => {
   app.all(`/api/${name}`, (req, res) => {
     // Coach/admin endpoints require the access key once COACH_ACCESS_KEY is
-    // set (athlete + public endpoints are never gated).
+    // set; the shared boundary below also scopes authenticated athlete calls.
     if (COACH_ONLY_HANDLERS.has(name) && !coachKeyOk(req as never)) {
       res.status(401).json({ error: "Coach access key required" });
       return;
     }
-    void Promise.resolve(handler(req as never, res as never)).catch((error) => {
+    void authorizeAthleteRequest(name, req as never, res as never)
+      .then(allowed => allowed ? handler(req as never, res as never) : undefined).catch((error) => {
       console.error(`API handler failed: ${name}`, error);
       if (!res.headersSent) {
         res.status(500).json({

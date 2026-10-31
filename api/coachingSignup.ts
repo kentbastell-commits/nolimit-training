@@ -1,6 +1,7 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
 import { notifyCoach } from "./_notify.ts";
 import { coachingSignup } from "../server/db/repositories/fulfillment.ts";
+import { checkoutAuthorizationConfigured, makeCheckoutKey } from "../server/checkoutAuth.ts";
 
 // 1:1 Online Coaching signup — the paid coaching flow (Commitment → qualifier →
 // WeChat payment → post-payment questionnaire). Three stages:
@@ -27,6 +28,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   // can reach a write path without the reference needed to reconcile the
   // WeChat transfer.
   if (stage === "order") {
+    if (!checkoutAuthorizationConfigured()) return res.status(503).json({ error: "Checkout authorization is not configured" });
     const clientName = String(body.clientName || "").trim();
     const phone = String(body.phone || "").trim();
     const termLabel = String(body.termLabel || "").trim();
@@ -57,6 +59,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
   try {
     const result = await coachingSignup(body);
+    if (stage === "order" && result.status === 200 && result.body.orderId) result.body.checkoutKey = makeCheckoutKey(String(result.body.orderId));
     for (const notice of result.notices) void notifyCoach(notice);
     return res.status(result.status).json(result.body);
   } catch (err: unknown) {

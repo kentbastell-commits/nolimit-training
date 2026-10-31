@@ -32,6 +32,7 @@ export default function CoachingFlowPage() {
   const [error, setError] = useState("");
   const [paymentCode, setPaymentCode] = useState("");
   const [orderId, setOrderId] = useState("");
+  const [checkoutKey, setCheckoutKey] = useState("");
   const [clientCode, setClientCode] = useState("");
   const [clientRecordId, setClientRecordId] = useState("");
 
@@ -152,6 +153,7 @@ export default function CoachingFlowPage() {
       });
       setPaymentCode(code);
       setOrderId(data.orderId || "");
+      setCheckoutKey(data.checkoutKey || "");
       setClientCode(data.clientCode || "");
       setClientRecordId(data.clientRecordId || "");
       // Only now is there something for the buyer to pay against.
@@ -184,7 +186,7 @@ export default function CoachingFlowPage() {
       const res = await fetch("/api/coachingSignup", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ stage: "claim", orderId }),
+        body: JSON.stringify({ stage: "claim", orderId, checkoutKey }),
       });
       const data = await res.json();
       if (!res.ok || !data.success)
@@ -210,6 +212,8 @@ export default function CoachingFlowPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           stage: "intake",
+          orderId,
+          checkoutKey,
           clientRecordId,
           clientCode,
           clientName: name.trim(),

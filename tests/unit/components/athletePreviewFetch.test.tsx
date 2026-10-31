@@ -41,9 +41,13 @@ describe("athlete preview requests", () => {
   });
   it("loads the athlete view without attaching the stored coach key", async () => {
     window.history.replaceState(null, "", "/?portal=client&preview=coach");
+    const { setAthletePreviewToken } = await import("../../../src/athleteSessionClient");
+    setAthletePreviewToken("preview-session");
     await import("../../../src/appCore");
     await window.fetch("/api/workoutDetails?clientCode=CL-1");
-    expect(network).toHaveBeenCalledWith("/api/workoutDetails?clientCode=CL-1", undefined);
+    const headers = network.mock.calls[0][1].headers;
+    expect(headers.get("x-coach-key")).toBeNull();
+    expect(headers.get("authorization")).toBe("Bearer preview-session");
   });
   it("keeps normal coach writes and authentication working", async () => {
     window.history.replaceState(null, "", "/?view=coach");

@@ -232,6 +232,17 @@ export async function queryTransaction(outTradeNo: string): Promise<WxpayTransac
   };
 }
 
+/** Close an unpaid trade before replacing its QR; uncertain failures stop checkout. */
+export async function closeTransaction(outTradeNo: string): Promise<void> {
+  const config = wxpayConfig();
+  if (!config) throw new Error("WeChat Pay is not configured");
+  const path = `/v3/pay/transactions/out-trade-no/${encodeURIComponent(outTradeNo)}/close`;
+  const { status, body } = await apiRequest(config, "POST", path, { mchid: config.mchId });
+  // https://pay.wechatpay.cn/doc/v3/merchant/4012791901
+  if (status === 204) return;
+  throw new Error(`WeChat Pay close failed (${status}): ${body?.message || body?.code || "unknown"}`);
+}
+
 /**
  * Verifies a callback's signature headers against the WeChat Pay public key.
  * Returns a reason string when invalid, null when valid.

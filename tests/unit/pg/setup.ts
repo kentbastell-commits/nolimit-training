@@ -35,6 +35,7 @@ if (url.pathname === `/${TEST_DB}`) {
 
 // These tests exercise the path production actually runs.
 process.env.DATA_BACKEND = "postgres";
+process.env.CHECKOUT_TOKEN_SECRET = "local-test-checkout-secret-not-for-production";
 // Ordinary persistence tests must never call paid translation providers.
 // Translation integration tests supply their own controlled provider fixture.
 process.env.AI_API_KEY = "";

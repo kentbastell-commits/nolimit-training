@@ -1,6 +1,6 @@
-import { and, desc, eq, gte, inArray, lt, sql } from "drizzle-orm";
-import { db } from "../client.ts";
-import { productOrders } from "../schema.ts";
+import { and, asc, desc, eq, gte, inArray, lt, sql } from "drizzle-orm";
+import { db, type DbExecutor } from "../client.ts";
+import { productOrders, wxpayOrderAttempts } from "../schema.ts";
 import { activateCoachingOrder } from "./coachingJourney.ts";
 import { epochToDate, pgErrorMessage, str } from "./_util.ts";
 import type { OrderDTO } from "../dto.ts";
@@ -532,48 +532,107 @@ export async function wxpayOrderGroup(orderId: string): Promise<WxpayOrderRow[]>
 
 export async function attachWxpayTradeNo(
   orderIds: string[],
-  tradeNo: string
+  tradeNo: string,
+  expectedFen?: number,
+  expectedOrders?: Pick<WxpayOrderRow, "orderId" | "wxpayTradeNo">[]
 ): Promise<number> {
   if (!orderIds.length) return 0;
-  const updated = await db
-    .update(productOrders)
-    .set({ wxpayTradeNo: tradeNo, paymentProvider: "WeChat Pay" })
-    .where(
-      and(
-        inArray(productOrders.orderId, orderIds),
-        unpaidOrder
-      )
-    )
-    .returning({ orderId: productOrders.orderId });
-  return updated.length;
+  if (!/^[A-Za-z0-9]{8,32}$/.test(tradeNo)) throw new Error("Invalid payment attempt");
+  const ids = [...new Set(orderIds)].sort();
+  return db.transaction(async tx => {
+    await tx.execute(sql`select pg_advisory_xact_lock(hashtextextended(${`wxpay-attempt:${tradeNo}`}, 0))`);
+    const orders = await tx.select().from(productOrders).where(inArray(productOrders.orderId, ids))
+      .orderBy(asc(productOrders.orderId)).for("update");
+    if (orders.length !== ids.length || orders.some(o => str(o.paymentStatus).trim().toLowerCase() === "paid")) {
+      throw new Error("Order changed; refresh checkout before paying");
+    }
+    if (expectedOrders && orders.some(o => !expectedOrders.some(expected =>
+      expected.orderId === o.orderId && expected.wxpayTradeNo === str(o.wxpayTradeNo)))) {
+      throw new Error("Another payment attempt started; refresh checkout");
+    }
+    const totalFen = orders.reduce((sum, o) => sum + Math.round(Math.max(Number(o.amount) || 0, 0) * 100), 0);
+    if ((expectedFen !== undefined && totalFen !== expectedFen) || orders.some(o => str(o.currency).toUpperCase() && str(o.currency).toUpperCase() !== "CNY")) {
+      throw new Error("Order price changed; refresh checkout before paying");
+    }
+    const existing = await tx.select().from(wxpayOrderAttempts).where(eq(wxpayOrderAttempts.tradeNo, tradeNo));
+    if (existing.length) {
+      if (existing.map(o => o.orderId).sort().join("\n") !== ids.join("\n") ||
+          existing.some(item => item.amountFen !== Math.round(Math.max(Number(orders.find(o => o.orderId === item.orderId)?.amount) || 0, 0) * 100))) {
+        throw new Error("Payment attempt already belongs to another checkout");
+      }
+      return existing.length;
+    }
+    // Also capture an older worker's writes during a rolling deployment.
+    await captureLegacyAttempts(tx, orders.map(o => str(o.wxpayTradeNo)).filter(Boolean));
+    await tx.insert(wxpayOrderAttempts).values(orders.map(o => ({
+      tradeNo, orderId: o.orderId, amountFen: Math.round(Math.max(Number(o.amount) || 0, 0) * 100), createdAt: Date.now(),
+    })));
+    await tx.update(productOrders).set({ wxpayTradeNo: tradeNo, paymentProvider: "WeChat Pay" })
+      .where(inArray(productOrders.orderId, ids));
+    return orders.length;
+  });
+}
+
+async function captureLegacyAttempts(tx: DbExecutor, tradeNos: string[]) {
+  if (!tradeNos.length) return;
+  const recorded = await tx.select({ tradeNo: wxpayOrderAttempts.tradeNo }).from(wxpayOrderAttempts).where(inArray(wxpayOrderAttempts.tradeNo, tradeNos));
+  const missing = tradeNos.filter(tradeNo => !recorded.some(row => row.tradeNo === tradeNo));
+  if (!missing.length) return;
+  const rows = await tx.select().from(productOrders).where(inArray(productOrders.wxpayTradeNo, missing));
+  if (!rows.length) return;
+  await tx.insert(wxpayOrderAttempts).values(rows.map(o => ({
+    tradeNo: o.wxpayTradeNo!, orderId: o.orderId,
+    amountFen: Math.round(Math.max(Number(o.amount) || 0, 0) * 100), createdAt: o.purchasedAt || Date.now(),
+    transactionId: str(o.paymentStatus).trim().toLowerCase() === "paid" ? o.wxpayTransactionId : null,
+    paidAt: str(o.paymentStatus).trim().toLowerCase() === "paid" ? o.paidAt : null,
+  }))).onConflictDoNothing();
 }
 
 export async function ordersByWxpayTradeNo(
   tradeNo: string
 ): Promise<WxpayOrderRow[]> {
-  const rows = await db
-    .select()
-    .from(productOrders)
-    .where(eq(productOrders.wxpayTradeNo, tradeNo));
-  return rows.map(toWxpayRow);
+  const attempts = await db.select({ order: productOrders, amountFen: wxpayOrderAttempts.amountFen })
+    .from(wxpayOrderAttempts).innerJoin(productOrders, eq(productOrders.orderId, wxpayOrderAttempts.orderId))
+    .where(eq(wxpayOrderAttempts.tradeNo, tradeNo)).orderBy(asc(productOrders.orderId));
+  if (attempts.length) return attempts.map(({ order, amountFen }) => ({ ...toWxpayRow(order), amount: amountFen / 100 }));
+  const rows = await db.select().from(productOrders).where(eq(productOrders.wxpayTradeNo, tradeNo));
+  return rows.map(toWxpayRow); // existing trades until migration / first write
 }
 
-/** Marks the whole trade-no group Paid; idempotent. Returns updated ids. */
-export async function markOrdersPaidByWxpay(
+/** Receipt and entitlement changes commit together, including late old-QR receipts. */
+export async function confirmWxpayPayment(
   tradeNo: string,
   transactionId: string,
   paidAt?: string
-): Promise<string[]> {
+): Promise<{ updated: string[]; reviewDuplicatePayment: boolean }> {
+  if (!transactionId.trim()) throw new Error("Provider transaction id required");
   return db.transaction(async tx => {
+    await tx.execute(sql`select pg_advisory_xact_lock(hashtextextended(${`wxpay-attempt:${tradeNo}`}, 0))`);
+    const mapped = await tx.select({ id: wxpayOrderAttempts.orderId }).from(wxpayOrderAttempts).where(eq(wxpayOrderAttempts.tradeNo, tradeNo));
+    const orders = await tx.select().from(productOrders)
+      .where(mapped.length ? inArray(productOrders.orderId, mapped.map(row => row.id)) : eq(productOrders.wxpayTradeNo, tradeNo))
+      .orderBy(asc(productOrders.orderId)).for("update");
+    if (!orders.length) return { updated: [], reviewDuplicatePayment: false };
+    await captureLegacyAttempts(tx, [tradeNo]);
+    const firstReceipt = await tx.update(wxpayOrderAttempts).set({ transactionId, paidAt: toEpochMs(paidAt) || null })
+      .where(and(eq(wxpayOrderAttempts.tradeNo, tradeNo), sql`coalesce(${wxpayOrderAttempts.transactionId}, '') = ''`))
+      .returning({ orderId: wxpayOrderAttempts.orderId });
     const updated = await tx.update(productOrders).set({
       paymentStatus: "Paid", paymentProvider: "WeChat Pay", wxpayTransactionId: transactionId,
       // Provider completion time, not the time a delayed callback arrived.
       // https://pay.wechatpay.cn/doc/v3/merchant/4012791861
       paidAt: toEpochMs(paidAt) || null,
-    }).where(and(eq(productOrders.wxpayTradeNo, tradeNo), unpaidOrder)).returning();
+    }).where(and(inArray(productOrders.orderId, orders.map(o => o.orderId)), unpaidOrder)).returning();
     for (const order of updated.sort((a, b) => (a.clientId || "").localeCompare(b.clientId || ""))) {
       await activateCoachingOrder(tx, order);
     }
-    return updated.map(row => row.orderId);
+    return {
+      updated: updated.map(row => row.orderId),
+      reviewDuplicatePayment: firstReceipt.length > 0 && updated.length === 0 && orders.some(o => str(o.wxpayTransactionId) !== transactionId),
+    };
   });
+}
+
+export async function markOrdersPaidByWxpay(tradeNo: string, transactionId: string, paidAt?: string): Promise<string[]> {
+  return (await confirmWxpayPayment(tradeNo, transactionId, paidAt)).updated;
 }

@@ -4,6 +4,8 @@
 import { blocksPreviewRequest, isAthletePreview } from "./athletePreviewPolicy";
 import { coachingDate, coachingToday, calendarDayOffset } from "./coachingCalendar";
 import { localizePrescriptionValue } from "./prescriptionDisplay";
+import { athletePreviewToken, ATHLETE_SESSION_EXPIRED } from "./athleteSessionClient";
+import { persistentCacheStorageKey, PERSISTENT_CACHE_PREFIX } from "./cacheScope";
 
 export type AppMode = "Coach" | "Client";
 export type Page =
@@ -371,6 +373,16 @@ export const RUNNING_ZONE_OPTIONS = [
 // is set; athlete/public endpoints ignore the header entirely.
 export const nativeFetch = window.fetch.bind(window);
 
+function sessionAwareFetch(input: RequestInfo | URL, init?: RequestInit) {
+  return nativeFetch(input, init).then(async res => {
+    if (res.status === 401 && new URLSearchParams(window.location.search).get("portal") === "client") {
+      const data = await res.clone().json().catch(() => null);
+      if (data?.code === "ATHLETE_SESSION_REQUIRED") window.dispatchEvent(new Event(ATHLETE_SESSION_EXPIRED));
+    }
+    return res;
+  });
+}
+
 // The buyer writes this in their WeChat transfer note and the coach verifies
 // the order against it. The server enforces /^NL-[2-9A-HJ-NP-Z]{4}$/ on EVERY
 // paid flow, so both the store checkout and the 1:1 coaching signup must mint
@@ -401,20 +413,26 @@ window.fetch = ((input: RequestInfo | URL, init?: RequestInit) => {
           status: 403, headers: { "Content-Type": "application/json" },
         }));
       }
-      if (isAthletePreview(window.location.search)) return nativeFetch(input, init);
+      if (isAthletePreview(window.location.search)) {
+        const token = athletePreviewToken();
+        const headers = new Headers(init?.headers || (input instanceof Request ? input.headers : undefined));
+        headers.delete("x-coach-key");
+        if (token) headers.set("Authorization", `Bearer ${token}`);
+        return sessionAwareFetch(input, { ...init, headers });
+      }
       const key = window.localStorage.getItem("nl_coach_key");
       if (key) {
         const headers = new Headers(
           init?.headers || (input instanceof Request ? input.headers : undefined)
         );
         headers.set("x-coach-key", key);
-        return nativeFetch(input, { ...init, headers });
+        return sessionAwareFetch(input, { ...init, headers });
       }
     }
   } catch {
     // fall through to the untouched request
   }
-  return nativeFetch(input, init);
+  return sessionAwareFetch(input, init);
 }) as typeof fetch;
 
 // A cardio exercise is detected by its Category (set to "Cardio" in the library),
@@ -1936,7 +1954,7 @@ export function languagePreferenceToCode(language?: string) {
 }
 
 export const DATA_CACHE_MS = 5 * 60 * 1000;
-export const PERSISTENT_CACHE_PREFIX = "nolimit-training:data:";
+export { PERSISTENT_CACHE_PREFIX };
 
 export type CachedData<T> = {
   data: T;
@@ -1969,12 +1987,12 @@ export function readPersistentCache<T>(key: string): CachedData<T> | null {
   if (typeof window === "undefined") return null;
 
   try {
-    const rawCache = window.localStorage.getItem(`${PERSISTENT_CACHE_PREFIX}${key}`);
+    const rawCache = window.localStorage.getItem(persistentCacheStorageKey(key));
     if (!rawCache) return null;
 
     const parsedCache = JSON.parse(rawCache) as CachedData<T>;
     if (!parsedCache || !isFreshCache(parsedCache.timestamp)) {
-      window.localStorage.removeItem(`${PERSISTENT_CACHE_PREFIX}${key}`);
+      window.localStorage.removeItem(persistentCacheStorageKey(key));
       return null;
     }
 
@@ -1994,7 +2012,7 @@ export function writePersistentCache<T>(key: string, data: T) {
 
   try {
     window.localStorage.setItem(
-      `${PERSISTENT_CACHE_PREFIX}${key}`,
+      persistentCacheStorageKey(key),
       JSON.stringify({ data, timestamp: Date.now() })
     );
   } catch {
@@ -2006,7 +2024,7 @@ export function clearPersistentCache(key: string) {
   if (typeof window === "undefined") return;
 
   try {
-    window.localStorage.removeItem(`${PERSISTENT_CACHE_PREFIX}${key}`);
+    window.localStorage.removeItem(persistentCacheStorageKey(key));
   } catch {
     // Ignore storage cleanup failures.
   }

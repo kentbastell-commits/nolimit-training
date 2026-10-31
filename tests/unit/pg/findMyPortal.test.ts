@@ -2,13 +2,17 @@
 // both the web portal and the WeChat mini program, so its security properties
 // matter as much as its happy path: a phone number alone must never be enough
 // to enumerate someone else's portal.
-import { afterAll, beforeEach, describe, expect, it } from "vitest";
+import { afterAll, afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import handler from "../../../api/findMyPortal.ts";
 import { closeDb, makeReq, makeRes, resetDb, seedClient } from "./helpers.ts";
 
 beforeEach(async () => {
   await resetDb();
+  // Compatibility is tested deliberately; required-mode sessions and the
+  // rejection of phone/name-only login live in athleteAuth.test.ts.
+  vi.stubEnv("ATHLETE_SESSION_MODE", "compat");
 });
+afterEach(() => vi.unstubAllEnvs());
 
 afterAll(async () => {
   await closeDb();

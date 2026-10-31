@@ -42,7 +42,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const tradeNo = makeOutTradeNo();
     await attachWxpayTradeNo(
       charge.unpaid.map((order) => order.orderId),
-      tradeNo
+      tradeNo, charge.totalFen, charge.unpaid
     );
     const { codeUrl } = await createNativeTransaction({
       outTradeNo: tradeNo,

@@ -3,6 +3,7 @@
 // mechanical move; tighten when the store gets its own state).
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { useEffect, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 import IcpBadge from "./IcpBadge";
 import {
   Activity,
@@ -106,10 +107,8 @@ export default function StorePage({
   storePaymentCode,
   findPortalOpen,
   setFindPortalOpen,
-  findPortalName,
-  setFindPortalName,
-  findPortalPhone,
-  setFindPortalPhone,
+  findPortalPin,
+  setFindPortalPin,
   findPortalBusy,
   findPortalError,
   setFindPortalError,
@@ -136,6 +135,7 @@ export default function StorePage({
   [key: string]: any;
 }) {
   const sZh = storeLang === "zh";
+  const { t: sessionText } = useTranslation();
   const wxpayOn = useWxpayEnabled();
   const storePrograms = programs.filter((p) => p.publicStoreVisible);
   const [privacyAccepted, setPrivacyAccepted] = useState(false);
@@ -579,24 +579,17 @@ export default function StorePage({
           >
             <h3>{sZh ? "找回我的客户端" : "Find my portal"}</h3>
             <p>
-              {sZh
-                ? "输入购买时使用的姓名和微信号/手机号。"
-                : "Enter the name and WeChat/phone you used when you bought your program."}
+              {sessionText("athleteSessionIntro", { lng: storeLang })}
             </p>
             <label>
-              {sZh ? "姓名" : "Name"}
+              {sessionText("athleteSessionPin", { lng: storeLang })}
               <input
-                value={findPortalName}
-                onChange={(e) => setFindPortalName(e.target.value)}
-                placeholder={sZh ? "你的姓名" : "Your name"}
-              />
-            </label>
-            <label>
-              {sZh ? "微信 / 电话" : "WeChat / Phone"}
-              <input
-                value={findPortalPhone}
-                onChange={(e) => setFindPortalPhone(e.target.value)}
-                placeholder={sZh ? "微信号或手机号" : "WeChat ID or phone"}
+                value={findPortalPin}
+                type="password"
+                autoComplete="current-password"
+                maxLength={64}
+                onChange={(e) => setFindPortalPin(e.target.value)}
+                onKeyDown={event => { if (event.key === "Enter") void findMyPortal(); }}
               />
             </label>
             {findPortalError && (

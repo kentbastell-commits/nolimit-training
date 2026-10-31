@@ -5,7 +5,7 @@
 // Self-sufficient by design: reads the portal login code from localStorage
 // (nl_portal_code, written at portal entry) and resolves the athlete's NAME
 // via /api/myProfile — the watermark deliberately never prints the CL- code,
-// because the code IS the portal credential and a screenshot would leak it.
+// keeping account identifiers out of shared screenshots.
 // Renders nothing while the name is unknown (coach views, tests, logged-out).
 import { useEffect, useState } from "react";
 import "./ContentWatermark.css";

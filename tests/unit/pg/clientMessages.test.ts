@@ -1,14 +1,16 @@
 // The athlete-initiated "写给教练" loop: create -> coach queue -> reply ->
 // athlete sees the reply. Mail, not chat — one body, one reply, a status
 // the review queue can drain.
-import { afterAll, beforeEach, describe, expect, it } from "vitest";
+import { afterAll, afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import handler from "../../../api/clientMessages.ts";
 import { closeDb, makeReq, makeRes, resetDb, rows, seedClient } from "./helpers.ts";
 
 beforeEach(async () => {
   await resetDb();
+  vi.stubEnv("COACH_ACCESS_KEY", "test-coach");
   await seedClient({ client_id: "CL-9001", full_name: "Bob Tan" });
 });
+afterEach(() => vi.unstubAllEnvs());
 
 afterAll(async () => {
   await closeDb();
@@ -20,10 +22,16 @@ async function call(req: Record<string, any>) {
   return res;
 }
 
-const post = (body: Record<string, any>) => call({ method: "POST", body });
-const get = (query: Record<string, any> = {}) => call({ method: "GET", query });
+const post = (body: Record<string, any>) => call({ method: "POST", body, headers: { "x-coach-key": "test-coach" } });
+const get = (query: Record<string, any> = {}) => call({ method: "GET", query, headers: { "x-coach-key": "test-coach" } });
 
 describe("api/clientMessages (postgres)", () => {
+  it("rejects a forged coach reply and leaves the athlete's message unchanged", async () => {
+    const created = await post({ clientId: "CL-9001", body: "Question for my coach" });
+    const rejected = await call({ method: "POST", body: { messageId: created.body.messageId, coachReply: "Forged reply" } });
+    expect(rejected.statusCode).toBe(401);
+    expect((await rows("select status,coach_reply from client_messages"))[0]).toMatchObject({ status: "New", coach_reply: null });
+  });
   it("rejects a message without a real client id or without a body", async () => {
     expect((await post({ clientId: "bogus", body: "hi" })).statusCode).toBe(400);
     expect((await post({ clientId: "CL-9001", body: "   " })).statusCode).toBe(400);

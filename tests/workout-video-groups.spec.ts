@@ -21,7 +21,7 @@ for (const [width, portal] of [[1440, false], [390, false], [390, true]] as cons
         videos = videos.map(v => v.recordId === body.recordId ? { ...v, coachReply: body.coachReply, status: "Reviewed" } : v);
         return route.fulfill({ json: { success: true } });
       }
-      const data: Record<string, any> = { clients: { clients: [client] }, myProfile: { client }, coaches: { coaches: [] }, programs: { programs: [] }, teams: { teams: [] }, subscriptions: { subscriptions: [] }, productOrders: { orders: [] }, formVideos: { videos },
+      const data: Record<string, any> = { athleteSession: { authenticated: true, clientCode: client.id }, clients: { clients: [client] }, myProfile: { client }, coaches: { coaches: [] }, programs: { programs: [] }, teams: { teams: [] }, subscriptions: { subscriptions: [] }, productOrders: { orders: [] }, formVideos: { videos },
         workouts: { workouts: [] }, checkIns: { checkIns: [] }, coachingReview: { states: [] }, notifications: { notifications: [] }, contentAssignments: { assignments: [] }, contentResponses: { responses: [] }, athleteMetrics: { metrics: [] }, workoutComments: { comments: [] }, clientMessages: { messages: [] }, calendarSessions: { items: [] }, calendarDrafts: { items: [], version: "test" }, programmingBlocks: { blocks: [] }, coachDrafts: { drafts: [] }, exercises: { exercises: [] } };
       return route.fulfill({ json: data[path || ""] || {} });
     });

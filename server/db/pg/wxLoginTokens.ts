@@ -1,7 +1,7 @@
 // Website WeChat-QR-login handshake tokens. Two app processes sit behind
 // nginx round-robin, so the handshake state must live in Postgres — an
 // in-memory map would 404 half the polls.
-import { and, eq, lt } from "drizzle-orm";
+import { and, eq, gt, inArray, lt } from "drizzle-orm";
 import crypto from "node:crypto";
 import { db } from "../client.ts";
 import { wxLoginTokens } from "../schema.ts";
@@ -42,17 +42,28 @@ export async function getWxLoginToken(
 /** Marks a pending, unexpired token as logged-in. Returns false if unusable. */
 export async function completeWxLoginToken(
   token: string,
-  clientCode: string
+  clientCode: string,
+  proof: "pin" | "wechat" | "legacy" = "wechat"
 ): Promise<boolean> {
   const updated = await db
     .update(wxLoginTokens)
-    .set({ status: "ok", clientCode })
+    .set({ status: "ok", clientCode, proof })
     .where(
       and(
         eq(wxLoginTokens.token, token),
-        eq(wxLoginTokens.status, "pending")
+        eq(wxLoginTokens.status, "pending"),
+        gt(wxLoginTokens.createdAt, Date.now() - WX_LOGIN_TOKEN_TTL_MS)
       )
     )
     .returning({ token: wxLoginTokens.token });
   return updated.length > 0;
+}
+
+/** Exchange the phone's completed handshake for exactly one desktop session. */
+export async function consumeWxLoginToken(token: string) {
+  const [row] = await db.update(wxLoginTokens).set({ status: "consumed" }).where(and(
+    eq(wxLoginTokens.token, token), eq(wxLoginTokens.status, "ok"),
+    inArray(wxLoginTokens.proof, ["pin", "wechat"]), gt(wxLoginTokens.createdAt, Date.now() - WX_LOGIN_TOKEN_TTL_MS),
+  )).returning({ clientCode: wxLoginTokens.clientCode, proof: wxLoginTokens.proof });
+  return row || null;
 }

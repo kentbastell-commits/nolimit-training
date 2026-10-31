@@ -1,7 +1,8 @@
 // Coach-only API gating. When COACH_ACCESS_KEY is set on the server, requests
 // to coach/admin endpoints must carry it in the x-coach-key header. Unset key
-// = gating off (safe rollout / local dev). Athlete-facing endpoints are never
-// gated — the athlete portal keeps working with plain links.
+// = direct-handler gating off for legacy local tests. The production dispatcher
+// additionally requires positive coach proof or a scoped athlete session;
+// see server/athleteAccess.ts and docs/athlete-session-rollout.md.
 export function coachKeyOk(req: { headers: Record<string, unknown> }): boolean {
   const required = process.env.COACH_ACCESS_KEY;
   if (!required) return true;

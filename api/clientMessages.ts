@@ -14,7 +14,7 @@ import { coachKeyOk } from "./_coachAuth.ts";
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   try {
     if (req.method === "GET") {
-      const clientId = String(req.query.clientId || "");
+      const clientId = String(req.query.clientId || "").trim();
       // No clientId = every client's correspondence with their coach.
       // Coach-only, same rule as clients.ts (named mistake #49).
       if (!clientId && !coachKeyOk(req as never)) {
@@ -35,6 +35,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     // Coach reply branch.
     if (body.messageId) {
+      if (!coachKeyOk(req as never)) return res.status(401).json({ error: "Coach access key required" });
       const reply = String(body.coachReply || "").trim();
       if (!reply) {
         return res.status(400).json({ error: "coachReply is required" });

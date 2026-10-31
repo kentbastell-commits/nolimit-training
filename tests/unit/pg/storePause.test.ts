@@ -21,7 +21,7 @@ vi.mock("../../../server/wxpay/client.ts", () => ({
   queryTransaction: provider.query,
   createNativeTransaction: provider.native,
   createJsapiTransaction: provider.jsapi,
-  makeOutTradeNo: () => "NLWNEW",
+  makeOutTradeNo: () => "NLWNEW00001",
   makePayLinkKey: () => "test-key",
   signJsapiInvoke: () => ({}),
 }));

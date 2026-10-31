@@ -50,29 +50,22 @@ data between them, never "borrow" a table ID across products.
 - **Backend**: `api/*.ts` are Vercel-style handlers, served self-hosted by
   `server/index.ts` (Express). **A new handler does nothing until you import it and
   add it to the `handlers` map in `server/index.ts`.**
-- **Auth model (nolimit): there is no session layer for athlete-facing
-  endpoints.** A client's code (`CL-0001` style, sequential, guessable) IS the
-  athlete portal's entire credential everywhere — no password, no token. Every
-  athlete-facing write trusts whatever `clientId`/`clientCode` is in the
-  request body with no proof the caller actually is that client (a 2026-07-30
-  full-API audit found and fixed the worst cases — an unauthenticated
-  full-content paywall bypass on `programs`/`programTemplates`/
-  `workoutDetails`, an unrestricted-field `updateClient`, several IDOR writes —
-  but `shiftAssignedWorkouts` and `coachingSignup`'s claim stage still trust a
-  bare client-supplied code with no ownership check, because that's this
-  systemic gap, not a one-off bug). Coach-side protection is `coachKeyOk()` +
-  `COACH_ONLY_HANDLERS` in `api/_coachAuth.ts` (off until `COACH_ACCESS_KEY` is
-  set at pilot launch) — but a handler the athlete portal ALSO needs (dual-use,
-  like `programTemplates` or `updateClient`) can't just be coach-gated; it
-  needs a field allowlist or an entitlement check (see
-  `clientHasProgramAccess` in `server/db/pg/clients.ts` for the pattern) that
-  still works with `coachKeyOk()` unset. Before excluding any handler from
-  `COACH_ONLY_HANDLERS` "because the portal needs it," grep every real call
-  site (`src/App.tsx`) — a stale, unverified comment claiming that is exactly
-  how `subscriptions`/`teams` shipped unauthenticated for an unknown period.
-  A real fix is session tokens issued at portal entry; until that exists,
-  every new athlete-facing write/read handler should be reviewed against this
-  gap specifically, not assumed safe by precedent.
+- **Auth model (nolimit, 2026-10-31 implementation):** `server/athleteAuth.ts`
+  issues opaque sessions after coach-issued PIN or verified WeChat identity.
+  Web uses a host-only HttpOnly cookie; mini uses a bearer; Postgres stores only
+  token hashes. Client codes identify accounts and never prove ownership.
+  `server/athleteAccess.ts` runs before every dispatched handler and raw athlete
+  upload, binds identifiers to the actor and checks resource ownership. New
+  routes default to coach-only; dual-use routes still need business field and
+  entitlement checks. Coach proof requires a configured matching key
+  (`isVerifiedCoach`), even though legacy direct-handler `coachKeyOk` permits
+  local development with an unset key. Coach preview uses a separate read-only
+  session and browser cache scope, never the coach key on athlete reads.
+  `ATHLETE_SESSION_MODE=compat` is a temporary deployment exception for the old
+  released mini program: it leaves code-only API access open and MUST NOT be
+  described as secure. Remove it only after the session-enabled mini build is
+  publicly released; see `docs/athlete-session-rollout.md`. A checkout key
+  authorizes its order only and cannot become an account invite/session.
 - **Database: nolimit is Postgres ONLY** (live 2026-07-21; the Feishu backend was
   deleted 2026-07-26). DB `nolimit_prod` on the HK box. There is no
   `DATA_BACKEND` switch and no `server/db/feishu/` tree any more — the
@@ -251,6 +244,8 @@ data between them, never "borrow" a table ID across products.
     2026-10-31 audit: derive coaching prices server-side; require exact integer-fen
     totals in checkout reconciliation, polling AND callbacks, including the full
     trade after partial coach verification. SQL unpaid checks must include NULL.
+    Keep immutable trade/order/price history before replacing a QR, close a
+    still-payable provider attempt first, and settle late receipts idempotently.
 23. **The save-label collision** — showing several nearby “Save” actions that
     persist different scopes. Rule: keep one primary action per surface and name
     it by scope (`Done`, `Save Day`, `Save Program`) so the outcome is predictable.
@@ -633,6 +628,9 @@ data between them, never "borrow" a table ID across products.
     2026-10-31 audit: trim identifiers BEFORE deciding a read is scoped, then
     match whole IDs. Whitespace gates followed by normalized repository reads
     exposed all rows; substring matching exposed CL-90010 to CL-9001 requests.
+    Session rollout: enforce actor/resource ownership at the dispatcher, scope
+    persistent browser caches by actor/role, and test late mini responses and
+    queued saves across account switches. A typed checkout contact is no proof.
     RECURRED client-side 2026-09-18: the public `/coaching`, `/in-person` and
     legal pages share App.tsx's boot effect, whose guard listed only
     `isStorePage || isPublicLandingPage`, so every visitor to those pages

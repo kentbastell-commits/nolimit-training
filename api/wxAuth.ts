@@ -10,16 +10,16 @@ import {
 import { makeVerifiedPhoneToken, resolveMiniPhoneNumber, verifyPhoneToken } from "../server/wechat/miniPhone.ts";
 import { verifyInviteToken } from "../server/wechat/invite.ts";
 import { ensureIntakeOnSignup } from "../server/db/pg/coachingJourney.ts";
+import { allowAthleteLogin, athleteSessionsRequired, issueAthleteSession, sameOriginRequest } from "../server/athleteAuth.ts";
 
 // Mini program WeChat auth.
 //   POST { code }               -> one-tap login for an already-bound account
-//   POST { code, phone, name }  -> bind this WeChat to the client that phone+name
-//                                  resolves to (same verification as findMyPortal,
-//                                  so a leaked client code alone can't bind).
+//   POST { code, phone, name }  -> legacy lookup only in explicit compat mode;
+//                                  never binds an identity or issues a session.
 //   POST { code, pin }          -> bind via the simple login code (same
 //                                  verification findMyPortal's pin path uses).
 // The openid never leaves the server; the mini program only ever sees the
-// client code it already uses as its session.
+// account identifier and a separate server-issued session credential.
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method !== "POST") {
     return res.status(405).json({ error: "Method not allowed" });
@@ -37,6 +37,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   }
 
   try {
+    if (!sameOriginRequest(req)) return res.status(403).json({ error: "Cross-site request refused" });
+    if (!await allowAthleteLogin(req, res, !pin && !(phone && name))) return;
     const wxRes = await fetch(
       `https://api.weixin.qq.com/sns/jscode2session?appid=${appid}&secret=${secret}&js_code=${encodeURIComponent(String(code))}&grant_type=authorization_code`
     );
@@ -104,7 +106,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       }
       // Every sign-up gets the athlete intake once (idempotent, best-effort).
       await ensureIntakeOnSignup(clientCode).catch(() => {});
-      return res.status(200).json({ success: true, clientCode, bound: true, created });
+      return res.status(200).json({ success: true, ...await issueAthleteSession(req, res, clientCode, "wechat"), bound: true, created });
     }
 
     // Coach-issued personal invite (scan code / ?invite= link): the token
@@ -124,16 +126,20 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       // Scan → log in → questionnaire: the intake is assigned here (once) so
       // Home opens it straight away. Best-effort — login never fails on it.
       await ensureIntakeOnSignup(clientCode).catch(() => {});
-      return res.status(200).json({ success: true, clientCode, bound: true, invited: true });
+      return res.status(200).json({ success: true, ...await issueAthleteSession(req, res, clientCode, "wechat"), bound: true, invited: true });
     }
 
     if (pin || (phone && name)) {
+      if (!pin && athleteSessionsRequired()) return res.status(401).json({ error: "Verify your WeChat phone number or use your login code", code: "VERIFIED_LOGIN_REQUIRED" });
       const clientCode = pin
         ? await findClientByPin(String(pin))
         : await findClientByPhoneName(String(phone), String(name));
       if (!clientCode) {
         return res.status(404).json({ error: "No portal found for that login" });
       }
+      // Legacy lookup may keep an old client working during rollout, but
+      // must never create a durable binding that later earns a real session.
+      if (!pin) return res.status(200).json({ success: true, clientCode, bound: false });
       const bound = await bindClientOpenid(clientCode, openid);
       if (!bound.success) {
         const errorMessage = String(bound.error || "Could not bind WeChat account");
@@ -142,14 +148,14 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           .status(alreadyLinked ? 409 : 500)
           .json({ error: errorMessage });
       }
-      return res.status(200).json({ success: true, clientCode, bound: true });
+      return res.status(200).json({ success: true, ...(pin ? await issueAthleteSession(req, res, clientCode, "pin") : { clientCode }), bound: true });
     }
 
     const clientCode = await findClientByOpenid(openid);
     if (!clientCode) {
       return res.status(404).json({ success: false, error: "Not bound" });
     }
-    return res.status(200).json({ success: true, clientCode });
+    return res.status(200).json({ success: true, ...await issueAthleteSession(req, res, clientCode, "wechat") });
   } catch (error: any) {
     return res.status(500).json({ error: "WeChat auth failed", message: error.message });
   }

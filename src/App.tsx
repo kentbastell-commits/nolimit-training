@@ -587,8 +587,7 @@ function App({ onReady, bootVisible = true }: { onReady?: () => void; bootVisibl
   const [storePaymentCode, setStorePaymentCode] = useState("");
   // "Find my portal" recovery modal (store page).
   const [findPortalOpen, setFindPortalOpen] = useState(false);
-  const [findPortalName, setFindPortalName] = useState("");
-  const [findPortalPhone, setFindPortalPhone] = useState("");
+  const [findPortalPin, setFindPortalPin] = useState("");
   const [findPortalBusy, setFindPortalBusy] = useState(false);
   const [findPortalError, setFindPortalError] = useState("");
   const [portalPostIntake, setPortalPostIntake] = useState(false);
@@ -12536,10 +12535,8 @@ function App({ onReady, bootVisible = true }: { onReady?: () => void; bootVisibl
   const findMyPortal = async () => {
     // The store modal is localized by storeLang, not the portal i18n instance.
     const zh = storeLang === "zh";
-    if (!findPortalName.trim() || !findPortalPhone.trim()) {
-      setFindPortalError(
-        zh ? "请输入姓名和微信号/手机号。" : "Please enter your name and WeChat/phone."
-      );
+    if (!findPortalPin.trim()) {
+      setFindPortalError(i18n.t("athleteSessionPin", { lng: storeLang }));
       return;
     }
     setFindPortalBusy(true);
@@ -12549,17 +12546,12 @@ function App({ onReady, bootVisible = true }: { onReady?: () => void; bootVisibl
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          name: findPortalName.trim(),
-          phone: findPortalPhone.trim(),
+          pin: findPortalPin.trim(),
         }),
       });
       const data = await res.json();
       if (!res.ok || !data.clientCode) {
-        setFindPortalError(
-          zh
-            ? "未找到匹配的客户端，请核对信息或联系教练。"
-            : "No portal found — check your details or contact your coach."
-        );
+        setFindPortalError(i18n.t(res.status === 429 ? "athleteSessionLimited" : "athleteSessionInvalid", { lng: storeLang }));
         return;
       }
       window.location.href = `/?portal=client&client=${encodeURIComponent(data.clientCode)}`;
@@ -19562,10 +19554,8 @@ function App({ onReady, bootVisible = true }: { onReady?: () => void; bootVisibl
         storePaymentCode={storePaymentCode}
         findPortalOpen={findPortalOpen}
         setFindPortalOpen={setFindPortalOpen}
-        findPortalName={findPortalName}
-        setFindPortalName={setFindPortalName}
-        findPortalPhone={findPortalPhone}
-        setFindPortalPhone={setFindPortalPhone}
+        findPortalPin={findPortalPin}
+        setFindPortalPin={setFindPortalPin}
         findPortalBusy={findPortalBusy}
         findPortalError={findPortalError}
         setFindPortalError={setFindPortalError}

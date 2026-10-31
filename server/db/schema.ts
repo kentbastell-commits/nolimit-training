@@ -601,6 +601,29 @@ export const productOrders = pgTable(
   ]
 );
 
+// Keep every provider attempt when checkout replaces the latest QR. The
+// original order membership and price are immutable reconciliation inputs.
+export const wxpayOrderAttempts = pgTable("wxpay_order_attempts", {
+  tradeNo: text("trade_no").notNull(),
+  orderId: text("order_id").notNull().references(() => productOrders.orderId, { onDelete: "cascade" }),
+  amountFen: bigint("amount_fen", { mode: "number" }).notNull(),
+  createdAt: ts("created_at").notNull(),
+  transactionId: text("transaction_id"),
+  paidAt: ts("paid_at"),
+}, t => [primaryKey({ columns: [t.tradeNo, t.orderId] }), index("wxpay_order_attempts_order_idx").on(t.orderId)]);
+
+export const athleteSessions = pgTable("athlete_sessions", {
+  tokenHash: text("token_hash").primaryKey(),
+  clientId: text("client_id").notNull().references(() => clients.clientId, { onDelete: "cascade" }),
+  proof: text("proof").notNull(),
+  createdAt: ts("created_at").notNull(),
+  expiresAt: ts("expires_at").notNull(),
+}, t => [index("athlete_sessions_client_idx").on(t.clientId), index("athlete_sessions_expiry_idx").on(t.expiresAt)]);
+
+export const athleteLoginLimits = pgTable("athlete_login_limits", {
+  key: text("key").primaryKey(), windowStart: ts("window_start").notNull(), attempts: integer("attempts").notNull(),
+});
+
 /* ---------------------------------------------------------------- check_ins */
 export const checkIns = pgTable(
   "check_ins",
@@ -971,8 +994,9 @@ export const wxLoginTokens = pgTable(
   "wx_login_tokens",
   {
     token: text("token").primaryKey(),
-    status: text("status").default("pending"), // pending | ok
+    status: text("status").default("pending"), // pending | ok | consumed
     clientCode: text("client_code"),
+    proof: text("proof"),
     createdAt: ts("created_at"),
   },
   (t) => [index("wx_login_tokens_created_idx").on(t.createdAt)]

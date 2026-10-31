@@ -9,6 +9,7 @@ import { createClient, findClientByPhoneName } from "../server/db/repositories/c
 import { inviteCodeDataUrl, makeInviteToken } from "../server/wechat/invite.ts";
 import { ensureIntakeOnSignup } from "../server/db/pg/coachingJourney.ts";
 import { isPaymentOnlyOrder } from "../server/payLinkPolicy.ts";
+import { makeCheckoutKey } from "../server/checkoutAuth.ts";
 
 // Public payment link (/pay/<tradeNo>) — the shareable alternative to the
 // coach's collect-payment QR. A WeChat Pay Native QR can only be paid by a
@@ -83,7 +84,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     // may forward to whoever will actually train (a parent to a child).
     // Best-effort: a WeChat hiccup must never break the paid page.
     let inviteImage = "";
-    if (paid && order.clientId && !paymentOnly) {
+    if (key && paid && order.clientId && !paymentOnly) {
       try {
         inviteImage = await inviteCodeDataUrl(makeInviteToken(String(order.clientId)));
       } catch {
@@ -92,6 +93,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     }
     return res.status(200).json({
       orderId: order.orderId,
+      checkoutKey: makeCheckoutKey(order.orderId),
       amount,
       currency: order.currency || "CNY",
       label: order.productName || "",

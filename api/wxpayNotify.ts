@@ -100,7 +100,6 @@ export default async function wxpayNotify(req: IncomingMessage, res: ServerRespo
     const unpaid = orders.filter(
       (order) => order.paymentStatus.trim().toLowerCase() !== "paid"
     );
-    if (!unpaid.length) return respond(res, 200, "SUCCESS", "already paid");
 
     const expectedFen = Math.round(
       orders.reduce((sum, order) => sum + (order.amount > 0 ? order.amount : 0), 0) * 100
@@ -114,6 +113,7 @@ export default async function wxpayNotify(req: IncomingMessage, res: ServerRespo
     }
 
     const updated = await markOrdersPaidByWxpay(tradeNo, transactionId, resource?.success_time ? String(resource.success_time) : undefined);
+    if (!unpaid.length) return respond(res, 200, "SUCCESS", "already paid");
     if (updated.length) {
       const buyer = orders[0]?.clientName || orders[0]?.clientId || "";
       void notifyCoach(

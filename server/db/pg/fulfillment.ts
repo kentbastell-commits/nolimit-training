@@ -15,7 +15,7 @@ import {
   assignedForms,
 } from "../schema.ts";
 import { dayStartMs, str } from "./_util.ts";
-import { phoneMatches } from "./clients.ts";
+import { createClient, phoneMatches } from "./clients.ts";
 import type {
   ActivateDigitalOrderInput,
   CoachingSignupInput,
@@ -40,28 +40,12 @@ export { autoLoadProgram } from "./programDelivery.ts";
 // consent lives on the client row (same place Feishu stores it durably).
 
 function makeShortId(prefix: string) {
-  if (prefix === "CL") return `${prefix}-${Math.floor(1000 + Math.random() * 9000)}`;
   return `${prefix}-${randomUUID()}`;
 }
 
 function toEpochOrNow(dateStr?: string) {
   if (!dateStr) return Date.now();
   return dayStartMs(dateStr);
-}
-
-// CL-XXXX is a PRIMARY KEY here (Feishu had no uniqueness constraint) — remint
-// on the rare collision so a signup can't bounce.
-async function mintClientCode(): Promise<string> {
-  let code = makeShortId("CL");
-  for (let attempt = 0; attempt < 5; attempt++) {
-    const clash = await db
-      .select({ id: clients.clientId })
-      .from(clients)
-      .where(eq(clients.clientId, code));
-    if (!clash.length) break;
-    code = makeShortId("CL");
-  }
-  return code;
 }
 
 export async function activateDigitalOrder(
@@ -161,19 +145,16 @@ export async function activateDigitalOrder(
     clientCode = existing.clientId;
     existingClientNotes = str(existing.notes);
   } else {
-    clientCode = await mintClientCode();
-    try {
-      await db.insert(clients).values({
-        clientId: clientCode,
-        fullName: clientName,
+    const created = await createClient({
+        name: clientName,
         phone: String(phone),
-        email: email || null,
+        email: email || "",
         source: "Store",
         paymentStatus: "Pending",
         intakeStatus: "Not Sent",
         subscriptionStatus: "Active",
         clientType: "Digital Program",
-        coachAssigned: "Kent Bastell",
+        coach: "Kent Bastell",
         packageType: "Active",
         // Portal opens in the language the buyer shopped in.
         languagePreference:
@@ -182,9 +163,10 @@ export async function activateDigitalOrder(
             : "Chinese",
         notes: consentRecord,
       });
-    } catch {
+    if (!created.success || typeof created.clientId !== "string" || !created.clientId) {
       return { status: 500, body: { error: "Could not create or find client" }, notices };
     }
+    clientCode = created.clientId;
   }
 
   await db
@@ -475,6 +457,16 @@ export async function coachingSignup(body: CoachingSignupInput): Promise<SignupR
 
   // ---- stage "intake": append the post-payment questionnaire to the client ----
   if (stage === "intake") {
+    // Public checkout may append its questionnaire to THAT order. It does
+    // not authenticate the buyer as an existing athlete with the same phone.
+    if (body.checkoutOrderId) {
+      const [order] = await db.select().from(productOrders).where(eq(productOrders.orderId, String(body.checkoutOrderId)));
+      if (!order) return { status: 404, body: { error: "Order not found" }, notices };
+      await db.update(productOrders).set({ orderNotes: [str(order.orderNotes), buildIntakeNotes(body)].filter(Boolean).join("\n\n") })
+        .where(eq(productOrders.orderId, order.orderId));
+      notices.push(`Coaching questionnaire received for order ${order.orderId}`);
+      return { status: 200, body: { success: true }, notices };
+    }
     const clientCode = String(body.clientRecordId || "");
     const rows = await db.select().from(clients).where(eq(clients.clientId, clientCode));
     const client = rows[0];
@@ -522,42 +514,28 @@ export async function coachingSignup(body: CoachingSignupInput): Promise<SignupR
 
   if (existing) {
     clientCode = existing.clientId;
-    // Returning athlete buying coaching — refresh the coaching fields and
-    // append the new qualifier to their notes.
-    const merged = [str(existing.notes), qualifierNotes].filter(Boolean).join("\n\n");
-    await db
-      .update(clients)
-      .set(translationPatch("clients", {
-        subscriptionStatus: "Active",
-        clientType: "Online Coaching",
-        packageType: termLabel,
-        notes: merged,
-      }))
-      .where(eq(clients.clientId, clientCode));
+    // A typed phone/contact can identify an order recipient, but cannot
+    // change that athlete's profile, private notes or coaching access.
   } else {
-    clientCode = await mintClientCode();
-    try {
-      await db.insert(clients).values({
-        clientId: clientCode,
-        fullName: clientName,
+    const created = await createClient({
+        name: clientName,
         phone,
         source: "Store",
         paymentStatus: "Pending",
         intakeStatus: "Not Sent",
         subscriptionStatus: "Active",
         clientType: "Online Coaching",
-        coachAssigned: "Kent Bastell",
+        coach: "Kent Bastell",
         packageType: termLabel,
         languagePreference,
-        startDate: toEpochOrNow(body.startDate),
+        startDate: body.startDate || today,
         notes: qualifierNotes,
       });
-    } catch {
+    if (!created.success || typeof created.clientId !== "string" || !created.clientId) {
       return { status: 500, body: { error: "Could not create or find client" }, notices };
     }
+    clientCode = created.clientId;
   }
-
-  queueTranslations("clients", [clientCode]);
 
   // 3. The coaching order — no Program link, the term rides in Product Name.
   let orderId = "";
@@ -581,6 +559,7 @@ export async function coachingSignup(body: CoachingSignupInput): Promise<SignupR
       paymentStatus: "Pending",
       paymentReference: paymentCode || null,
       paymentProvider: "WeChat QR",
+      orderNotes: qualifierNotes,
       marketingSource: cleanAttribution(body.marketingSource),
       marketingMedium: cleanAttribution(body.marketingMedium),
       campaignCode: cleanAttribution(body.campaignCode),

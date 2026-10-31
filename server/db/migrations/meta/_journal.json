@@ -246,6 +246,20 @@
       "when": 1793145600000,
       "tag": "0034_form_video_sessions",
       "breakpoints": true
+    },
+    {
+      "idx": 35,
+      "version": "7",
+      "when": 1793448000000,
+      "tag": "0035_wxpay_order_attempts",
+      "breakpoints": true
+    },
+    {
+      "idx": 36,
+      "version": "7",
+      "when": 1793448000001,
+      "tag": "0036_athlete_sessions",
+      "breakpoints": true
     }
   ]
 }

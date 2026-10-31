@@ -7,7 +7,7 @@ import {
   wxpayOrderGroup,
   type WxpayOrderRow,
 } from "../db/repositories/productOrders.ts";
-import { queryTransaction } from "./client.ts";
+import { closeTransaction, queryTransaction } from "./client.ts";
 import { notifyCoach } from "../../api/_notify.ts";
 import { digitalSalesPaused } from "../storePolicy.ts";
 import { paymentAmountMatches } from "./paymentAmount.ts";
@@ -27,10 +27,11 @@ export type WxpayCharge =
     };
 
 export async function prepareWxpayCharge(orderId: string): Promise<WxpayCharge> {
-  const group = await wxpayOrderGroup(orderId);
+  let group = await wxpayOrderGroup(orderId);
   if (!group.length) return { state: "not_found" };
+  const initialGroup = group;
 
-  const unpaid = group.filter(
+  let unpaid = group.filter(
     (order) => order.paymentStatus.trim().toLowerCase() !== "paid"
   );
   if (!unpaid.length) return { state: "already_paid" };
@@ -44,15 +45,9 @@ export async function prepareWxpayCharge(orderId: string): Promise<WxpayCharge> 
     return { state: "bad_currency" };
   }
 
-  const totalFen = Math.round(
-    unpaid.reduce((sum, order) => sum + (order.amount > 0 ? order.amount : 0), 0) * 100
-  );
-  if (totalFen < 1) return { state: "nothing_to_charge" };
-
-  // A transaction may already exist and have been paid between page loads —
-  // settle it before minting a new one.
-  const existing = unpaid.find((order) => order.wxpayTradeNo)?.wxpayTradeNo;
-  if (existing) {
+  // Check every prior group represented here, including a partially settled
+  // checkout. Close unpaid trades before minting another payable QR.
+  for (const existing of new Set(unpaid.map(order => order.wxpayTradeNo).filter(Boolean))) {
     // Never mint another trade after a failed reconciliation write. Let
     // the caller retry while preserving the existing payment identity.
     const state = await queryTransaction(existing);
@@ -66,9 +61,23 @@ export async function prepareWxpayCharge(orderId: string): Promise<WxpayCharge> 
           `💰 WeChat payment confirmed for order(s) ${updated.join(", ")}`
         );
       }
-      return { state: "already_paid" };
+    } else if (state.tradeState === "NOTPAY") {
+      await closeTransaction(existing);
+    } else if (!["NOT_FOUND", "CLOSED", "REVOKED", "PAYERROR"].includes(state.tradeState)) {
+      throw new Error("Payment is still processing; retry after confirmation");
     }
   }
+
+  group = await wxpayOrderGroup(orderId);
+  if (group.length !== initialGroup.length || group.some(order => !initialGroup.some(before =>
+    before.orderId === order.orderId && before.wxpayTradeNo === order.wxpayTradeNo &&
+    before.amount === order.amount && before.currency === order.currency && before.productType === order.productType))) {
+    throw new Error("Checkout changed during payment preparation; refresh checkout");
+  }
+  unpaid = group.filter(order => order.paymentStatus.trim().toLowerCase() !== "paid");
+  if (!unpaid.length) return { state: "already_paid" };
+  const totalFen = unpaid.reduce((sum, order) => sum + Math.round(Math.max(order.amount, 0) * 100), 0);
+  if (totalFen < 1) return { state: "nothing_to_charge" };
 
   const description =
     unpaid.map((order) => order.productName).filter(Boolean).join(" + ") ||

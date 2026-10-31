@@ -85,7 +85,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     }
 
     const tradeNo = makeOutTradeNo();
-    await attachWxpayTradeNo([orderId], tradeNo);
+    await attachWxpayTradeNo([orderId], tradeNo, Math.round(amount * 100), [{ orderId, wxpayTradeNo: "" }]);
     const { codeUrl } = await createNativeTransaction({
       outTradeNo: tradeNo,
       description: label.slice(0, 127),

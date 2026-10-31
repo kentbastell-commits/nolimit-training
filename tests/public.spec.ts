@@ -108,7 +108,7 @@ test("find-my-portal modal opens and validates", async ({ page }) => {
     .isVisible()
     .catch(() => false);
   if (modalVisible) {
-    await expect(page.locator(".findPortalModal input")).toHaveCount(2);
+    await expect(page.locator(".findPortalModal input")).toHaveCount(1);
   }
   errs.assertNoCrashes();
 });

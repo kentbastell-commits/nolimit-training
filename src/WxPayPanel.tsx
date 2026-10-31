@@ -34,8 +34,9 @@ function waitForBridge(signal: AbortSignal): Promise<Bridge> {
   });
 }
 
-export default function WxPayPanel({ orderId, lang, onPaid, variant = "store" }: {
+export default function WxPayPanel({ orderId, checkoutKey, lang, onPaid, variant = "store" }: {
   orderId: string;
+  checkoutKey?: string;
   lang: "en" | "zh";
   onPaid?: () => void;
   variant?: "store" | "collect";
@@ -90,7 +91,7 @@ export default function WxPayPanel({ orderId, lang, onPaid, variant = "store" }:
         try {
           const res = await fetch("/api/wxpayCreate", {
             method: "POST", headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ orderId }), signal: controller.signal,
+            body: JSON.stringify({ orderId, checkoutKey }), signal: controller.signal,
           });
           const data = await res.json().catch(() => null);
           if (controller.signal.aborted) return;
@@ -108,7 +109,7 @@ export default function WxPayPanel({ orderId, lang, onPaid, variant = "store" }:
     return () => { controller.abort(); stopPolling(); };
     // The order owns this lifecycle; polling uses refs for the current callback.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [orderId, isWeChat]);
+  }, [orderId, checkoutKey, isWeChat]);
 
   const payDirect = async () => {
     const signal = controllerRef.current?.signal;
@@ -132,7 +133,7 @@ export default function WxPayPanel({ orderId, lang, onPaid, variant = "store" }:
       if (!attempt) {
         const res = await fetch("/api/wxpayCreateJsapi", {
           method: "POST", headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ orderId, openidToken }), signal,
+          body: JSON.stringify({ orderId, checkoutKey, openidToken }), signal,
         });
         const data = await res.json().catch(() => null);
         if (signal.aborted) return;

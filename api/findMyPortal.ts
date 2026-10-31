@@ -1,4 +1,5 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
+import { allowAthleteLogin, athleteSessionsRequired, issueAthleteSession, sameOriginRequest } from "../server/athleteAuth.ts";
 import {
   findClientByPhoneName,
   findClientByPin,
@@ -16,16 +17,23 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   const { phone, name, pin } = req.body || {};
 
   try {
+    res.setHeader("Cache-Control", "no-store");
+    if (!sameOriginRequest(req)) return res.status(403).json({ error: "Cross-site request refused" });
+    if (!await allowAthleteLogin(req, res)) return;
     if (pin) {
-      const clientCode = await findClientByPin(String(pin));
+      const clientCode = /^CL-\d+$/i.test(String(pin).trim()) ? "" : await findClientByPin(String(pin));
       if (!clientCode) {
         return res.status(404).json({ error: "No portal found for that code" });
       }
-      return res.status(200).json({ success: true, clientCode });
+      return res.status(200).json({ success: true, ...await issueAthleteSession(req, res, clientCode, "pin") });
     }
 
     if (!phone || !name)
       return res.status(400).json({ error: "phone and name required" });
+
+    if (athleteSessionsRequired()) return res.status(401).json({
+      error: "Use your coach-issued login code or verified WeChat account", code: "VERIFIED_LOGIN_REQUIRED",
+    });
 
     const clientCode = await findClientByPhoneName(String(phone), String(name));
 

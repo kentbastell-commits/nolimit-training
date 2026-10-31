@@ -1,7 +1,7 @@
 // "Scan with WeChat to log in" block for the portal-login modal. Mints a
 // handshake token, renders the OAuth QR, polls until the phone completes the
 // bind, then enters the portal. Renders nothing when the server has WeChat
-// login switched off, so the classic name+phone lookup always stands.
+// login switched off; verified PIN login remains available.
 import QRCode from "qrcode";
 import { useCallback, useEffect, useRef, useState } from "react";
 
@@ -30,7 +30,7 @@ export default function WxLoginQr({ zh }: { zh: boolean }) {
       const res = await fetch("/api/wxLogin", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ action: "start" }),
+        body: JSON.stringify({ action: "start", lang: zh ? "zh" : "en" }),
       });
       const data = await res.json().catch(() => null);
       if (!res.ok || !data?.token || !data?.qrUrl) {
@@ -46,9 +46,8 @@ export default function WxLoginQr({ zh }: { zh: boolean }) {
       setState({ phase: "ready", qrDataUrl, token });
       pollRef.current = window.setInterval(async () => {
         try {
-          const poll = await fetch(
-            `/api/wxLogin?action=status&t=${encodeURIComponent(token)}`
-          );
+          const poll = await fetch("/api/wxLogin", { method: "POST", headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ action: "status", t: token }) });
           if (!poll.ok) return;
           const status = await poll.json();
           if (status?.status === "ok" && status?.clientCode) {
@@ -66,7 +65,7 @@ export default function WxLoginQr({ zh }: { zh: boolean }) {
     } catch {
       setState({ phase: "hidden" });
     }
-  }, []);
+  }, [zh]);
 
   useEffect(() => {
     void start();
