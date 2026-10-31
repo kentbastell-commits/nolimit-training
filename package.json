@@ -24,7 +24,6 @@
     "@fontsource/inter": "^5.2.8",
     "@fontsource/noto-sans-sc": "^5.2.9",
     "@fontsource/rock-salt": "^5.2.8",
-    "@vercel/node": "^5.8.9",
     "clsx": "^2.1.1",
     "compression": "^1.8.1",
     "date-fns": "^4.4.0",
@@ -43,6 +42,7 @@
     "recharts": "^3.8.1"
   },
   "devDependencies": {
+    "@vercel/node": "^5.8.9",
     "@eslint/js": "^10.0.1",
     "@mediapipe/pose": "^0.5.1675469404",
     "@playwright/test": "^1.60.0",
