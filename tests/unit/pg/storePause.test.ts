@@ -132,6 +132,7 @@ describe("paused digital store", () => {
     provider.native.mockResolvedValue({ codeUrl: "weixin://test" });
     const payment = await call(nativePay, { orderId: saved.order_id });
     expect(payment.statusCode).toBe(200);
-    expect(provider.native).toHaveBeenCalledWith(expect.objectContaining({ totalFen: 150000 }));
+    // The buyer's amount cannot override the displayed one-month tier.
+    expect(provider.native).toHaveBeenCalledWith(expect.objectContaining({ totalFen: 250000 }));
   });
 });

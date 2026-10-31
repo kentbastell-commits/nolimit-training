@@ -9,6 +9,7 @@ import {
   wxpayConfig,
 } from "../server/wxpay/client.ts";
 import { notifyCoach } from "./_notify.ts";
+import { paymentAmountMatches } from "../server/wxpay/paymentAmount.ts";
 
 // WeChat Pay APIv3 payment callback. Mounted as a dedicated raw-body route
 // BEFORE express.json in server/index.ts — the signature is computed over the
@@ -102,9 +103,9 @@ export default async function wxpayNotify(req: IncomingMessage, res: ServerRespo
     if (!unpaid.length) return respond(res, 200, "SUCCESS", "already paid");
 
     const expectedFen = Math.round(
-      unpaid.reduce((sum, order) => sum + (order.amount > 0 ? order.amount : 0), 0) * 100
+      orders.reduce((sum, order) => sum + (order.amount > 0 ? order.amount : 0), 0) * 100
     );
-    if (Number.isFinite(paidFen) && paidFen !== expectedFen) {
+    if (!paymentAmountMatches(paidFen, expectedFen)) {
       void notifyCoach(
         `⚠️ WeChat payment amount mismatch on ${tradeNo}: paid ${paidFen} fen, ` +
           `expected ${expectedFen} fen. Order NOT auto-unlocked — resolve manually.`

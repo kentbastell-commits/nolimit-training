@@ -108,10 +108,11 @@ export async function createProductOrder(
 }
 
 export async function updateProductOrder(
-  input: UpdateProductOrderInput
+  input: UpdateProductOrderInput,
+  options: { attachOnlyIfUnassigned?: boolean } = {}
 ): Promise<ProductOrderWriteResult> {
   const result =
-    await pg.updateProductOrder(input);
+    await pg.updateProductOrder(input, options);
   if (result.success) invalidateCoachingCaches();
   return result;
 }

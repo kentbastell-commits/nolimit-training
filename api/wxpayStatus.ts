@@ -5,6 +5,7 @@ import {
 } from "../server/db/repositories/productOrders.ts";
 import { queryTransaction, wxpayConfig } from "../server/wxpay/client.ts";
 import { notifyCoach } from "./_notify.ts";
+import { paymentAmountMatches } from "../server/wxpay/paymentAmount.ts";
 
 // Poll endpoint for the checkout page: has this trade been paid yet?
 // The signed callback (wxpayNotify) is the primary confirmation path; this
@@ -51,7 +52,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
                 0
               ) * 100
             );
-            if (state.totalFen !== undefined && state.totalFen !== expectedFen) {
+            if (!paymentAmountMatches(state.totalFen, expectedFen)) {
               void notifyCoach(
                 `⚠️ WeChat payment amount mismatch on ${tradeNo}: paid ` +
                   `${state.totalFen} fen, expected ${expectedFen} fen. Order NOT auto-unlocked.`

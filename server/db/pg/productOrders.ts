@@ -1,4 +1,4 @@
-import { and, desc, eq, gte, inArray, lt, ne, sql } from "drizzle-orm";
+import { and, desc, eq, gte, inArray, lt, sql } from "drizzle-orm";
 import { db } from "../client.ts";
 import { productOrders } from "../schema.ts";
 import { activateCoachingOrder } from "./coachingJourney.ts";
@@ -12,6 +12,10 @@ import type {
 
 type Row = typeof productOrders.$inferSelect;
 type InsertRow = typeof productOrders.$inferInsert;
+
+// SQL must agree with the normalized status used by checkout and callbacks.
+// `status <> 'Paid'` excludes NULL and rewrites legacy ` paid ` receipts.
+const unpaidOrder = sql`lower(btrim(coalesce(${productOrders.paymentStatus}, ''))) <> 'paid'`;
 
 export async function listProductOrders(): Promise<OrderDTO[]> {
   const rows = await db
@@ -334,7 +338,8 @@ export async function createProductOrder(
 }
 
 export async function updateProductOrder(
-  i: UpdateProductOrderInput
+  i: UpdateProductOrderInput,
+  options: { attachOnlyIfUnassigned?: boolean } = {}
 ): Promise<ProductOrderWriteResult> {
   const set: Partial<InsertRow> = {};
   if (i.paidAt !== undefined) {
@@ -412,6 +417,9 @@ export async function updateProductOrder(
     updated = await db.transaction(async tx => {
       const [before] = await tx.select({ clientId: productOrders.clientId, paymentStatus: productOrders.paymentStatus })
         .from(productOrders).where(eq(productOrders.orderId, i.recordId)).for("update");
+      if (options.attachOnlyIfUnassigned && before?.clientId && before.clientId !== clientId) {
+        throw new Error("PAY_LINK_IDENTITY_CONFLICT");
+      }
       const orders = await tx.update(productOrders).set(set)
         .where(eq(productOrders.orderId, i.recordId)).returning();
       // Includes coach-verified payment and attaching a client to an already
@@ -424,6 +432,9 @@ export async function updateProductOrder(
       return orders.map(order => ({ orderId: order.orderId }));
     });
   } catch (e: any) {
+    if (e?.message === "PAY_LINK_IDENTITY_CONFLICT") return {
+      success: false, status: 409, body: { error: "This payment link is already attached to an athlete" },
+    };
     return {
       success: false,
       status: 500,
@@ -504,7 +515,7 @@ export async function wxpayOrderGroup(orderId: string): Promise<WxpayOrderRow[]>
   if (!anchorRows.length) return [];
   const anchor = anchorRows[0];
   const reference = str(anchor.paymentReference);
-  if (!reference) return anchorRows.map(toWxpayRow);
+  if (!reference || !anchor.clientId) return anchorRows.map(toWxpayRow);
   const rows = await db
     .select()
     .from(productOrders)
@@ -530,7 +541,7 @@ export async function attachWxpayTradeNo(
     .where(
       and(
         inArray(productOrders.orderId, orderIds),
-        ne(productOrders.paymentStatus, "Paid")
+        unpaidOrder
       )
     )
     .returning({ orderId: productOrders.orderId });
@@ -559,7 +570,7 @@ export async function markOrdersPaidByWxpay(
       // Provider completion time, not the time a delayed callback arrived.
       // https://pay.wechatpay.cn/doc/v3/merchant/4012791861
       paidAt: toEpochMs(paidAt) || null,
-    }).where(and(eq(productOrders.wxpayTradeNo, tradeNo), ne(productOrders.paymentStatus, "Paid"))).returning();
+    }).where(and(eq(productOrders.wxpayTradeNo, tradeNo), unpaidOrder)).returning();
     for (const order of updated.sort((a, b) => (a.clientId || "").localeCompare(b.clientId || ""))) {
       await activateCoachingOrder(tx, order);
     }

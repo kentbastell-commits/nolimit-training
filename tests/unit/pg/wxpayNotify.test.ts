@@ -176,6 +176,23 @@ describe("api/wxpayNotify (postgres)", () => {
     const orders = await rows("select payment_status from product_orders");
     for (const order of orders) expect(order.payment_status).toBe("Pending");
   });
+  it("does not unlock a signed success event with no verifiable amount", async () => {
+    await seedOrderGroup();
+    const res = makeRawRes();
+    await wxpayNotify(buildCallback({ ...successResource(39900), amount: undefined }), res);
+    expect(res.statusCode).toBe(200);
+    expect(JSON.parse(res.body).message).toBe("amount mismatch flagged");
+    expect((await rows("select payment_status from product_orders")).map(o => o.payment_status)).toEqual(["Pending", "Pending"]);
+  });
+  it("compares against the full provider trade if one grouped order was already coach-verified", async () => {
+    await seedOrderGroup();
+    await rows("update product_orders set payment_status='Paid' where order_id='ORD-1'");
+    const res = makeRawRes();
+    await wxpayNotify(buildCallback(successResource(39900)), res);
+    expect(res.statusCode).toBe(200);
+    expect(JSON.parse(res.body).message).toBe("ok");
+    expect((await rows("select payment_status from product_orders")).map(o => o.payment_status)).toEqual(["Paid", "Paid"]);
+  });
 
   it("acknowledges an unknown trade number without failing", async () => {
     const res = makeRawRes();

@@ -5,7 +5,7 @@ import { markOrdersPaidByWxpay } from "../../../server/db/repositories/productOr
 
 vi.mock("../../../server/wxpay/client.ts", () => ({
   queryTransaction: vi.fn(async () => ({
-    tradeState: "SUCCESS", transactionId: "reconciled-txn", paidAt: "2026-10-12T09:30:00+08:00",
+    tradeState: "SUCCESS", transactionId: "reconciled-txn", paidAt: "2026-10-12T09:30:00+08:00", totalFen: 10000,
   })),
 }));
 vi.mock("../../../api/_notify.ts", () => ({ notifyCoach: vi.fn() }));

@@ -3,6 +3,7 @@
 // fulfilled, and stamps the client's program link / intake status / access
 // window. Composes several tables, so it gets its own domain.
 import * as pg from "../pg/fulfillment.ts";
+import { coachingTierForLabel } from "../../../src/coachingPricing.ts";
 import { invalidateCache } from "../../../api/_cache.ts";
 import { STORE_PUBLIC } from "../../../src/storeFlags.ts";
 import { STORE_PAUSED } from "../../storePolicy.ts";
@@ -167,6 +168,11 @@ export async function activateDigitalOrder(
 }
 
 export async function coachingSignup(input: CoachingSignupInput): Promise<SignupResult> {
+  if (input.stage !== "claim" && input.stage !== "intake") {
+    const tier = coachingTierForLabel(input.termLabel);
+    if (!tier) return { status: 400, body: { error: "Invalid coaching term" }, notices: [] };
+    input = { ...input, termLabel: tier.label, months: tier.months, amount: tier.total, currency: "CNY" };
+  }
   const result =
     await pg.coachingSignup(input);
   if (result.status === 200) {

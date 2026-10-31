@@ -24,6 +24,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
   try {
     const charge = await prepareWxpayCharge(orderId);
+    if (charge.state === "amount_mismatch") return res.status(409).json({ error: "Payment amount requires coach verification" });
     if (charge.state === "store_paused") return res.status(403).json(STORE_PAUSED);
     if (charge.state === "not_found") {
       return res.status(404).json({ error: "Order not found" });

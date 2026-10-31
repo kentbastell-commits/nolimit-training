@@ -214,6 +214,10 @@ export async function queryTransaction(outTradeNo: string): Promise<WxpayTransac
   if (!config) throw new Error("WeChat Pay is not configured");
   const path = `/v3/pay/transactions/out-trade-no/${encodeURIComponent(outTradeNo)}?mchid=${config.mchId}`;
   const { status, body } = await apiRequest(config, "GET", path);
+  // A create request can fail before WeChat records the trade. This explicit
+  // provider result permits a fresh attempt; timeouts and other errors do not.
+  // https://pay.wechatpay.cn/doc/v3/merchant/4012791900
+  if (status === 404 && body?.code === "ORDER_NOT_EXIST") return { tradeState: "NOT_FOUND" };
   if (status !== 200 || !body?.trade_state) {
     throw new Error(
       `WeChat Pay query failed (${status}): ${body?.message || body?.code || "unknown"}`

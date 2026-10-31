@@ -121,6 +121,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       return res.status(400).json({ error: "email invalid" });
     }
     let clientCode = await findClientByPhoneName(phone, name);
+    if (order.clientId) {
+      if (clientCode === order.clientId) return res.status(200).json({ success: true, clientCode, needsIdentity: false });
+      return res.status(409).json({ error: "This payment link is already attached to an athlete" });
+    }
     if (!clientCode) {
       // A coaching payment creates a COACHED profile (Extras tab, wellness,
       // "coach is building your plan"), so the coach never has to fix the
@@ -145,7 +149,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       // New athlete: the intake questionnaire waits for them in the app.
       await ensureIntakeOnSignup(clientCode).catch(() => {});
     }
-    const attached = await updateProductOrder({ recordId: order.orderId, clientCode, clientName: name });
+    const attached = await updateProductOrder({ recordId: order.orderId, clientCode, clientName: name }, { attachOnlyIfUnassigned: true });
     if (!attached.success) return res.status(attached.status).json(attached.body);
     return res.status(200).json({ success: true, clientCode, needsIdentity: false });
   }
