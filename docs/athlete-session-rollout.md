@@ -1,5 +1,12 @@
 # Athlete sessions: rollout and verification
 
+Live service context (Kent, 2026-11-01): the mini program is already publicly
+released. Most customers currently enter through the QR/payment link and are
+then prompted to join the mini program. The staged release steps below concern
+the new authentication update, not the initial public launch. Preserve this
+payment-to-account-to-mini-program handoff alongside existing manual/free logins.
+Development upload evidence alone does not identify the currently public version.
+
 Kent's access requirement (2026-11-01): administrator/trial users, manually added
 accounts, non-paying users and paying users must all retain sign-in access.
 Payment/subscription status and how the account was created are not login
