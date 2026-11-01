@@ -3,6 +3,7 @@
 import { useState } from "react";
 import PortalHome from "./PortalHome";
 import CoachAthleteSummary from "./CoachAthleteSummary";
+import ClientExerciseVideos from "./ClientExerciseVideos";
 import CoachAthleteSwitcher from "./CoachAthleteSwitcher";
 import AthletePreview from "./AthletePreview";
 import AthleteHub, { athleteContactKey } from "./AthleteHub";
@@ -914,11 +915,13 @@ export default function ClientWorkspace({
               />}
               {isClientPortal && clientTab === "Programs" && <button className="athBack" onClick={() => setClientTab("Overview")}><ArrowLeft size={18} />{t("athleteBackMe")}</button>}
 
-              {!isClientPortal && clientTab === "Home" && coachDashTab === "activity" && <CoachAthleteSummary
+              {!isClientPortal && clientTab === "Home" && coachDashTab === "activity" && <><CoachAthleteSummary
                 client={selectedClient} workouts={workouts} checkIns={coachingCheckIns} checkInsReady={coachingCheckInsReady} items={coachingItems} decisions={coachingDecisions} videos={coachingVideos}
                 loading={workoutsLoading} loadFailed={workoutsLoadFailed} feedLoading={coachingFeedLoading} feedError={coachingFeedError} retry={retryWorkouts}
                 openWorkout={openWorkout} adjustNext={adjustNextSession} openReview={openCoachingReview} openCalendar={() => setClientTab("Training")}
-                openProgress={() => { setClientTab("Home"); setCoachDashTab("science"); }} openNotes={() => openAccountModal(selectedClient)} workoutName={localizedWorkoutName} />}
+                openProgress={() => { setClientTab("Home"); setCoachDashTab("science"); }} openNotes={() => openAccountModal(selectedClient)} workoutName={localizedWorkoutName} />
+                <ClientExerciseVideos key={selectedClient.clientCode || selectedClient.id} clientId={selectedClient.clientCode || selectedClient.id}
+                  onOpenFeedback={openCoachingReview ? id => openCoachingReview(`video:${id}`) : undefined} /></>}
               {!isClientPortal && clientTab === "Home" && coachDashTab !== "activity" && (
                 <PortalHome
                   t={t}

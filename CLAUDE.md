@@ -1142,6 +1142,8 @@ data between them, never "borrow" a table ID across products.
     one live `<video>` per page on phones. The 4 `.webm` (VP8) clips remain
     unplayable on iOS by nature — the mini uploads .mp4, those came from web.
 
+82. **Progress history must preserve exercise identity (2026-11-01)** — video submissions store names, not library IDs: group only by normalized case/spacing, keeping exercise variations separate. Order by session date, falling back to upload date, never review time. Scope requests and rendered state to the client; reuse `ReviewVideo` to preserve the one-live-player rule.
+
 ## Quality bar — checkable, per deliverable
 
 **Any shipped code change**

@@ -5,6 +5,7 @@ import { coachReliabilityCopy } from "./coachReliabilityCopy";
 import { coachPolishCopy } from "./coachPolishCopy";
 import { dailyCoachingCopy } from "./dailyCoachingCopy";
 import { athleteSessionCopy } from "./athleteSessionCopy";
+import { clientVideoHistoryCopy } from "./clientVideoHistoryCopy";
 
 export const resources = {
   en: {
@@ -14,6 +15,7 @@ export const resources = {
       ...coachPolishCopy.en,
       ...dailyCoachingCopy.en,
       ...athleteSessionCopy.en,
+      ...clientVideoHistoryCopy.en,
       calendarCrossClientCutHint: "Use Copy to copy a workout between clients. Cut only moves workouts within the same calendar.",
       calendarCopyFailed: "Could not copy workout. Please try again.",
       calendarCopiedAsDraft: "Workout copied as a draft. Review and publish when ready.",
@@ -460,6 +462,7 @@ export const resources = {
       ...coachPolishCopy.zh,
       ...dailyCoachingCopy.zh,
       ...athleteSessionCopy.zh,
+      ...clientVideoHistoryCopy.zh,
       calendarCrossClientCutHint: "跨学员复制训练请使用“复制”。“移动”只能在同一学员的日历内调整日期。",
       calendarCopyFailed: "无法复制训练，请重试。",
       calendarCopiedAsDraft: "训练已复制为草稿，请检查后发布。",
