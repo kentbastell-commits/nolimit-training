@@ -180,6 +180,8 @@ data between them, never "borrow" a table ID across products.
     ran in the mini-program repo. The loop is only a gate when NOTHING else
     (a second repo's build, a webpack bundle, another agent's suite) runs on
     the box at the same time; re-run alone before reading any result.
+    Use default AND JSON reporters for long runs: JSON-only output stays quiet
+    until completion. Silence alone is not evidence of a stalled runner.
 16. **The clobbered intent** — the store checkout has a `useEffect` keyed on
     `storeSelectedProgram?.recordId` that resets step/add-ons/paymentCode. Any
     handler that sets one of those *while also changing the selected program*
@@ -218,6 +220,9 @@ data between them, never "borrow" a table ID across products.
     The video dialog's shared `.drawerClose` became black on its black header in coach mode.
     Give dark overlays dedicated, labelled close controls; verify contrast and touch targets
     in both themes and short landscape viewports, not just that a button exists in the DOM.
+    Calendar action floats must be contained in their header (`flow-root`), or a whole
+    flex exercise preview can squeeze beside the button. Keep detailed desktop day
+    columns readable with internal horizontal scrolling; verify Week/Full and phone widths.
 19. **The future-state privacy promise** — writing the privacy policy as if a
     planned mainland/Postgres migration is already complete. Rule: disclose the
     live data path until migration is verified, record temporary cross-border

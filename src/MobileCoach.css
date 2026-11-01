@@ -8,6 +8,19 @@
 .coachLibraryNavigation button { flex:0 0 auto;min-height:44px;padding:8px 16px;border:1px solid #d9d4c8;border-radius:8px;background:#fffdf8;color:#4d473c;font:inherit;font-size:14px;cursor:pointer; }
 .coachLibraryNavigation button[aria-current=page] { background:#25251f;color:#fff;border-color:#25251f; }
 .coachSessionActions { float:right;display:grid;place-items:center;min-width:44px;min-height:44px;margin:-4px -4px 0 8px;border:0;border-radius:8px;background:transparent;color:inherit;cursor:pointer; }
+/* Contain the floated action button in the header. Otherwise the entire
+   flex preview below it is squeezed alongside the button. */
+.app:not(.clientPortalApp) .calendarDay .workoutBlockMain { display: flow-root; }
+.app:not(.clientPortalApp) .calendarDay .calCardGlance .glanceText { flex: 1; }
+@media (min-width: 721px) {
+  /* Scroll the calendar itself rather than crushing seven detailed cards. */
+  .app:not(.clientPortalApp) .calendarGrid.weekCalendar,
+  .app:not(.clientPortalApp) .calendarGrid.monthCalendar {
+    grid-template-columns: repeat(7, minmax(200px, 1fr));
+    overflow-x: auto;
+    padding-bottom: 8px;
+  }
+}
 .app:not(.clientPortalApp) .clientCalendarViewToggle button { min-height:44px; }
 .coachSwitchAthlete { min-height:44px;padding:0;border:0;background:transparent;font:inherit;color:inherit;cursor:pointer;text-align:left;max-width:100%;overflow-wrap:anywhere; }
 .athleteSwitchRow { display:block;width:100%;padding:12px;text-align:left;border:0;border-bottom:1px solid #e8e3d9;background:transparent; }
