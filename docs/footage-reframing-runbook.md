@@ -1,6 +1,6 @@
 # Exercise footage reframing runbook
 
-Last verified: 2026-11-01 (Alt Home Workout 2, including serratus wall slides)
+Last verified: 2026-11-01 (Alt Home Workout 2 and Yanjun Strength 2 instructions)
 
 This is the canonical handoff for both Codex and Claude. Read it before changing, recreating, moving, or publishing the 2026-08-08 exercise footage.
 
@@ -557,3 +557,10 @@ Four supplied recordings from `C:\Users\kentb\OneDrive\Desktop\App Recordings` m
 - Added English/Chinese setup, execution, coaching focus, muscle text and equipment in the library, and matching instructions only to this session entry. The demonstrated forearm pressure and natural scapular upward rotation are explicit; do not substitute forced scapular depression or back extension. One complete up-and-down slide counts as one rep. Serratus-anterior and lower-trapezius highlights render in both views/languages. Anatomy capture waits for the SVG's raster outline to decode before taking screenshots.
 - Snapshot-guarded library transaction and version-guarded session save pass. Library count stays 822, with 821 unrelated entries unchanged. Other assignments and prior templates are preserved. Both workers and the public origin return all nine videos and bilingual instructions in coach and athlete views; athlete checks omit coach credentials. The new origin/CDN beginning/end byte ranges match and both thumbnails return 200. No notification, software deployment, mini-program upload or new spending.
 - Reproducible recipes, protected envelope, source/candidate full and edge sheets, probes, original snapshots, anatomy screenshots, publication/session/transfer receipts and live verification: `deliverables/serratus-wall-slide-2026-11-01/`.
+
+## Content-only follow-up — Zhao Yanjun Strength 2, 2026-11-01
+
+- Completed English/Chinese setup and execution for all eight exercises in November 4 private draft `AW-52ec83fa-1a37-443f-ae7c-6879e5856d8b` for `CL-6785`: barbell hip thrust, elevated box push-up, shoulder walk-outs, mini-band shoulder wall walks, scapular pull-up, pull-up top hold, bench deadbug leg lowers and elevated side-plank bends. Existing hip-thrust, bench-deadbug and walk-out demos were reviewed across their complete durations; previously reviewed wall-walk, pulling and side-plank cues were reused. No video or library row changed. The box push-up currently has no linked demo; its instructions describe the programmed hands-elevated variation without substituting the separate plyometric clip.
+- Preserved the coach's hip-thrust box/bench or floor option, 12-rep first set and 30-second top hold second set; MAX push-ups stop at technique loss and include gentle shoulder external rotation and scapular depression with natural scapular motion. Walk-outs count a complete out-and-back as one repetition. Pull-ups remain two 20-second top holds with band assistance as needed. Bench deadbugs keep the buttocks near the end and slightly elevated through a controlled pelvic tuck. All other set prescriptions, loads, unilateral flags, labels, tracking metadata and rests are unchanged; these session-specific doses were not copied into generic library instructions.
+- Version-guarded save and both workers/public-origin coach reads pass. The date, eight-exercise order and private draft state remain unchanged; athlete requests return 403 both with and without coach headers. Unrelated assignments, library rows and previous template history are verified unchanged. No notification, application deployment, mini-program upload, media processing or new spending.
+- Before snapshot, reviewed demonstration sheets, original coaching tips, bilingual content, guarded save and verification receipts: `deliverables/yanjun-strength2-2026-11-01/`.
