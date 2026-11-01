@@ -10,6 +10,7 @@ for (const [width, zh] of [[1440, false], [390, false], [390, true]] as const) {
     const videos = [
       { recordId: "V1", clientId: "CL-9001", clientName: "Audit A", exerciseName: "Row", workoutName: "Strength 1", workoutDate: "2026-10-01", videoUrl: "/uploads/fv-history-first.mp4", coachReply: "Keep your chest supported", status: "Reviewed" },
       { recordId: "V2", clientId: "CL-9001", clientName: "Audit A", exerciseName: "Row", workoutName: "Strength 1", workoutDate: "2026-10-10", videoUrl: "/uploads/fv-history-middle.mp4", clientNote: "Feels stronger", coachReply: "Steadier this week", status: "Reviewed" },
+      { recordId: "V4", clientId: "CL-9001", clientName: "Audit A", exerciseName: "Row", workoutName: "Strength 1", workoutDate: "2026-10-10", videoUrl: "/uploads/fv-history-second-take.mp4", coachReply: "Second attempt feedback", status: "Reviewed" },
       { recordId: "V3", clientId: "CL-9001", clientName: "Audit A", exerciseName: "Row", workoutName: "Strength 2", workoutDate: "2026-10-20", videoUrl: "/uploads/fv-history-latest.mp4", coachReply: "Good control throughout", status: "Reviewed" },
       { recordId: "VS", clientId: "CL-9001", clientName: "Audit A", exerciseName: "Squat", workoutDate: "2026-10-12", videoUrl: "/uploads/fv-history-squat.mp4", status: "New" },
     ];
@@ -27,14 +28,24 @@ for (const [width, zh] of [[1440, false], [390, false], [390, true]] as const) {
     await page.locator(".coachClientTabs").getByRole("button", { name: tr("Overview", "概览"), exact: true }).click();
     const panel = page.locator(".clientExerciseVideos");
     await panel.getByRole("button", { name: tr("Browse videos", "浏览视频") }).click();
-    await expect(panel.locator(".cevhClip")).toHaveCount(3);
-    await expect(panel.locator("time")).toHaveText(["2026-10-01", "2026-10-10", "2026-10-20"]);
+    await expect(panel.locator(".cevhClip")).toHaveCount(4);
+    await expect(panel.locator("time")).toHaveText(["2026-10-01", "2026-10-10", "2026-10-10", "2026-10-20"]);
     await expect(panel.getByText("Steadier this week")).toBeVisible();
-    await panel.getByRole("button", { name: tr("Compare first & latest", "对比最早与最新") }).click();
+    await panel.getByRole("button", { name: tr("Compare two videos", "对比两个视频") }).click();
     await expect(panel.locator(".cevhClip")).toHaveCount(2);
     await expect(panel.locator("time")).toHaveText(["2026-10-01", "2026-10-20"]);
+    await panel.getByLabel(tr("Video A — date", "视频A — 日期"), { exact: true }).selectOption("V2");
+    await expect(panel.locator("time")).toHaveText(["2026-10-10", "2026-10-20"]);
+    await panel.getByLabel(tr("Video B — date", "视频B — 日期"), { exact: true }).selectOption("V4");
+    await expect(panel.locator("time")).toHaveText(["2026-10-10", "2026-10-10"]);
+    await expect(panel.getByText("Second attempt feedback")).toBeVisible();
+    await panel.getByLabel(tr("Video B — date", "视频B — 日期"), { exact: true }).selectOption("V3");
+    const posters = panel.locator(".reviewVideoPoster");
+    const left = await posters.nth(0).boundingBox(), right = await posters.nth(1).boundingBox();
+    expect(right!.x).toBeGreaterThanOrEqual(left!.x + left!.width);
+    expect(Math.abs(right!.y - left!.y)).toBeLessThan(1);
     await panel.scrollIntoViewIfNeeded();
-    await panel.screenshot({ path: `deliverables/client-video-history-2026-11-01/compare-${width}-${zh ? "zh" : "en"}.png` });
+    await panel.screenshot({ path: `deliverables/client-video-compare-2026-11-02/compare-${width}-${zh ? "zh" : "en"}.png` });
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1)).toBe(true);
     await panel.getByLabel(tr("Exercise", "动作"), { exact: true }).selectOption("squat");
     await expect(panel.locator(".cevhClip")).toHaveCount(1);

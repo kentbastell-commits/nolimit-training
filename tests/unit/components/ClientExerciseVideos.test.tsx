@@ -31,9 +31,9 @@ it("loads on demand, scopes by client, orders clips and keeps feedback with its 
   expect(screen.getAllByRole("listitem")).toHaveLength(1);
   expect(screen.queryByText("Control the lowering")).not.toBeInTheDocument();
 });
-it("compares only the first and latest clip and uses one live player", async () => {
+it("defaults to first/latest and uses one live player", async () => {
   vi.stubGlobal("fetch", vi.fn().mockResolvedValue(response())); const { container } = render(<ClientExerciseVideos clientId="CL-A" />); open();
-  await screen.findByText("Control the lowering"); fireEvent.click(screen.getByRole("button", { name: "Compare first & latest" }));
+  await screen.findByText("Control the lowering"); fireEvent.click(screen.getByRole("button", { name: "Compare two videos" }));
   expect(screen.getAllByRole("listitem")).toHaveLength(2); expect(screen.queryByText("Middle session")).not.toBeInTheDocument();
   expect(container.querySelectorAll("video")).toHaveLength(0);
   fireEvent.click(screen.getByRole("button", { name: "Play Row · 2026-10-01" })); expect(container.querySelectorAll("video")).toHaveLength(1);
@@ -58,5 +58,30 @@ it("offers retry after failure and paginates without omitting clips", async () =
 it("provides the exercise history controls in Chinese", async () => {
   await i18n.changeLanguage("zh"); vi.stubGlobal("fetch", vi.fn().mockResolvedValue(response())); render(<ClientExerciseVideos clientId="CL-A" />);
   fireEvent.click(screen.getByRole("button", { name: "浏览视频" })); await screen.findByLabelText("动作");
-  expect(screen.getByRole("button", { name: "对比最早与最新" })).toBeInTheDocument(); expect(screen.getAllByText("教练反馈")).toHaveLength(2);
+  fireEvent.click(screen.getByRole("button", { name: "对比两个视频" }));
+  expect(screen.getByLabelText("视频A — 日期")).toBeInTheDocument();
+  expect(screen.getByLabelText("视频B — 日期")).toBeInTheDocument(); expect(screen.getAllByText("教练反馈")).toHaveLength(2);
+});
+
+it("selects any two records, distinguishes same-day clips and resets for another exercise", async () => {
+  const duplicate = { ...rows[2], recordId: "V4", videoUrl: "/uploads/fv-second-take.mp4", coachReply: "Second attempt feedback" };
+  vi.stubGlobal("fetch", vi.fn().mockResolvedValue(response([...rows, duplicate])));
+  const { container } = render(<ClientExerciseVideos clientId="CL-A" />); open(); await screen.findByText("Control the lowering");
+  fireEvent.click(screen.getByRole("button", { name: "Compare two videos" }));
+  fireEvent.change(screen.getByLabelText("Video A — date"), { target: { value: "V2" } });
+  expect(screen.getAllByRole("listitem").map(e => e.querySelector("time")?.textContent)).toEqual(["2026-10-10", "2026-10-20"]);
+  expect(screen.queryByText("Control the lowering")).not.toBeInTheDocument();
+  fireEvent.change(screen.getByLabelText("Video B — date"), { target: { value: "V4" } });
+  const a = screen.getByLabelText("Video A — date"), b = screen.getByLabelText("Video B — date");
+  expect(within(a).getByRole("option", { name: /2026-10-10.*Clip 2/ })).toBeDisabled();
+  expect(within(b).getByRole("option", { name: /2026-10-10.*Clip 1/ })).toBeDisabled();
+  expect(screen.getAllByRole("listitem")[1]).toHaveTextContent("Second attempt feedback");
+  fireEvent.click(within(screen.getAllByRole("listitem")[0]).getByRole("button", { name: /Play Row/ }));
+  expect(container.querySelectorAll("video")).toHaveLength(1);
+  fireEvent.change(a, { target: { value: "V1" } }); expect(container.querySelectorAll("video")).toHaveLength(0);
+  fireEvent.change(screen.getByLabelText("Exercise"), { target: { value: "squat" } });
+  expect(screen.queryByLabelText("Video A — date")).not.toBeInTheDocument();
+  fireEvent.change(screen.getByLabelText("Exercise"), { target: { value: "row" } });
+  fireEvent.click(screen.getByRole("button", { name: "Compare two videos" }));
+  expect(screen.getByLabelText("Video A — date")).toHaveValue("V1"); expect(screen.getByLabelText("Video B — date")).toHaveValue("V3");
 });
