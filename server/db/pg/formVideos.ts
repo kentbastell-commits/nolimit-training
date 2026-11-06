@@ -118,11 +118,19 @@ export async function reviewFormVideo(
     .update(formVideos)
     .set(set)
     .where(eq(formVideos.videoId, input.recordId))
-    .returning({ videoId: formVideos.videoId });
+    .returning({
+      videoId: formVideos.videoId,
+      clientId: formVideos.clientId,
+      exerciseName: formVideos.exerciseName,
+      exerciseNameCn: formVideos.exerciseNameCn,
+      workoutName: formVideos.workoutName,
+      workoutNameCn: formVideos.workoutNameCn,
+    });
   if (!updated.length) {
     return { success: false, error: "Could not update video", message: "Video not found" };
   }
 
   queueTranslations("formVideos", [input.recordId]);
-  return { success: true };
+  // The handler pushes a WeChat "coach replied" notice from this.
+  return { success: true, video: updated[0] };
 }

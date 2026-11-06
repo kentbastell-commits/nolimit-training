@@ -6,6 +6,7 @@ import {
   createFormVideo,
   reviewFormVideo,
 } from "../server/db/repositories/formVideos.ts";
+import { notifyVideoReply } from "../server/wechat/subscribe.ts";
 
 // Form-video review flow (premium tier: online / in-person clients).
 // GET   -> list videos (coach review queue + athlete status)
@@ -78,6 +79,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
       const result = await reviewFormVideo({ recordId, coachReply, status });
       if (!result.success) return res.status(500).json(result);
+      // A real reply (not a bare "mark reviewed") earns the athlete a WeChat
+      // 训练总结通知 push — best-effort, after the save has already landed.
+      const video = result.video as Parameters<typeof notifyVideoReply>[0] | undefined;
+      if (video?.clientId && String(coachReply || "").trim()) void notifyVideoReply(video);
       return res.status(200).json({ success: true });
     }
 
