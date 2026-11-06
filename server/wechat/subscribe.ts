@@ -24,7 +24,8 @@ export const SUBSCRIBE_TEMPLATES: Record<SubscribeKind, { id: string; title: str
     id: "GZWzlqOXkCDP6LTZ6NGEW9Avn84_2g4B_xl8FgGYbUg",
     title: "训练提醒",
     page: "pages/home/index",
-    fields: ["thing1", "time2", "thing3"],
+    // WeChat numbered these oddly (verified with sendSessionReminders --list).
+    fields: ["thing9", "time2", "thing7"],
   },
   // 训练总结通知: 教练姓名 / 训练部位 / 发布时间 — "coach replied to your video".
   summary: {

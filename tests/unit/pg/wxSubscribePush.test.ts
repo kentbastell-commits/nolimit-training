@@ -114,7 +114,7 @@ describe("pushToClient", () => {
       template_id: SUBSCRIBE_TEMPLATES.session.id,
       page: "pages/home/index",
       lang: "en",
-      data: { thing1: { value: "Upper Pull" }, time2: { value: "2026-11-06 07:30" }, thing3: { value: "Your plan is ready" } },
+      data: { thing9: { value: "Upper Pull" }, time2: { value: "2026-11-06 07:30" }, thing7: { value: "Your plan is ready" } },
     });
     const credits = await rows("select credit_id, used_at from wx_subscribe_credits order by credit_id");
     expect(credits.find((c: any) => c.credit_id === old)?.used_at).not.toBeNull();
