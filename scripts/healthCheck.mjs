@@ -23,12 +23,6 @@ const WEBHOOK = process.env.FEISHU_BOT_WEBHOOK_URL || "";
 const STATE_FILE = "/tmp/nolimit-health-state.json";
 const LOG_FILE = path.resolve(process.cwd(), "logs/client-events.jsonl");
 const BACKUP_DIR = "/opt/backups/pg";
-// The coach console lock (COACH_ACCESS_KEY, on since 2026-09-20) also gates
-// /api/clients and the full /api/formVideos list. Without this header the
-// athlete digest below failed quietly and the morning report lost its
-// "Your athletes yesterday" section for five weeks before anyone noticed.
-const COACH_KEY = process.env.COACH_ACCESS_KEY || "";
-const coachHeaders = () => (COACH_KEY ? { "x-coach-key": COACH_KEY } : {});
 
 const mode = process.argv.includes("--report") ? "report" : "watch";
 
@@ -131,124 +125,6 @@ function telemetrySince(sinceMs) {
   const top = (m) =>
     [...m.entries()].sort((a, b) => b[1] - a[1]).slice(0, 5).map(([k, n]) => `${n}× ${k}`);
   return { crashes: top(crashes), failures: top(failures), funnel, total };
-}
-
-/**
- * Per-athlete pilot digest: for every coached athlete, what happened
- * yesterday — trained or skipped, wellness submitted, readiness. Reads the
- * public API on this box; every failure degrades to an empty section rather
- * than breaking the report.
- */
-async function athleteDigest() {
-  const get = async (p) => {
-    const res = await fetch(`${SITE}${p}`, { headers: coachHeaders(), signal: AbortSignal.timeout(20000) });
-    if (!res.ok) throw new Error(`${p} -> ${res.status}`);
-    return res.json();
-  };
-  // "Yesterday" in China time — scheduled_date epochs are China midnights.
-  const chinaNow = new Date(
-    new Date().toLocaleString("en-US", { timeZone: "Asia/Shanghai" })
-  );
-  const y = new Date(chinaNow.getTime() - 24 * 3600 * 1000);
-  const pad = (n) => String(n).padStart(2, "0");
-  const yKey = `${y.getFullYear()}-${pad(y.getMonth() + 1)}-${pad(y.getDate())}`;
-
-  try {
-    const { clients = [] } = await get("/api/clients");
-    const coached = clients
-      .filter((c) =>
-        /online coaching|in[-\s]?person/i.test(String(c.clientType || ""))
-      );
-    const lines = [];
-    for (const c of coached) {
-      const code = c.clientCode || c.id;
-      try {
-        const [{ workouts = [] }, { checkIns = [] }] = await Promise.all([
-          // The endpoint filters on clientCode, not clientId: with the wrong
-          // name it returned EVERY athlete's schedule, so each line showed the
-          // same "2/5 sessions" (live since the digest was written).
-          get(`/api/workouts?clientCode=${encodeURIComponent(code)}&audience=athlete`),
-          get(`/api/checkIns?clientId=${encodeURIComponent(code)}`),
-        ]);
-        const toKey = (ms) => {
-          const d = new Date(Number(ms));
-          const cn = new Date(
-            d.toLocaleString("en-US", { timeZone: "Asia/Shanghai" })
-          );
-          return `${cn.getFullYear()}-${pad(cn.getMonth() + 1)}-${pad(cn.getDate())}`;
-        };
-        const yesterdays = workouts.filter(
-          (w) => w.scheduledDate && toKey(w.scheduledDate) === yKey
-        );
-        const doneCount = yesterdays.filter((w) =>
-          /complete/i.test(String(w.completionStatus || ""))
-        ).length;
-        const wellness = checkIns.find((ci) => ci.submittedDate === yKey);
-
-        const parts = [];
-        if (yesterdays.length === 0) parts.push("rest day");
-        else if (doneCount === yesterdays.length)
-          parts.push(
-            `trained ✓ (${yesterdays.map((w) => w.sessionName).join(", ")})`
-          );
-        else
-          parts.push(
-            `⚠️ ${doneCount}/${yesterdays.length} sessions logged (${yesterdays
-              .map((w) => w.sessionName)
-              .join(", ")})`
-          );
-        parts.push(
-          wellness
-            ? `wellness ${wellness.readinessScore || "✓"}`
-            : "no wellness check-in"
-        );
-        lines.push(`  • ${c.name || code}: ${parts.join(" · ")}`);
-      } catch {
-        lines.push(`  • ${c.name || code}: (could not load)`);
-      }
-    }
-    return lines;
-  } catch {
-    return [];
-  }
-}
-
-/**
- * Athlete form videos still waiting for a coach reply. In October 2026 this
- * queue grew to 74 clips (one athlete alone 71) with nothing telling Kent —
- * the Review page only shows it when he opens it.
- */
-async function pendingVideos() {
-  try {
-    const res = await fetch(`${SITE}/api/formVideos`, {
-      headers: coachHeaders(),
-      signal: AbortSignal.timeout(20000),
-    });
-    if (!res.ok) throw new Error(`formVideos -> ${res.status}`);
-    const { videos = [] } = await res.json();
-    const pending = videos.filter((v) => String(v.status || "") !== "Reviewed");
-    if (!pending.length) return ["Athlete videos: none waiting for your feedback. 👍"];
-    const byClient = new Map();
-    let oldest = Date.now();
-    for (const v of pending) {
-      const k = v.clientName || v.clientId || "?";
-      byClient.set(k, (byClient.get(k) || 0) + 1);
-      const ts = Number(v.submittedAt) || Date.now();
-      if (ts < oldest) oldest = ts;
-    }
-    const oldestDays = Math.floor((Date.now() - oldest) / 86400000);
-    const lines = [
-      `🎬 ${pending.length} athlete video${pending.length === 1 ? "" : "s"} waiting for your feedback` +
-        ` (oldest ${oldestDays} day${oldestDays === 1 ? "" : "s"}):`,
-    ];
-    for (const [name, n] of [...byClient.entries()].sort((a, b) => b[1] - a[1]).slice(0, 6)) {
-      lines.push(`  • ${name}: ${n} clip${n === 1 ? "" : "s"}`);
-    }
-    lines.push("  Review page → Form Videos (grouped by session; reply once per session).");
-    return lines;
-  } catch (e) {
-    return [`Athlete videos: could not load (${e.message})`];
-  }
 }
 
 function backupStatus() {
@@ -363,14 +239,8 @@ async function report() {
   lines.push(`Memory: ${sys.mem}`);
   lines.push("");
 
-  const athletes = await athleteDigest();
-  if (athletes.length) {
-    lines.push("Your athletes yesterday:");
-    lines.push(...athletes);
-    lines.push("");
-  }
-  lines.push(...(await pendingVideos()));
-  lines.push("");
+  // Athlete lines moved to the 07:00 coach briefing (scripts/coachBriefing.mjs):
+  // this message is server health only.
 
   const certDays = mediaCertDaysLeft();
   if (certDays !== null && certDays <= 14) {
