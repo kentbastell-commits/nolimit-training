@@ -399,6 +399,7 @@ app.listen(port, "127.0.0.1", () => {
   // whole TTL (named mistake #5). Best-effort — a bus failure only degrades
   // to TTL-staleness.
   void startCacheBus().catch(() => {});
+  void import("./db/translationRetry.ts").then(({ startTranslationRetry }) => startTranslationRetry());
 
   // Warm the heavy read caches in the background right after boot, so the first
   // real user request (especially opening a workout, which scans the whole

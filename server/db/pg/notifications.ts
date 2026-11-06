@@ -2,6 +2,7 @@ import { desc, eq } from "drizzle-orm";
 import { db } from "../client.ts";
 import { notifications } from "../schema.ts";
 import { pgErrorMessage, str } from "./_util.ts";
+import { queueTranslations } from "../contentTranslations.ts";
 import type { WriteResult } from "../dto.ts";
 import type {
   NotificationDTO,
@@ -25,7 +26,9 @@ export async function listNotifications(clientId?: string): Promise<Notification
       notificationId: str(r.notificationId),
       clientId: str(r.clientId),
       title: str(r.title),
+      titleCn: str(r.titleCn),
       body: str(r.body),
+      bodyCn: str(r.bodyCn),
       type: str(r.type),
       read: Boolean(r.read),
       createdAt:
@@ -56,5 +59,6 @@ export async function createNotification(
     // e.g. notification for a just-deleted client (FK) — report, don't 500.
     return { success: false, error: pgErrorMessage(e) };
   }
+  queueTranslations("notifications", [notificationId]);
   return { success: true, recordId: notificationId };
 }

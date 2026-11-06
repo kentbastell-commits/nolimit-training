@@ -9,7 +9,9 @@ export type NotificationDTO = {
   notificationId: string;
   clientId: string;
   title: string;
+  titleCn?: string;
   body: string;
+  bodyCn?: string;
   type: string;
   read: boolean;
   createdAt: string;

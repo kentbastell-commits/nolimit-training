@@ -1,7 +1,7 @@
 // One coverage map for write-time translation and the audit/backfill command.
 // Translate after commit, preserve explicit Chinese copy, and apply only while
 // the source still matches. The existing cache bus reaches every API worker.
-import { and, eq, getTableColumns, inArray, isNull, or, sql } from "drizzle-orm";
+import { and, eq, getTableColumns, inArray, isNull, sql } from "drizzle-orm";
 import type { AnyPgTable } from "drizzle-orm/pg-core";
 import { db } from "./client.ts";
 import * as schema from "./schema.ts";
@@ -36,7 +36,8 @@ export const translationAreas = {
   checkIns: { table: schema.checkIns, id: "checkinId", caches: ["checkIns", "checkins"], fields: [
     zh("coachNotes"), en("nutritionNotes"), en("trainingNotes"), en("wins"), en("problemsPain"), en("clientNotes"),
   ] },
-  formVideos: { table: schema.formVideos, id: "videoId", caches: ["formVideos"], fields: [en("clientNote"), zh("coachReply")] },
+  formVideos: { table: schema.formVideos, id: "videoId", caches: ["formVideos"], fields: [en("clientNote"), zh("coachReply"), zh("exerciseName"), zh("workoutName")] },
+  notifications: { table: schema.notifications, id: "notificationId", caches: [], fields: [zh("title"), zh("body")] },
   clients: { table: schema.clients, id: "clientId", caches: ["clients"], fields: [en("notes")] },
   workoutLogs: { table: schema.workoutLogs, id: "logId", caches: ["workoutComments", "workoutHistory"], fields: [en("athleteNotes")] },
   formResponses: { table: schema.formResponses, id: "responseId", caches: ["contentResponses"], fields: [en("clientComment"), { ...en("answers"), kind: "answers" }] },
@@ -74,7 +75,8 @@ export function queueTranslations(area: TranslationArea, ids: string[]) {
   // Duplicated content is coalesced by translateText. Bulk saves read at most 200 rows at a time.
   const job = (async () => {
     for (let offset = 0; offset < ids.length; offset += 200) {
-      await fillRowTranslations(area, ids.slice(offset, offset + 200));
+      const result = await fillRowTranslations(area, ids.slice(offset, offset + 200));
+      if (result.unavailable) console.warn(`[translation] ${area}: ${result.unavailable} fields pending retry`);
     }
   })().catch(() => {
     console.warn(`[translation] ${area}: deferred; retry with translationCoverage.ts --apply`);
@@ -138,7 +140,7 @@ export async function fillRowTranslations(area: TranslationArea, ids: string[]) 
         const updated = await db.update(config.table).set({ [field.mirror]: translated }).where(and(
           eq(columns[config.id], row[config.id]),
           eq(columns[field.source], row[field.source]),
-          or(isNull(columns[field.mirror]), eq(columns[field.mirror], "")),
+          sql`coalesce(btrim(${columns[field.mirror]}::text), '') = ''`,
         )).returning({ id: columns[config.id] });
         if (updated.length) {
           filled++;

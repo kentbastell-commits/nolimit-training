@@ -3,7 +3,8 @@
 // exist so a submission always lands; clientName still carries the identity.
 import { eq, inArray } from "drizzle-orm";
 import { db } from "../client.ts";
-import { formVideos, clients, assignedWorkouts } from "../schema.ts";
+import { formVideos, clients, assignedWorkouts, exercises } from "../schema.ts";
+import { videoExerciseLabels } from "../../../src/videoExerciseLabels.ts";
 import { resolveVideoSession, videoDay } from "../../../src/videoSessionGrouping.ts";
 import { str } from "./_util.ts";
 import { queueTranslations } from "../contentTranslations.ts";
@@ -16,6 +17,8 @@ import type { WriteResult } from "../dto.ts";
 
 export async function listFormVideos(): Promise<FormVideoDTO[]> {
   const rows = await db.select().from(formVideos);
+  const library = await db.select({ name: exercises.name, nameCn: exercises.nameCn }).from(exercises);
+  const label = videoExerciseLabels(library);
   const clientIds = [...new Set(rows.map(row => row.clientId).filter((id): id is string => !!id))];
   const assignments = clientIds.length ? await db.select().from(assignedWorkouts).where(inArray(assignedWorkouts.clientId, clientIds)) : [];
   return rows
@@ -25,6 +28,7 @@ export async function listFormVideos(): Promise<FormVideoDTO[]> {
       clientId: str(r.clientId),
       clientName: str(r.clientName),
       exerciseName: str(r.exerciseName),
+      exerciseNameCn: label(str(r.exerciseName), r.exerciseNameCn),
       workoutName: str(r.workoutName),
       workoutNameCn: str(r.workoutNameCn),
       assignedWorkoutId: str(r.assignedWorkoutId),
@@ -68,12 +72,15 @@ export async function createFormVideo(
   // orphaned file.)
   if (found && found.clientId !== clientCode) return { success: false, error: "Invalid workout" };
   const assignment = found;
+  const library = await db.select({ name: exercises.name, nameCn: exercises.nameCn }).from(exercises);
+  const exerciseNameCn = videoExerciseLabels(library)(String(input.exerciseName || ""));
   try {
     await db.insert(formVideos).values({
       videoId,
       clientId: clientExists ? clientCode : null,
       clientName: String(input.clientName || ""),
       exerciseName: String(input.exerciseName || ""),
+      exerciseNameCn: exerciseNameCn || null,
       workoutName: assignment?.sessionName || String(input.workoutName || ""),
       assignedWorkoutId: assignment?.assignedWorkoutId || null,
       workoutDate: assignment ? videoDay(assignment.scheduledDate) : null,

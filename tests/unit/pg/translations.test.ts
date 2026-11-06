@@ -8,6 +8,8 @@ import { createProgram, updateProgram, listPrograms } from "../../../server/db/p
 import { replyToMessage } from "../../../server/db/pg/clientMessages.ts";
 import { getContentResponses } from "../../../server/db/repositories/contentResponses.ts";
 import { createCheckIn } from "../../../server/db/pg/checkIns.ts";
+import { retryPendingTranslations } from "../../../server/db/translationRetry.ts";
+import { createNotification, listNotifications } from "../../../server/db/pg/notifications.ts";
 import { getCached, setCached } from "../../../api/_cache.ts";
 import { closeDb, resetDb, rows, seedClient } from "./helpers.ts";
 
@@ -26,6 +28,25 @@ afterEach(async () => { await drainTranslations(); });
 afterAll(closeDb);
 
 describe("translation persistence coverage", () => {
+  it("recovers a persisted blank mirror after the provider becomes available", async () => {
+    await pool.query("insert into exercises(exercise_id, name) values ('EX-retry', 'Recovery drill')");
+    provider.mockResolvedValue(null);
+    expect((await fillRowTranslations("exercises", ["EX-retry"])).unavailable).toBe(1);
+    provider.mockResolvedValue("恢复训练");
+    expect((await retryPendingTranslations()).filled).toBe(1);
+    expect((await rows("select name_cn from exercises where exercise_id='EX-retry'"))[0].name_cn).toBe("恢复训练");
+  });
+
+  it("translates notification text through the normal saved write path", async () => {
+    await seedClient();
+    await createNotification({ clientId: "CL-9001", title: "Session ready", body: "Read your coach instructions" });
+    await drainTranslations();
+    const [notification] = await listNotifications("CL-9001");
+    expect(notification.titleCn).toBe("zh: Session ready");
+    expect(notification.bodyCn).toBe("zh: Read your coach instructions");
+    expect(notification.title).toBe("Session ready");
+  });
+
   it("fills every registered area and preserves original text", async () => {
     for (const [name, config] of Object.entries(translationAreas)) {
       const columns = getTableColumns(config.table);

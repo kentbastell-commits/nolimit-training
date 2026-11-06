@@ -10,6 +10,7 @@ export type FormVideoDTO = {
   clientId: string;
   clientName: string;
   exerciseName: string;
+  exerciseNameCn?: string;
   workoutName: string;
   workoutNameCn?: string;
   assignedWorkoutId?: string;
