@@ -188,9 +188,14 @@ async function llmTranslate(
         model: cfg.model,
         // DeepSeek enables thinking by default on its newer models. Explicit
         // non-thinking translation avoids spending the 15s deadline on reasoning.
-        // Keep provider-specific parameters off other OpenAI-compatible hosts.
+        // TokenHub DeepSeek V4 also defaults to thinking; complex session
+        // instructions otherwise exhaust the response deadline/token budget.
+        // Keep this parameter off unrelated providers and TokenHub models.
         // https://api-docs.deepseek.com/guides/thinking_mode/
-        ...(new URL(cfg.base).hostname === "api.deepseek.com" ? { thinking: { type: "disabled" } } : {}),
+        // https://cloud.tencent.com/document/product/1823/132248
+        ...((new URL(cfg.base).hostname === "api.deepseek.com" ||
+          (["tokenhub.tencentmaas.com", "tokenhub-intl.tencentcloudmaas.com"].includes(new URL(cfg.base).hostname) && /^deepseek[-/]/i.test(cfg.model)))
+          ? { thinking: { type: "disabled" } } : {}),
         temperature: 0.2,
         max_tokens: 2000,
         messages: [

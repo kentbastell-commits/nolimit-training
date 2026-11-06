@@ -16,6 +16,17 @@ beforeEach(async () => {
 afterEach(() => { vi.unstubAllGlobals(); vi.unstubAllEnvs(); vi.useRealTimers(); });
 
 describe("domain-aware translation providers", () => {
+  it("disables thinking for DeepSeek through TokenHub without altering other TokenHub models", async () => {
+    vi.stubEnv("AI_BASE_URL", "https://tokenhub.tencentmaas.com/v1");
+    vi.stubEnv("AI_MODEL", "deepseek-v4-flash");
+    const fetch = vi.fn(async () => llm("保持20秒")); vi.stubGlobal("fetch", fetch);
+    await translate.translateText("Hold for 20 seconds", "zh");
+    expect(JSON.parse((fetch.mock.calls[0] as any)[1].body).thinking).toEqual({ type: "disabled" });
+    vi.stubEnv("AI_MODEL", "glm-5.3");
+    await translate.translateText("Hold for 30 seconds", "zh");
+    expect(JSON.parse((fetch.mock.calls[1] as any)[1].body)).not.toHaveProperty("thinking");
+  });
+
   it("uses DeepSeek for both directions and keeps the operations prompt separate", async () => {
     const fetch = vi.fn(async () => llm("translated")); vi.stubGlobal("fetch", fetch);
     await translate.translateText("Rest 90 seconds", "zh");
