@@ -1,6 +1,6 @@
 # Exercise footage reframing runbook
 
-Last verified: 2026-11-04 (Alt accessory videos and instructions)
+Last verified: 2026-11-08 (Yanjun November 9–11 workouts)
 
 This is the canonical handoff for both Codex and Claude. Read it before changing, recreating, moving, or publishing the 2026-08-08 exercise footage.
 
@@ -581,3 +581,25 @@ Four supplied recordings from `C:\Users\kentb\OneDrive\Desktop\App Recordings` m
 - Completed five reusable library instruction entries: standing calf raise, pogos, both new raises and bench deadbug leg lowers. Library count stays 824, with 819 unrelated rows unchanged. Existing taxonomy/anatomy and other videos remain unchanged. The assigned session is saved through its version-guarded API with `action=draft`, and the matching working draft's notes and baseline/version are synchronized; the workout stays private. Take the same `draft:${owner}:${id}` advisory lock used by `/api/coachDrafts` before checking/updating that snapshot, so an autosave cannot pass an old revision check and overwrite it after the synchronization.
 - Both workers and both public domains return all nine linked videos and bilingual notes. Private athlete requests return 403 with and without coach headers. Origin/CDN beginning/end byte ranges match both candidates and thumbnails return 200. Other assignments, working drafts and prior template history are verified unchanged. No notification, application deployment or mini-program upload.
 - Evidence, exact recipes, full/edge contact sheets, probes, source hashes, reviewed cue provenance, original snapshots, guarded publication/synchronization scripts and verification receipts: `deliverables/alt-accessory-2026-11-04/`.
+
+
+## Separate library additions — Yanjun November 9–11, prepared 2026-11-08
+
+- Matched three App Recordings to existing entries: `Single Arm Landmine Row.mp4` → `EX-SIN-9801`; `Lying Medicine Ball Chest Throw.mp4` → `EX-LYI-8671`; `Elevated Box Push-up.mp4` → `EX-ELE-9456`. No duplicates created. The row uses a hip hinge and grips the exposed free sleeve next to the plates; the throw is a supine two-hand vertical throw and absorbed catch; the push-up is hands-elevated, distinct from the separate plyometric demonstration.
+- Protect the complete source rectangle at x=0/y=0. Preserve row feet/hip hinge, hand/sleeve grip and the complete bar/plate path; medicine-ball flight, catch, both hands, head, trunk and planted feet; push-up hands/box, chest-depth and lockout extremes, both feet and the source's close-up transition. No crop, trim, tracking, added overlays or audio processing. Keep all available source pixels, including existing playback controls and the push-up source's close-up shot. Original recordings and August master folders are unchanged.
+
+| Source / exercise ID | Protected source frame | Exact delivery filter |
+| --- | --- | --- |
+| `Single Arm Landmine Row.mp4` / `EX-SIN-9801` | 2838×1488 | `scale=1920:1006:flags=lanczos,setsar=1,pad=1920:1080:(ow-iw)/2:(oh-ih)/2:color=0x111214` |
+| `Lying Medicine Ball Chest Throw.mp4` / `EX-LYI-8671` | 2824×1498 | `scale=1920:1018:flags=lanczos,setsar=1,pad=1920:1080:(ow-iw)/2:(oh-ih)/2:color=0x111214` |
+| `Elevated Box Push-up.mp4` / `EX-ELE-9456` | 2798×1586 | `scale=1906:1080:flags=lanczos,setsar=1,pad=1920:1080:(ow-iw)/2:(oh-ih)/2:color=0x111214` |
+
+- Each source and candidate reviewed at 20 full-duration samples and 20 dense beginning/end samples, plus enlarged row-grip and ball-flight frames. Full source/candidate decodes, H.264/yuv420p, nominal source 30 fps, copied AAC packet hashes, fast-start, duration continuity and no subtitle/data streams pass. Charcoal padding and `comment=nx-opt` match the established App Recordings treatment. All three original source hashes rechecked unchanged.
+- `EX-SIN-9801`: `https://trainnolimit.cn/uploads/ex-b243a57f802d378a322eabb1.mp4`; 7.999979 → 8.033333 seconds; 1,463,679 bytes; SHA-256 `a8e0334f68f4de76e927e2178e3716fb90ed1e8a962c72ff12da5818039be088`.
+- `EX-LYI-8671`: `https://trainnolimit.cn/uploads/ex-018caef613e6d29b11e5e57d.mp4`; 9.279979 → 9.300000 seconds; 1,543,624 bytes; SHA-256 `6ae26dae7714fb5244481bf0ce5189e2d09f311bcef2d6032407ab10bd9b15e9`.
+- `EX-ELE-9456`: `https://trainnolimit.cn/uploads/ex-86853a5b667c99bad8fefa7d.mp4`; 10.111979 → 10.133333 seconds; 3,967,661 bytes; SHA-256 `44ef435efce67c6c0e14f1784021d6e9dae6f1c50d8f5a854a345b6b55b78138`.
+- Regional COS staging and final storage hashes match; all three staging objects removed. Both workers and both public domains resolve all 25 exercise entries in the three already-published November 9–11 assignments for `CL-6785`, including English/Chinese setup/execution, Chinese exercise titles and linked videos. Origin/CDN beginning/end ranges match the candidates and all thumbnails return 200.
+- Added three missing session instruction sets (single-arm row, medicine-ball throw and hanging circuit), corrected Strength 1's stale two-hold prose to match its existing three 20-second holds, and completed four reusable library cue entries including the box push-up. Used live DeepSeek translation and reviewed all eight new mirror fields; replaced an untranslated forearm label. Other reviewed exercise instructions were reused unchanged, including all seven warmup entries. The medicine-ball instructions retain the coach's rest-after-push-ups and smooth absorbed-catch cue.
+- Hanging circuit remains at its six saved 20-second sets and 20-second rests, alternating 20–25 mm fingerboard edges on odd sets with balls on even sets. The source note referred to eight sets; clarification was requested, and the saved six-set prescription was preserved rather than silently increasing the dose. No set prescription, tracking metadata, date, label, order or published status changed. The old 12-repetition value is inactive because this entry uses time tracking.
+- Version-guarded assigned-session saves and snapshot-guarded library updates pass. Other assignments, six existing coach working drafts, original templates/history, unrelated library rows and existing video links are verified unchanged. No message, notification, app deployment, mini-program upload, paid service or new spending.
+- Evidence, reproducible scripts, source/candidate probes and full/edge sheets, protected envelopes, source hashes, translation review, transfer/publication and live verification receipts: `deliverables/yanjun-week-2026-11-09/`.
