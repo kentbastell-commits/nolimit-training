@@ -1,6 +1,6 @@
 # Exercise footage reframing runbook
 
-Last verified: 2026-11-08 (Yanjun November 9–11 workouts)
+Last verified: 2026-11-11 (Chenyu accessory videos and instructions)
 
 This is the canonical handoff for both Codex and Claude. Read it before changing, recreating, moving, or publishing the 2026-08-08 exercise footage.
 
@@ -604,3 +604,26 @@ Four supplied recordings from `C:\Users\kentb\OneDrive\Desktop\App Recordings` m
 - Version-guarded assigned-session saves and snapshot-guarded library updates pass. Other assignments, six existing coach working drafts, original templates/history, unrelated library rows and existing video links are verified unchanged. No message, notification, app deployment, mini-program upload, paid service or new spending.
 - Evidence, reproducible scripts, source/candidate probes and full/edge sheets, protected envelopes, source hashes, translation review, transfer/publication and live verification receipts: `deliverables/yanjun-week-2026-11-09/`.
 - Kent subsequently confirmed **eight** alternating hanging sets. Updated only `EX-HAN-2514` in November 11 `AW-220244` to eight 20-second holds with the existing 20-second rests: fingerboard 20–25 mm edges on sets 1/3/5/7 and balls on sets 2/4/6/8. Expanded the actual set-prescription rows as well as the English/Chinese instructions; live DeepSeek translation was reviewed and its remaining English forearm label corrected. Both workers and public-origin coach/athlete reads verify eight sets. Other prescriptions, dates, order, published state, library entries, other assignments and original template history remain unchanged. Follow-up snapshots, payload and receipt: `eight-before.json`, `eight-payload.json`, `eight-receipt.json` in the same delivery folder.
+
+
+## Separate library additions and replacement — Chenyu Accessory, 2026-11-11
+
+- Kent confirmed retaining the saved November 11 date, despite the initial request saying tomorrow, and confirmed Machine Chest Fly rather than Chest Press. Published only the nine-exercise Accessory assignment `AW-5b26e6b3-af9d-4981-9d36-fa4e74632d29` for `CL-6798` after completing bilingual content. Other calendar items, including the existing warmup revision, remain unchanged.
+- Matched `Cable Latismus Dorsi Pullover.mp4` to existing `EX-CAB-8240`, replacing its portrait MOV demo with the new landscape recording; the previous uploaded asset remains for rollback. Matched `Cable Teres Major Pulldown.mp4` to `EX-CAB-1079`, and `Machine Chest Fly.mp4` to `EX-MAC-8984`. No duplicates created and no chest-press entry changed.
+- Protected envelope is the complete displayed source rectangle at x=0/y=0. Preserve the lying pullover's overhead-to-hip bar path, both hands, head, supported trunk and both heels; teres pulldown's inclined head/trunk support, working shoulder/elbow/hand and cable path, bench and lower-body supports; fly's full hand/elbow arc, head, back support and visible lower body. The fly recording already omits the feet; retain all available pixels. No crop, trim, tracking, blur, added overlays or audio processing. Originals and August masters are untouched.
+
+| Source / exercise ID | Protected source frame | Exact landscape delivery filter |
+| --- | --- | --- |
+| `Cable Latismus Dorsi Pullover.mp4` / `EX-CAB-8240` | 568×320 | `scale=1916:1080:flags=lanczos,setsar=1,pad=1920:1080:(ow-iw)/2:(oh-ih)/2:color=0x111214` |
+| `Cable Teres Major Pulldown.mp4` / `EX-CAB-1079` | 568×320 | `scale=1916:1080:flags=lanczos,setsar=1,pad=1920:1080:(ow-iw)/2:(oh-ih)/2:color=0x111214` |
+| `Machine Chest Fly.mp4` / `EX-MAC-8984` | 2840×1482 | `scale=1920:1002:flags=lanczos,setsar=1,pad=1920:1080:(ow-iw)/2:(oh-ih)/2:color=0x111214` |
+
+- Source and candidate each reviewed with 20 full-duration samples and 20 dense beginning/end samples; previous lat demo received the same review. Enlarged frames confirmed both lat movement extremes and teres supported-arm positions. All three original hashes and full source/candidate decodes pass; deliveries are 1920×1080 H.264/yuv420p, original nominal 30 fps and copied AAC packets, fast-start, no subtitle/data streams and `comment=nx-opt`. Padding is charcoal; there is no new crop or speech processing.
+- `EX-CAB-8240`: `https://trainnolimit.cn/uploads/ex-2bd69bedf0213b5b2a1ec2f7.mp4`; 14.100000 → 14.100000 seconds; 5,420,916 bytes; SHA-256 `54add3ce8fec60b03180794bec8d3eb765af0b4de9b4130a049e5258e2c3b27c`.
+- `EX-CAB-1079`: `https://trainnolimit.cn/uploads/ex-896aae52e72070f2bfc67bb0.mp4`; 9.066667 → 9.066667 seconds; 3,920,866 bytes; SHA-256 `f8b74ae4e6fc6084bdd1f4b0ce12f896a0a227d933fb4ea1b05e105aa939c8a2`.
+- `EX-MAC-8984`: `https://trainnolimit.cn/uploads/ex-ff01e8a5f7a631f1eebb72be.mp4`; 11.669333 → 11.700000 seconds; 4,030,074 bytes; SHA-256 `12d65db4941bbc32204b12708202794e76cb5b36facb2a6d90918242af9774bc`.
+- Completed all nine session setup/execution entries and four reusable library entries (side-lying cable external rotation plus the three supplied videos). Used live DeepSeek for 13 fields and reviewed the Chinese instructions. Preserved elbow blocking and shoulder-socket rotation, lat-led pulling, teres shoulder depression during the pull with optional one-second squeeze, seven chest-fly reps with a five-second squeeze on every rep, 20/15/10 pogo progression, two 30-second ankle holds per side, and pronation plus supination counting as one rep. Generic library cues exclude session-specific doses.
+- Snapshot-guarded library update, version-guarded assigned-session save, then calendar review/publication through `/api/calendarDrafts` with only this assignment selected. Both workers and both public domains verify athlete access, Chinese exercise titles, nine bilingual instruction sets and three new linked videos. Sets, reps, timing fields, rests, order, labels and date are unchanged; only this private workout was made live.
+- Regional COS staging, pulled media and final storage hashes match; all three staging objects removed. Origin/CDN beginning/end byte ranges match and thumbnails return 200. Original templates, previous lat asset, all working drafts, other assignments and unrelated library fields/rows are verified unchanged. No message, notification, software deployment, mini-program upload, paid service or new spending.
+- Side-Lying Cable External Rotation `EX-SID-9259` has full bilingual instructions but no linked demo; no matching new recording was supplied and the separate seated dumbbell or band-rotation clips were not substituted. The other eight exercises have linked videos.
+- Evidence, protected envelopes, render commands, full/edge sheets, enlarged grip/support frames, source/candidate hashes and probes, reviewed translations, publication and live verification receipts: `deliverables/chenyu-accessory-2026-11-12/` (folder created from the initial tomorrow request; saved workout date is November 11 as confirmed).
