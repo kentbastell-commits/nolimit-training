@@ -21646,7 +21646,7 @@ function App({ onReady, bootVisible = true }: { onReady?: () => void; bootVisibl
             coachingFeedError={coachReviewError}
             reviewReturn={reviewReturn}
             returnToReview={() => { setSelectedClient(null); setSelectedWorkout(null); setActivePage("Review"); setReviewReturn(false); }}
-            openCoachingReview={(key = "", filter = "dailyAll") => { const item = dailyCoachingItems.find(i => i.key === key); const nextFilter = filter === "dailyAll" && item && decisionStatus(item, reviewDecisions) === "resolved" ? "dailyHistory" : filter; setDailyReviewView(v => ({ ...v, athlete: selectedClient.clientCode, search: "", filter: nextFilter, selected: key, limit: 18, scroll: 0 })); setSelectedClient(null); setSelectedWorkout(null); setActivePage("Review"); }}
+            openCoachingReview={(key = "", filter = "dailyAll") => { const item = dailyCoachingItems.find(i => i.key === key || (i.kind === "video" && i.source?.sessionVideoIds?.some((id: string) => `video:${id}` === key))); const nextFilter = filter === "dailyAll" && item && decisionStatus(item, reviewDecisions) === "resolved" ? "dailyHistory" : filter; setDailyReviewView(v => ({ ...v, athlete: selectedClient.clientCode, search: "", filter: nextFilter, selected: item?.key || key, limit: 18, scroll: 0 })); setSelectedClient(null); setSelectedWorkout(null); setActivePage("Review"); }}
             switchableAthletes={coachVisibleClients}
             coachPreviewOpen={coachPreviewOpen}
             setCoachPreviewOpen={setCoachPreviewOpen}
