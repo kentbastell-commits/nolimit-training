@@ -65,7 +65,9 @@ export default function ReviewPage({
   // sessions that still have one (with their already-reviewed clips for
   // context). The unfiltered list made the pill grow forever (0063c073).
   const pendingVideoCount = (reviewFormVideos as any[]).filter((video) => video.status !== "Reviewed").length;
-  const videosInPendingSessions = groupWorkoutVideos(reviewFormVideos as any[])
+  // The queue shows pending sessions; an opened history item must also show
+  // reviewed clips so the coach can replay them and update saved feedback.
+  const visibleVideos = embeddedSection === "formVideos" ? reviewFormVideos : groupWorkoutVideos(reviewFormVideos as any[])
     .filter((group) => group.pending > 0)
     .flatMap((group) => group.videos);
   // Presentational only: which check-in is expanded in the slide-over.
@@ -418,9 +420,8 @@ export default function ReviewPage({
           )}
         </article>
 
-        {/* Form Videos — collapsible like the rest; shown only when there are
-            unreviewed clips (no summary card / KPI target points at it). */}
-        {pendingVideoCount > 0 && (
+        {/* History opens reviewed sessions too; the standalone queue stays pending-only. */}
+        {visibleVideos.length > 0 && (
           <article className="rvSection" hidden={!!embeddedSection && embeddedSection !== "formVideos"}>
             {sectionHeader(
               "Needs review",
@@ -429,7 +430,7 @@ export default function ReviewPage({
               "formVideos"
             )}
             {openReviewSections.formVideos && (
-              <WorkoutVideoGroups videos={videosInPendingSessions} coach replies={formVideoReplies} setReplies={setFormVideoReplies} onReview={reviewFormVideo} onReviewMany={reviewFormVideosInSession} />
+              <WorkoutVideoGroups videos={visibleVideos} coach replies={formVideoReplies} setReplies={setFormVideoReplies} onReview={reviewFormVideo} onReviewMany={reviewFormVideosInSession} />
             )}
           </article>
         )}
