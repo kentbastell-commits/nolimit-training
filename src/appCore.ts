@@ -1503,14 +1503,20 @@ export function stripLocalizedExerciseMeta(note = ""): string {
 export function composeExerciseNotes(
   notes: string,
   trackingType: TrackingType,
-  isUnilateral: boolean
+  isUnilateral: boolean,
+  existingNotes?: string
 ) {
   const parsed = parseExerciseNotes(notes);
   const cleanNotes = parsed.coachingNotes.trim();
+  const defaults = parseExerciseNotes(existingNotes ?? notes);
 
   return [
     `Tracking: ${trackingType}`,
     `Unilateral: ${isUnilateral ? "Yes" : "No"}`,
+    ...(defaults.setPrescriptions.length ? [
+      ...(defaults.trackingFields?.length ? [`Fields: ${defaults.trackingFields.join(", ")}`] : []),
+      `Set Prescriptions: ${JSON.stringify(defaults.setPrescriptions)}`,
+    ] : []),
     cleanNotes,
   ]
     .filter(Boolean)

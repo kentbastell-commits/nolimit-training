@@ -30,6 +30,7 @@ import useCoachReplyDrafts from "./useCoachReplyDrafts";
 import CoachConnectionStatus from "./CoachConnectionStatus";
 import useCoachHistory from "./useCoachHistory";
 import { exercisePrescription } from "./appCore";
+import { libraryExerciseDefaults, repeatedHoldDurationSeconds } from "./libraryExerciseDefaults";
 import "./MobileCoach.css";
 import { isAthletePreview } from "./athletePreviewPolicy";
 import { createSharedRead } from "./sharedRead";
@@ -3485,7 +3486,8 @@ function App({ onReady, bootVisible = true }: { onReady?: () => void; bootVisibl
       const composedNotes = composeExerciseNotes(
         exerciseForm.notes,
         exerciseForm.trackingType,
-        exerciseForm.isUnilateral
+        exerciseForm.isUnilateral,
+        editingExercise?.notes
       );
       const response = await fetch("/api/upsertExercise", {
         method: "POST",
@@ -9660,6 +9662,7 @@ function App({ onReady, bootVisible = true }: { onReady?: () => void; bootVisibl
     parent: ProgramExercise | null
   ): ProgramExercise => {
     const meta = parseExerciseNotes(exercise.notes || "");
+    const protocolDefaults = libraryExerciseDefaults(exercise);
     // Cardio by category OR a conditioning machine/run (Elliptical, Bike,
     // Row Erg… — see isCardioExercise): time/distance tracking + HR/RPE zones.
     const cardio = isCardioExercise(exercise.category, exercise.exerciseName);
@@ -9730,13 +9733,14 @@ function App({ onReady, bootVisible = true }: { onReady?: () => void; bootVisibl
       targetAdjustment: "",
       autoTarget: Boolean(exercise.usesAutoTarget),
       displayTarget: "",
+      ...protocolDefaults,
     };
 
     // "Circuit" section: exercises added here auto-link into one circuit
     // group (same rails as "+ Link as circuit"), so the coach never has to
     // link manually — the Rounds / AMRAP / EMOM controls render on the
     // group's first exercise, and the player runs the members in sequence.
-    if (/^circuit$/i.test(exerciseSection)) {
+    if (/^circuit$/i.test(exerciseSection) && !protocolDefaults) {
       const prevInCircuit = [...baseList]
         .reverse()
         .find(
@@ -11086,6 +11090,11 @@ function App({ onReady, bootVisible = true }: { onReady?: () => void; bootVisibl
   const estimateSessionMinutes = (exercises: ProgramExercise[]) => {
     let seconds = 0;
     for (const ex of exercises) {
+      const repeatedHolds = repeatedHoldDurationSeconds(ex);
+      if (repeatedHolds !== null) {
+        seconds += repeatedHolds;
+        continue;
+      }
       const sets = Math.max(1, Number(ex.sets) || 1);
       const restMatch = String(ex.rest || "").match(/(\d+)/);
       const restRaw = restMatch ? Number(restMatch[1]) : 60;
