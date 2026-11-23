@@ -13,7 +13,7 @@ import { CheckSquare, ChevronDown, X } from "lucide-react";
 import "./ReviewPage.css";
 import { normalizeDate } from "./appCore";
 import WorkoutVideoGroups from "./WorkoutVideoGroups";
-import { groupWorkoutVideos } from "./videoSessionGrouping";
+import { groupWorkoutVideos, isVideoPending } from "./videoSessionGrouping";
 import CountUp from "./CountUp";
 import ReviewPager, { reviewPageNumber, REVIEW_PAGE_SIZE } from "./ReviewPager";
 
@@ -64,7 +64,7 @@ export default function ReviewPage({
   // "Needs review" means pending: count unreviewed clips, and show only the
   // sessions that still have one (with their already-reviewed clips for
   // context). The unfiltered list made the pill grow forever (0063c073).
-  const pendingVideoCount = (reviewFormVideos as any[]).filter((video) => video.status !== "Reviewed").length;
+  const pendingVideoCount = (reviewFormVideos as any[]).filter(isVideoPending).length;
   // The queue shows pending sessions; an opened history item must also show
   // reviewed clips so the coach can replay them and update saved feedback.
   const visibleVideos = embeddedSection === "formVideos" ? reviewFormVideos : groupWorkoutVideos(reviewFormVideos as any[])

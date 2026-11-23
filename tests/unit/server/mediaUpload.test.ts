@@ -14,7 +14,7 @@ beforeEach(()=>vi.stubEnv("COACH_ACCESS_KEY","media-coach-key"));
 afterEach(()=>{
   vi.unstubAllEnvs();
   for(const name of fs.readdirSync(dir)){
-    if(!/^(ex|fv|coach)-[a-f0-9]{24}\.mp4$/.test(name))throw Error("Unexpected upload fixture");
+    if(!/^(ex|fv|coach)-[a-f0-9]{24}\.mp4$|^fa-[a-f0-9]{24}\.(webm|m4a)$/.test(name))throw Error("Unexpected upload fixture");
     fs.unlinkSync(path.join(dir,name));
   }
 });
@@ -32,6 +32,18 @@ describe("direct upload HTTP authorization",()=>{
   });
   it("keeps athlete form uploads available without a coach key",async()=>{
     const res=await upload("form");expect(res.status).toBe(200);expect((await res.json()).url).toMatch(/^\/uploads\/fv-/);
+  });
+  it("refuses a public voice-note upload",async()=>{
+    const res=await fetch(`${base}/upload?kind=audio&name=reply.webm`,{method:"POST",headers:{"content-type":"audio/webm"},body:"not-audio"});
+    expect(res.status).toBe(401);await res.body?.cancel();expect(fs.readdirSync(dir)).toEqual([]);
+  });
+  it("stores a coach voice note under fa- and keeps the original when it cannot be converted",async()=>{
+    // Fake bytes are not decodable, so ffmpeg (when present) fails and the
+    // handler must fall back to serving what was uploaded, never a 500.
+    const res=await fetch(`${base}/upload?kind=audio&name=reply.webm`,{method:"POST",headers:{"content-type":"audio/webm","x-coach-key":"media-coach-key"},body:"not-audio"});
+    expect(res.status).toBe(200);const data=await res.json();
+    expect(data.url).toMatch(/^\/uploads\/fa-[a-f0-9]{24}\.webm$/);
+    expect(fs.readFileSync(path.join(dir,path.basename(data.url)),"utf8")).toBe("not-audio");
   });
   it("rejects an empty upload and removes its empty file",async()=>{
     const res=await upload("exercise",true,"");expect(res.status).toBe(400);await res.body?.cancel();

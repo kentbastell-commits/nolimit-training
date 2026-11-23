@@ -41,6 +41,7 @@ export async function listFormVideos(): Promise<FormVideoDTO[]> {
       status: str(r.status) || "New",
       coachReply: str(r.coachReply),
       coachReplyCn: str(r.coachReplyCn),
+      coachReplyAudioUrl: str(r.coachReplyAudioUrl),
     }))
     .map(video => resolveVideoSession(video, assignments))
     .sort((a, b) => b.submittedAt - a.submittedAt);
@@ -88,7 +89,7 @@ export async function createFormVideo(
       videoUrl: input.absoluteVideoUrl || null,
       clientNote: String(input.note || ""),
       submittedAt: Date.now(),
-      status: "New",
+      status: input.reviewRequested === false ? "Reference" : "New",
     });
   } catch (e: any) {
     return {
@@ -108,6 +109,7 @@ export async function reviewFormVideo(
     status: String(input.status || "Reviewed"),
     reviewedAt: Date.now(),
   };
+  if (input.coachReplyAudioUrl !== undefined) set.coachReplyAudioUrl = input.coachReplyAudioUrl || null;
   if (input.coachReply !== undefined) {
     set.coachReply = String(input.coachReply);
     // A new reply replaces the old mirror; the fill below rebuilds it.

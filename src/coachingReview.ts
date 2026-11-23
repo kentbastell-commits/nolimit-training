@@ -70,7 +70,7 @@ export function buildCoachingItems(input: { clients: any[]; workouts?: any[]; ch
   items.forEach(item => {
     const s = item.source;
     if (item.priority === 1 && item.date && daysBetween(item.date, today) > 7) item.priority = 3;
-    item.sourceDone = Boolean(item.kind === "message" ? s.coachReply || s.status === "Replied" : item.kind === "comment" ? s.reviewed : item.kind === "checkin" || item.kind === "workout" ? s.coachReviewed : item.kind === "video" ? s.status === "Reviewed" : item.kind === "submission" ? s.answers?.[0]?.reviewedAt : false);
+    item.sourceDone = Boolean(item.kind === "message" ? s.coachReply || s.status === "Replied" : item.kind === "comment" ? s.reviewed : item.kind === "checkin" || item.kind === "workout" ? s.coachReviewed : item.kind === "video" ? (s.status === "Reviewed" || s.status === "Reference") : item.kind === "submission" ? s.answers?.[0]?.reviewedAt : false);
   });
   return items.sort((a, b) => a.priority - b.priority || (a.priority === 0 ? a.date.localeCompare(b.date) : b.date.localeCompare(a.date)) || a.key.localeCompare(b.key));
 }

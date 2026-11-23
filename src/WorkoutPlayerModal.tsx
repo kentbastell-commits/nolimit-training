@@ -9,6 +9,7 @@ import "./WorkoutPlayerModal.css";
 import { BookmarkPlus, Check, ChevronLeft, ChevronRight, ClipboardList, Clock3, Dumbbell, Film, HeartPulse, MessageSquare, MoreVertical, Play, RefreshCw, Shuffle, SquarePen, Target, Timer, Trash2, Trophy, Waves, X } from "lucide-react";
 import { getDisplayTaskStatus, isDirectMediaUrl, makeExerciseLabel, parseExerciseNotes, toMediaCdnUrl, uploadThumbUrl, videoThumbnail } from "./appCore";
 import ContentWatermark from "./ContentWatermark";
+import VideoWatermark from "./VideoWatermark";
 import WorkoutNotes from "./WorkoutNotes";
 import { CalendarDraftBadge } from "./CalendarDraftControls";
 
@@ -926,16 +927,18 @@ export default function WorkoutPlayerModal({
                         {isClientPortal && workoutFocusMode && exerciseVideoUrl && (
                           inlineVideoIndex === index &&
                           isDirectMediaUrl(exerciseVideoUrl) ? (
-                            <video
-                              className="workoutExerciseInlineVideo"
-                              src={toMediaCdnUrl(exerciseVideoUrl)}
-                              poster={exerciseThumb || undefined}
-                              controls
-                              autoPlay
-                              muted
-                              playsInline
-                              preload="metadata"
-                            />
+                            <VideoWatermark>
+                              <video
+                                className="workoutExerciseInlineVideo"
+                                src={toMediaCdnUrl(exerciseVideoUrl)}
+                                poster={exerciseThumb || undefined}
+                                controls
+                                autoPlay
+                                muted
+                                playsInline
+                                preload="metadata"
+                              />
+                            </VideoWatermark>
                           ) : (
                           <button
                             type="button"

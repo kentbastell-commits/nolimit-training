@@ -90,6 +90,7 @@ import {
 } from "./brandAssets";
 import MuscleDiagram from "./MuscleDiagram";
 import PortalToApp from "./PortalToApp";
+import VideoWatermark from "./VideoWatermark";
 
 // Charts are lazy-loaded so recharts stays out of the main bundle.
 const RevenueChart = lazy(() => import("./RevenueChart"));
@@ -689,7 +690,7 @@ function App({ onReady, bootVisible = true }: { onReady?: () => void; bootVisibl
       clientName: string;
       exerciseName: string;
       workoutName: string;
-      assignedWorkoutId?: string; workoutDate?: string; workoutNameCn?: string; submittedAt?: number; reviewedAt?: number; coachReply?: string; coachReplyCn?: string;
+      assignedWorkoutId?: string; workoutDate?: string; workoutNameCn?: string; submittedAt?: number; reviewedAt?: number; coachReply?: string; coachReplyCn?: string; coachReplyAudioUrl?: string;
       videoUrl: string;
       status: string;
     }>
@@ -715,7 +716,7 @@ function App({ onReady, bootVisible = true }: { onReady?: () => void; bootVisibl
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activePage, coachBackgroundReady]);
-  const reviewFormVideo = async (recordId: string) => {
+  const reviewFormVideo = async (recordId: string, extras?: { audioUrl?: string }) => {
     const key = `video:${recordId}`;
     if (coachWriteInFlightRef.current.has(key)) return;
     coachWriteInFlightRef.current.add(key);
@@ -727,13 +728,14 @@ function App({ onReady, bootVisible = true }: { onReady?: () => void; bootVisibl
           recordId,
           coachReply: formVideoReplies[recordId] ?? reviewFormVideos.find(v => v.recordId === recordId)?.coachReply ?? "",
           status: "Reviewed",
+          ...(extras?.audioUrl ? { coachReplyAudioUrl: extras.audioUrl } : {}),
         }),
       });
       const data = await res.json();
       if (!res.ok || !data.success) throw new Error(data.error || "failed");
       setReviewFormVideos((cur) =>
         cur.map((v) =>
-          v.recordId === recordId ? { ...v, status: "Reviewed", coachReply: formVideoReplies[recordId] ?? v.coachReply ?? "", coachReplyCn: "", reviewedAt: Date.now() } : v
+          v.recordId === recordId ? { ...v, status: "Reviewed", coachReply: formVideoReplies[recordId] ?? v.coachReply ?? "", coachReplyCn: "", coachReplyAudioUrl: extras?.audioUrl || v.coachReplyAudioUrl, reviewedAt: Date.now() } : v
         )
       );
       setFormVideoReplies(current => { const next = { ...current }; delete next[recordId]; return next; });
@@ -748,7 +750,7 @@ function App({ onReady, bootVisible = true }: { onReady?: () => void; bootVisibl
   // sends 10-20 clips per workout (CL-6794 had 71 waiting, 2026-10-30) and a
   // per-clip reply flow never clears that queue. Serial PUTs behind one
   // guard; a single toast at the end names how many landed.
-  const reviewFormVideosInSession = async (recordIds: string[], reply: string) => {
+  const reviewFormVideosInSession = async (recordIds: string[], reply: string, extras?: { audioUrl?: string }) => {
     const key = `video-session:${recordIds.join(",")}`;
     if (!recordIds.length || coachWriteInFlightRef.current.has(key)) return;
     coachWriteInFlightRef.current.add(key);
@@ -759,12 +761,12 @@ function App({ onReady, bootVisible = true }: { onReady?: () => void; bootVisibl
           const res = await fetch("/api/formVideos", {
             method: "PUT",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ recordId, coachReply: reply, status: "Reviewed" }),
+            body: JSON.stringify({ recordId, coachReply: reply, status: "Reviewed", ...(extras?.audioUrl ? { coachReplyAudioUrl: extras.audioUrl } : {}) }),
           });
           const data = await res.json();
           if (!res.ok || !data.success) throw new Error(data.error || "failed");
           setReviewFormVideos((cur) =>
-            cur.map((v) => (v.recordId === recordId ? { ...v, status: "Reviewed", coachReply: reply, coachReplyCn: "", reviewedAt: Date.now() } : v))
+            cur.map((v) => (v.recordId === recordId ? { ...v, status: "Reviewed", coachReply: reply, coachReplyCn: "", coachReplyAudioUrl: extras?.audioUrl || v.coachReplyAudioUrl, reviewedAt: Date.now() } : v))
           );
           setFormVideoReplies((current) => { const next = { ...current }; delete next[recordId]; return next; });
         } catch {
@@ -22841,14 +22843,16 @@ function App({ onReady, bootVisible = true }: { onReady?: () => void; bootVisibl
                   </div>
                   <div className="workoutVideoFrame">
                     {nativeFile ? (
-                      <video
-                        src={mediaUrl}
-                        controls
-                        autoPlay
-                        muted
-                        playsInline
-                        preload="metadata"
-                      />
+                      <VideoWatermark label={isClientPortal ? undefined : ""}>
+                        <video
+                          src={mediaUrl}
+                          controls
+                          autoPlay
+                          muted
+                          playsInline
+                          preload="metadata"
+                        />
+                      </VideoWatermark>
                     ) : (
                       <iframe
                         src={embedUrl || workoutVideoOverlay.url}

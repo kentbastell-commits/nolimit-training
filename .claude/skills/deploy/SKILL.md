@@ -80,7 +80,7 @@ A GitHub push does NOT reach production. Push anyway (source-of-truth backup),
 then ship the bundle:
 
 ```bash
-cd /c/Users/kentb/nolimit-training
+cd "C:/Users/kentb/nolimit-training"   # uppercase C: a lowercase drive letter makes vitest report "no tests" for every file (CLAUDE.md #15)
 npx tsc -b --force && npm run build && npx vitest run --maxWorkers=1
 git push origin main
 git bundle create /tmp/nolimit-deploy.bundle main

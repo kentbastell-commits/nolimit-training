@@ -41,3 +41,39 @@ it("loads all athlete uploads with a scoped request and no coach editing control
   expect(fetcher).toHaveBeenCalledWith("/api/formVideos?clientId=CL-1");
   expect(screen.queryByRole("textbox")).not.toBeInTheDocument();
 });
+it("keeps reference-only clips out of the pending count and labels them", () => {
+  const withReference = [
+    ...videos,
+    { recordId: "V5", clientId: "CL-1", workoutName: "Home Workout 1", assignedWorkoutId: "AW-1", workoutDate: "2026-10-20", exerciseName: "Deadlift", status: "Reference" },
+  ];
+  const { container } = render(<WorkoutVideoGroups videos={withReference} coach onReview={vi.fn()} onReviewMany={vi.fn()} />);
+  const older = within(container.querySelectorAll("details")[1] as HTMLElement);
+  // V2 is the only pending clip; V5 is reference-only, so no session reply box appears.
+  expect(older.getByText("1 awaiting feedback")).toBeInTheDocument();
+  expect(older.queryByRole("textbox", { name: "Session feedback" })).not.toBeInTheDocument();
+  expect(older.getByText("Reference only")).toBeInTheDocument();
+});
+it("appends quick replies into the draft and sends a voice note with the session reply", async () => {
+  const many = vi.fn().mockResolvedValue(undefined);
+  const twoPending = [
+    ...videos,
+    { recordId: "V4", clientId: "CL-1", workoutName: "Home Workout 1", assignedWorkoutId: "AW-1", workoutDate: "2026-10-20", exerciseName: "Hang", status: "New" },
+  ];
+  const { container } = render(<WorkoutVideoGroups videos={twoPending} coach onReview={vi.fn()} onReviewMany={many} />);
+  const older = within(container.querySelectorAll("details")[1] as HTMLElement);
+  // The session reply box renders first; each clip has its own chip row after it.
+  const chips = older.getAllByRole("group", { name: "Quick replies" })[0];
+  fireEvent.click(within(chips).getByRole("button", { name: "👍 Good, keep this" }));
+  fireEvent.click(within(chips).getByRole("button", { name: "Elbows in" }));
+  const box = older.getByRole("textbox", { name: "Session feedback" }) as HTMLTextAreaElement;
+  expect(box.value).toBe("👍 Good, keep this; Elbows in");
+  fireEvent.click(older.getByRole("button", { name: /Send to 2 clips/ }));
+  await waitFor(() => expect(many).toHaveBeenCalledWith(["V2", "V4"], "👍 Good, keep this; Elbows in"));
+});
+it("plays a coach voice note beside the written feedback", () => {
+  const voiced = [{ ...videos[0], coachReplyAudioUrl: "/uploads/fa-abc.m4a" }];
+  const { container } = render(<WorkoutVideoGroups videos={voiced} />);
+  const audio = container.querySelector("blockquote audio") as HTMLAudioElement;
+  expect(audio).not.toBeNull(); expect(audio.getAttribute("src")).toBe("/uploads/fa-abc.m4a");
+  expect(screen.getByText("Control the lowering", { selector: "p" })).toBeInTheDocument();
+});

@@ -24,6 +24,8 @@ export type FormVideoDTO = {
   coachReply: string;
   // Translate-on-write mirror for zh athletes (may be empty).
   coachReplyCn: string;
+  // Coach voice note URL (empty when the reply is text only).
+  coachReplyAudioUrl: string;
 };
 
 export type CreateFormVideoInput = {
@@ -36,12 +38,17 @@ export type CreateFormVideoInput = {
   // paths); empty string means a note-only submission.
   absoluteVideoUrl?: string;
   note?: string;
+  // false = "reference only": kept in the athlete's history, never queued
+  // for coach feedback (status "Reference"). Default true.
+  reviewRequested?: boolean;
 };
 
 export type ReviewFormVideoInput = {
   recordId: string;
   coachReply?: string;
   status?: string;
+  // null clears a previous voice note; undefined leaves it untouched.
+  coachReplyAudioUrl?: string | null;
 };
 
 export async function listFormVideos(): Promise<FormVideoDTO[]> {

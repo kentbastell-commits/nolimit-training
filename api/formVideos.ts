@@ -31,7 +31,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     }
 
     if (req.method === "POST") {
-      const { clientId, clientName, exerciseName, workoutName, assignedWorkoutId, videoUrl, note } =
+      const { clientId, clientName, exerciseName, workoutName, assignedWorkoutId, videoUrl, note, reviewRequested } =
         req.body || {};
       // A submission is a video, a written note, or both — clients reviewing a
       // past workout can send a note without re-filming anything.
@@ -60,10 +60,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         assignedWorkoutId,
         absoluteVideoUrl,
         note,
+        reviewRequested: reviewRequested !== false,
       });
       if (!result.success) return res.status(result.error === "Invalid workout" ? 400 : 500).json(result);
 
-      void notifyCoach(
+      // Reference-only clips live in the athlete's history and never ping the coach.
+      if (reviewRequested !== false) void notifyCoach(
         videoUrl
           ? `📹 Form video from ${clientName || clientId}\n${exerciseName || "Exercise"} — review it in the coach app.`
           : `📝 Workout note from ${clientName || clientId}\n${exerciseName || "Exercise"}: ${String(note || "").slice(0, 120)}`
@@ -74,15 +76,18 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     if (req.method === "PUT") {
       if (!coachKeyOk(req as never))
         return res.status(401).json({ error: "Coach access key required" });
-      const { recordId, coachReply, status } = req.body || {};
+      const { recordId, coachReply, status, coachReplyAudioUrl } = req.body || {};
       if (!recordId) return res.status(400).json({ error: "recordId required" });
+      // Only our own uploads may be attached as a voice note.
+      if (coachReplyAudioUrl && !/^(https?:\/\/[^/]+)?\/uploads\/fa-[a-f0-9]+\.(m4a|mp4|webm|ogg|mp3|wav)$/i.test(String(coachReplyAudioUrl)))
+        return res.status(400).json({ error: "Invalid voice note URL" });
 
-      const result = await reviewFormVideo({ recordId, coachReply, status });
+      const result = await reviewFormVideo({ recordId, coachReply, status, coachReplyAudioUrl });
       if (!result.success) return res.status(500).json(result);
       // A real reply (not a bare "mark reviewed") earns the athlete a WeChat
       // 训练总结通知 push — best-effort, after the save has already landed.
       const video = result.video as Parameters<typeof notifyVideoReply>[0] | undefined;
-      if (video?.clientId && String(coachReply || "").trim()) void notifyVideoReply(video);
+      if (video?.clientId && (String(coachReply || "").trim() || coachReplyAudioUrl)) void notifyVideoReply(video);
       return res.status(200).json({ success: true });
     }
 

@@ -4,8 +4,13 @@ export type WorkoutVideo = {
   workoutName?: string; workoutNameCn?: string; assignedWorkoutId?: string;
   workoutDate?: string; submittedAt?: number; reviewedAt?: number;
   status?: string; coachReply?: string; coachReplyCn?: string;
-  videoUrl?: string; clientNote?: string; clientNoteEn?: string;
+  videoUrl?: string; clientNote?: string; clientNoteEn?: string; coachReplyAudioUrl?: string;
 };
+// "Reference" = the athlete kept the clip for their own history and did not
+// ask for feedback; it is never part of the coach's queue.
+export function isVideoPending(video: { status?: string }): boolean {
+  return video.status !== "Reviewed" && video.status !== "Reference";
+}
 export function videoDay(value: unknown): string {
   const s = String(value ?? "");
   if (/^\d{4}-\d{2}-\d{2}$/.test(s)) return s;
@@ -40,7 +45,7 @@ export function groupWorkoutVideos<T extends WorkoutVideo>(videos: readonly T[])
       groups.set(key, group);
     }
     group.videos.push(video);
-    if (video.status !== "Reviewed") group.pending++;
+    if (isVideoPending(video)) group.pending++;
     group.latest = Math.max(group.latest, video.reviewedAt || 0, video.submittedAt || 0);
   }
   return [...groups.values()].sort((a, b) => b.date.localeCompare(a.date) || b.latest - a.latest || a.key.localeCompare(b.key));

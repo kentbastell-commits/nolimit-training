@@ -182,6 +182,15 @@ data between them, never "borrow" a table ID across products.
     the box at the same time; re-run alone before reading any result.
     Use default AND JSON reporters for long runs: JSON-only output stays quiet
     until completion. Silence alone is not evidence of a stalled runner.
+    ROOT CAUSE FOUND 2026-11-24 for the "no tests / failed to find the
+    runner / reading 'config'" shape: the shell cwd arrives as a LOWERCASE
+    drive (`c:\Users\...`) and vitest prints `RUN … c:/Users/…`; the test's
+    `import "vitest"` then resolves to `c:/…/node_modules/vitest` while the
+    worker loaded `C:/…` — two module instances, no worker state. Every file
+    fails identically, alone or in a suite, whatever the free RAM. Fix:
+    `cd "C:/Users/kentb/nolimit-training"` (uppercase C) before any vitest
+    run; `cd /c/...` does NOT normalise the case. Check the `RUN` line's
+    drive letter before blaming load — the memory story above was partly this.
 16. **The clobbered intent** — the store checkout has a `useEffect` keyed on
     `storeSelectedProgram?.recordId` that resets step/add-ons/paymentCode. Any
     handler that sets one of those *while also changing the selected program*

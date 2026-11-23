@@ -920,6 +920,8 @@ export const formVideos = pgTable(
     coachReply: text("coach_reply"),
     // Translate-on-write mirror (LLM/TMT best-effort) for zh athletes.
     coachReplyCn: text("coach_reply_cn"),
+    // Coach voice note (m4a under /uploads/fa-*), migration 0038.
+    coachReplyAudioUrl: text("coach_reply_audio_url"),
     reviewedAt: ts("reviewed_at"),
   },
   (t) => [index("form_videos_client_idx").on(t.clientId)]

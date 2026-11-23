@@ -47,10 +47,13 @@ function resolveWatermarkName(): Promise<string> {
   return inflight;
 }
 
-export default function ContentWatermark() {
+// `enabled=false` (coach surfaces) skips the profile lookup entirely — a
+// coach's browser may still remember an athlete portal code from support.
+export function useWatermarkName(enabled = true): string {
   const [name, setName] = useState(cachedName || "");
 
   useEffect(() => {
+    if (!enabled) return;
     let alive = true;
     resolveWatermarkName().then((n) => {
       if (alive) setName(n);
@@ -58,8 +61,18 @@ export default function ContentWatermark() {
     return () => {
       alive = false;
     };
-  }, []);
+  }, [enabled]);
+  return enabled ? name : "";
+}
 
+/** Test seam: forget the resolved name. */
+export function resetWatermarkNameCache(): void {
+  cachedName = null;
+  inflight = null;
+}
+
+export default function ContentWatermark() {
+  const name = useWatermarkName();
   if (!name) return null;
 
   const tile = `<svg xmlns='http://www.w3.org/2000/svg' width='300' height='200'><text x='150' y='100' font-family='sans-serif' font-size='15' font-weight='700' fill='rgba(128,128,128,0.09)' text-anchor='middle' transform='rotate(-24 150 100)'>${name

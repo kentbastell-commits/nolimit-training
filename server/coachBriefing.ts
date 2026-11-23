@@ -66,7 +66,7 @@ export async function needsYou(now: number): Promise<string[]> {
   const videos = await q(
     `select coalesce(c.full_name, v.client_name, v.client_id) as full_name, count(*)::int as n, min(v.submitted_at)::bigint as oldest
        from form_videos v left join clients c on c.client_id = v.client_id
-      where coalesce(v.status, '') <> 'Reviewed' group by 1 order by 2 desc`);
+      where coalesce(v.status, 'New') not in ('Reviewed', 'Reference') group by 1 order by 2 desc`);
   if (videos.length) {
     const total = videos.reduce((s, r) => s + Number(r.n), 0);
     const oldest = Math.min(...videos.map((r) => Number(r.oldest) || now));
