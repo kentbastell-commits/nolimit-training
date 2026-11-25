@@ -1164,8 +1164,10 @@ data between them, never "borrow" a table ID across products.
     server's CSRF check 403'd every write including login. Rules: any await
     on a Taro UI/navigation call sits in front of a fallback that still does
     the user's job; modal labels are tested for length in both languages
-    (`scripts/test-modal-labels.mjs` in the mini repo); leave pages through
-    `leavePage()` (services/nav.ts), never a bare `navigateBack`. Find these
+    (`scripts/test-modal-labels.mjs` in the mini repo); a `navigateBack`
+    always carries a `.catch` that switches to a tab page. iPhone silent
+    mode also mutes `InnerAudioContext` unless `setInnerAudioOption({
+    obeyMuteSwitch: false })` ran, so voice notes "played" unheard. Find these
     from `logs/client-events.jsonl` (group by message) BEFORE reading code —
     four of five bugs in this hunt were already sitting there with a count.
     A bug hunt also starts with `git status` + file mtimes in the mini repo:
