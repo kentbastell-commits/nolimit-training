@@ -132,6 +132,21 @@ describe("authenticated athlete resource boundary", () => {
     expect((await access("myProfile", "GET", {}, preview.sessionToken)).allowed).toBe(true);
     expect((await access("createClient", "POST", { name: "Unwanted account" }, preview.sessionToken)).response.body.code).toBe("ATHLETE_PREVIEW_READ_ONLY");
   });
+  it("accepts desktop-WeChat mini program writes (Chromium adds Origin) but never a cookie-bearing or foreign-appid one", async () => {
+    vi.stubEnv("WECHAT_MINI_APPID", "wxtestappid");
+    const session = await createAthleteSession("CL-9001", "pin");
+    const chromium = { origin: "https://servicewechat.com", "sec-fetch-site": "cross-site" };
+    const own = { ...chromium, referer: "https://servicewechat.com/wxtestappid/3/page-frame.html" };
+    expect((await access("saveWorkloadLog", "POST", { clientId: "CL-9001" }, session.sessionToken, own)).allowed).toBe(true);
+    // Login from the desktop client reaches the handler instead of a 403.
+    const login = res(); await findPortal(req("POST", { pin: "123456" }, "", { ...own, "x-athlete-platform": "mini" }), login as any);
+    expect(login.statusCode).toBe(200);
+    // Another mini program, a missing referer, or our cookie riding along: still refused.
+    const foreign = { ...chromium, referer: "https://servicewechat.com/wxsomeoneelse/1/page-frame.html" };
+    expect((await access("saveWorkloadLog", "POST", { clientId: "CL-9001" }, session.sessionToken, foreign)).response.statusCode).toBe(403);
+    expect((await access("saveWorkloadLog", "POST", { clientId: "CL-9001" }, session.sessionToken, chromium)).response.statusCode).toBe(403);
+    expect((await access("saveWorkloadLog", "POST", {}, "", { ...own, cookie: `nl-athlete-session=${session.sessionToken}` })).response.statusCode).toBe(403);
+  });
   it("keeps public reference/catalog reads and verified coach access working", async () => {
     expect((await access("coaches")).allowed).toBe(true); expect((await access("programs")).allowed).toBe(true);
     expect((await access("reviews", "GET", { storeOnly: "1" })).allowed).toBe(true);

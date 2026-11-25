@@ -15,7 +15,21 @@ export type AthleteProof = "pin" | "wechat" | "preview";
 // mini program. New installations and an omitted/misspelled setting fail closed.
 export function athleteSessionsRequired() { return process.env.ATHLETE_SESSION_MODE !== "compat"; }
 
+// The mini program on desktop WeChat (and in DevTools) runs on Chromium, which
+// stamps wx.request with Origin / Sec-Fetch-Site like a web page — so every
+// write, logins included, was refused as "cross-site" for athletes on a PC
+// (telemetry 2026-11-03..12). A browser cannot forge Referer onto Tencent's
+// host, and the mini program never carries our session cookie, so a request
+// that names OUR appid there and holds no cookie has no ambient credential
+// for a cross-site attack to ride on.
+function fromOwnMiniProgram(req: VercelRequest): boolean {
+  const appid = process.env.WECHAT_MINI_APPID;
+  return Boolean(appid) && header(req, "referer").startsWith(`https://servicewechat.com/${appid}/`) &&
+    !header(req, "cookie").includes(`${COOKIE}=`);
+}
+
 export function sameOriginRequest(req: VercelRequest): boolean {
+  if (fromOwnMiniProgram(req)) return true;
   if (header(req, "sec-fetch-site") === "cross-site") return false;
   const origin = header(req, "origin");
   if (!origin) return true; // non-browser clients use explicit credentials

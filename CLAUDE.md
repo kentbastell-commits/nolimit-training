@@ -1153,6 +1153,25 @@ data between them, never "borrow" a table ID across products.
 
 82. **Progress history must preserve exercise identity (2026-11-01)** — video submissions store names, not library IDs: group only by normalized case/spacing, keeping exercise variations separate. Order by session date, falling back to upload date, never review time. Scope requests and rendered state to the client; reuse `ReviewVideo` to preserve the one-live-player rule. Comparison choices must use record IDs, since one date can contain several attempts.
 
+83. **The WeChat API that rejects instead of degrading (mini program, 2026-11-25)** —
+    `wx.showModal` REJECTS (no dialog at all) when `confirmText`/`cancelText`
+    is over 4 Chinese characters, a Latin letter counting half: the English
+    "Finish anyway" meant an English-language athlete with one untouched set
+    could not finish a workout, and nothing looked wrong in Chinese.
+    `navigateBack` rejects when the page has no page behind it (share card,
+    push, WeChat restore), stranding a saved workout. Desktop WeChat is
+    Chromium and stamps `wx.request` with Origin/Sec-Fetch-Site, so the
+    server's CSRF check 403'd every write including login. Rules: any await
+    on a Taro UI/navigation call sits in front of a fallback that still does
+    the user's job; modal labels are tested for length in both languages
+    (`scripts/test-modal-labels.mjs` in the mini repo); leave pages through
+    `leavePage()` (services/nav.ts), never a bare `navigateBack`. Find these
+    from `logs/client-events.jsonl` (group by message) BEFORE reading code —
+    four of five bugs in this hunt were already sitting there with a count.
+    A bug hunt also starts with `git status` + file mtimes in the mini repo:
+    a second agent was mid-hunt in the same files; work on a branch worktree
+    and `git apply --check --3way` its diff against yours before handing over.
+
 ## Quality bar — checkable, per deliverable
 
 **Any shipped code change**
